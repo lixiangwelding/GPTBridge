@@ -40,6 +40,21 @@ fn body(id:&str)->Value {json!({"jsonrpc":"2.0","id":1,"method":"tools/call","pa
 async fn stop(mut server:Server) {let _=server.stop.take().unwrap().send(());(&mut server.handle).await.unwrap();}
 
 #[tokio::test]
+async fn mcp_get_rejects_event_stream_without_breaking_health_discovery() {
+    let (_temp,state)=state();let server=start(state).await;let c=client();
+    let endpoint=format!("{}/mcp",server.url);
+    let stream=c.get(&endpoint).header("accept","text/event-stream").send().await.unwrap();
+    assert_eq!(stream.status(),StatusCode::METHOD_NOT_ALLOWED);
+    assert!(stream.bytes().await.unwrap().is_empty());
+    let health=c.get(&endpoint).send().await.unwrap();
+    assert_eq!(health.status(),StatusCode::OK);
+    assert_eq!(health.headers()["cache-control"],"no-store");
+    let discovery:Value=health.json().await.unwrap();
+    assert_eq!(discovery["protocolVersion"],"2025-06-18");
+    stop(server).await;
+}
+
+#[tokio::test]
 async fn one_http_endpoint_routes_two_repositories_and_requires_authentication() {
     let (_temp,state)=state();let server=start(state).await;let c=client();
     assert_eq!(c.post(format!("{}/mcp",server.url)).json(&body("a")).send().await.unwrap().status(),StatusCode::UNAUTHORIZED);

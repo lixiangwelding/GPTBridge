@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use axum::extract::{Form, Query, State};
-use axum::http::{header::CACHE_CONTROL, HeaderMap, StatusCode};
+use axum::http::{header::{ACCEPT, CACHE_CONTROL}, HeaderMap, StatusCode};
 use axum::middleware;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
@@ -201,7 +201,21 @@ fn bind_listener(port: u16) -> Result<tokio::net::TcpListener, String> {
         .map_err(|err| format!("MCP 本地监听器初始化失败: {err}"))
 }
 
-async fn mcp_discovery() -> Response {
+async fn mcp_discovery(headers: HeaderMap) -> Response {
+    // A Streamable HTTP GET may only open an SSE stream or return 405. Keep
+    // the JSON discovery response for existing generic health probes.
+    let accepts_event_stream = headers.get_all(ACCEPT).iter().any(|value| {
+        value.to_str().is_ok_and(|accept| {
+            accept.split(',').any(|media_type| {
+                media_type.trim().split(';').next().is_some_and(|name| {
+                    name.trim().eq_ignore_ascii_case("text/event-stream")
+                })
+            })
+        })
+    });
+    if accepts_event_stream {
+        return StatusCode::METHOD_NOT_ALLOWED.into_response();
+    }
     ([(CACHE_CONTROL, "no-store")], Json(mcp_discovery_payload())).into_response()
 }
 
@@ -462,6 +476,7 @@ fn oauth_not_configured() -> Response {
 #[cfg(test)]
 mod tests {
     use axum::http::header::CACHE_CONTROL;
+    use axum::http::HeaderMap;
     use axum::response::IntoResponse;
 
     use super::{bind_listener, mcp_discovery, mcp_discovery_payload};
@@ -483,7 +498,7 @@ mod tests {
 
     #[tokio::test]
     async fn discovery_prevents_stale_tool_catalog_caching() {
-        let response = mcp_discovery().await.into_response();
+        let response = mcp_discovery(HeaderMap::new()).await.into_response();
 
         assert_eq!(response.headers()[CACHE_CONTROL], "no-store");
     }

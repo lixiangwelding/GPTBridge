@@ -1,6 +1,8 @@
-# Coding Tools MCP Personal 0.3.2
+# Coding Tools MCP Personal 0.3.3
 
-New: [local skill discovery and source references](docs/local-skills.md). Native Rust tools read existing skill directories and resolve submitted `$name` text. This does not register a native ChatGPT composer picker or run skill scripts.
+0.3.3 fixes the `/mcp` event-stream GET response: requests accepting `text/event-stream` now receive `405`, while ordinary health checks can still read the JSON version payload.
+
+Added in 0.3.2: [local skill discovery and source references](docs/local-skills.md). Native Rust tools read existing skill directories and resolve submitted `$name` text. This does not register a native ChatGPT composer picker or run skill scripts.
 
 This is the independent `lixiangwelding` personal fork. See [PERSONAL.md](PERSONAL.md) for the new task workflow, cooperative same-directory writes, durable execution, isolated configuration, and reproducible tests. No worktree or pasted initialization template is required.
 

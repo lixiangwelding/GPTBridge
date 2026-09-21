@@ -1,6 +1,8 @@
-# Coding Tools MCP Personal 0.3.2
+# Coding Tools MCP Personal 0.3.3
 
-本版新增 [本机 Skill 搜索与引用](docs/local-skills.md)：直接读取现有技能目录，支持发送 `$技能名` 后加载，无需复制原件或额外服务。这里的 `$` 是发送后的文本别名，不是 ChatGPT 原生输入框下拉。
+0.3.3 修复 `/mcp` 事件流 GET 的协议响应；以 `Accept: text/event-stream` 请求时返回 `405`，普通健康检查仍可读取版本 JSON。
+
+0.3.2 新增 [本机 Skill 搜索与引用](docs/local-skills.md)：直接读取现有技能目录，支持发送 `$技能名` 后加载，无需复制原件或额外服务。这里的 `$` 是发送后的文本别名，不是 ChatGPT 原生输入框下拉。
 
 这是 `lixiangwelding` 的独立个人二开版。**先看 [个人版使用与验收说明](PERSONAL.md)**：无需复制初始化长提示词、同目录多任务不使用 worktree、持久任务与命令恢复、独立配置与端口。
 

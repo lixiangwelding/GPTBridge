@@ -1,6 +1,8 @@
 # Coding Tools MCP Personal
 
-版本：0.3.2（个人 fork 版本号，不表示与其他上游同号版本实现相同）。
+版本：0.3.3（个人 fork 版本号，不表示与其他上游同号版本实现相同）。
+
+0.3.3 修复 MCP 事件流 GET 响应：客户端以 `Accept: text/event-stream` 访问 `/mcp` 时返回 `405`，普通健康探测仍可读取 JSON 版本信息。修复与验证记录见 [0.3.3 发布说明](docs/release-0.3.3.md)。
 
 0.3.2 新增 [本机 Skill 目录桥接](docs/local-skills.md)：自动发现现有项目/全局 SKILL.md，通过同一个插件按需搜索和引用。`$技能名` 是消息发送后的文本调用约定，不是 ChatGPT 输入框原生下拉；脚本和外部 MCP 不会因读取技能而自动执行或连接。
 
