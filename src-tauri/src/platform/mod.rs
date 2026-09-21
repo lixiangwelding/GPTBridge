@@ -2,6 +2,19 @@ use std::path::{Path, PathBuf};
 
 use crate::error::AppResult;
 
+// Explicit test/personal state root; never redirect to the running legacy installation.
+pub fn personal_home_override() -> AppResult<Option<PathBuf>> {
+    let Some(value) = std::env::var_os("CODING_TOOLS_PERSONAL_HOME") else { return Ok(None); };
+    let path = PathBuf::from(value);
+    if !path.is_absolute() || path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err(crate::error::AppError::Message("CODING_TOOLS_PERSONAL_HOME must be an absolute personal directory".into()));
+    }
+    if path.components().any(|c| c.as_os_str() == "coding-tools-mcp-desktop" || c.as_os_str() == ".coding-tools-mcp-desktop") {
+        return Err(crate::error::AppError::Message("the legacy application's data directory cannot be used by the personal build".into()));
+    }
+    Ok(Some(path))
+}
+
 /// Cross-platform OS primitives used by the desktop runtime.
 ///
 /// Windows uses `windows-rs`. macOS and Linux live in dedicated modules.

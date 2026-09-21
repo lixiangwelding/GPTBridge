@@ -64,6 +64,39 @@ pub fn call_tool(ctx: &ToolContext, name: &str, args: &Value) -> Value {
         return policy_tool_err(e);
     }
 
+    if super::personal::TOOLS.contains(&name) {
+        return match super::personal::call(ctx, name, &effective_args) { Ok(v) => v, Err(e) => tool_err(e) };
+    }
+    let durable_session = effective_args.get("session_id").and_then(Value::as_str).is_some_and(|s|s.starts_with("job-"));
+    let durable_output = effective_args.get("output_ref").and_then(Value::as_str).is_some_and(|s|s.starts_with("job:"));
+    if matches!(name, "apply_patch" | "patch_check" | "exec_command")
+        || (durable_session && matches!(name, "write_stdin" | "kill_session"))
+        || (durable_output && name == "read_output")
+    {
+        // Do not inherit Harness's workspace-global current_task. Every personal write
+        // uses its supplied task_id, so another conversation cannot steal its scope.
+        let result = match name {
+            "apply_patch" => super::personal_patch::apply(ctx, &effective_args),
+            "patch_check" => {
+                let mut check = effective_args.clone(); check["dry_run"] = json!(true);
+                super::personal_patch::apply(ctx, &check)
+            }
+            "exec_command" => exec::exec_command(ctx, &effective_args),
+            "read_output" => super::personal::job_output(ctx, &effective_args),
+            "write_stdin" => super::personal::job_poll(ctx, &effective_args, false),
+            _ => super::personal::job_poll(ctx, &effective_args, true),
+        };
+        let mut output = match result { Ok(v) => v, Err(e) => tool_err(e) };
+        let outcome = if output["ok"] == false { "rejected" }
+            else if output["command_ok"] == false { "failed" }
+            else if matches!(output["status"].as_str(), Some("queued"|"running"|"unknown")) { output["status"].as_str().unwrap() }
+            else { "succeeded" }.to_string();
+        output["operation_status"] = json!(outcome);
+        output["task_scope"] = effective_args.get("task_id").cloned().unwrap_or(Value::Null);
+        output["recovery_hint"] = json!("Use the existing task_id and job_id/session_id; query uncertain outcomes before a new attempt. No worktree or whole-workspace rollback.");
+        return output;
+    }
+
     if crate::harness::tools::TOOL_NAMES.contains(&name) {
         return match crate::harness::tools::call(ctx, name, args) {
             Ok(value) => value,
@@ -294,6 +327,7 @@ pub fn record_tool_rejection_with_audit(
 }
 
 fn apply_default_cwd(ctx: &ToolContext, name: &str, args: &Value) -> Value {
+    if args.get("task_id").is_some() || super::personal::TOOLS.contains(&name) { return args.clone(); }
     let base = if ctx.default_cwd_path() == ctx.workspace.root() {
         ".".to_string()
     } else {
@@ -338,6 +372,9 @@ fn apply_default_cwd(ctx: &ToolContext, name: &str, args: &Value) -> Value {
             if let Some(patch) = effective.get("patch").and_then(Value::as_str) {
                 effective["patch"] = Value::String(prefix_patch_paths(&base, patch));
             }
+            if let Some(hashes) = effective.get("expected_hashes").and_then(Value::as_object).cloned() {
+                effective["expected_hashes"] = Value::Object(hashes.into_iter().map(|(path, hash)| (prefix_relative_path(&base, &path), hash)).collect());
+            }
         }
         _ => {}
     }
@@ -358,9 +395,9 @@ fn prefix_patch_paths(base: &str, patch: &str) -> String {
     patch
         .lines()
         .map(|line| {
-            for marker in ["--- a/", "+++ b/"] {
+            for marker in ["--- a/", "+++ b/", "*** Add File: ", "*** Update File: ", "*** Delete File: "] {
                 if let Some(path) = line.strip_prefix(marker) {
-                    return format!("{marker}{base}/{path}");
+                    return format!("{marker}{}", prefix_relative_path(base, path));
                 }
             }
             line.to_string()
@@ -450,7 +487,7 @@ pub fn server_info(ctx: &ToolContext) -> Result<Value, WorkspaceError> {
     let tools = crate::tools::registry::exposed_tool_names(&ctx.tool_profile);
     Ok(tool_ok(json!({
         "server": "coding-tools-mcp",
-        "title": "Coding Tools MCP",
+        "title": "Coding Tools MCP Personal",
         "version": env!("CARGO_PKG_VERSION"),
         "protocol_version": "2025-06-18",
         "workspace": ctx.workspace.root_display(),
@@ -462,7 +499,9 @@ pub fn server_info(ctx: &ToolContext) -> Result<Value, WorkspaceError> {
         "auth_type": ctx.auth.auth_type,
         "endpoint_path": "/mcp",
         "tools": tools,
-        "tool_count": tools.len()
+        "tool_count": tools.len(),
+        "personal_runtime": {"enabled":true,"task_scope":"explicit_task_id","durable_jobs":true,"same_directory":true,"worktree_required":false,
+            "limits":{"running":8,"heavy":2,"queued_and_running":32},"config_isolated":true,"raw_transcript_capture":"only_explicitly_supplied_text"}
     })))
 }
 

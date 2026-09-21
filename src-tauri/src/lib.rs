@@ -20,6 +20,19 @@ mod tunnel;
 mod update;
 mod workspace;
 
+/// Administrative CLI runs before Tauri, listeners, tunnels or configuration migration.
+pub fn personal_cli() -> Option<i32> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(String::as_str) != Some("--personal-import-config") { return None; }
+    if args.len() != 3 { eprintln!("usage: --personal-import-config /absolute/path/to/old/data/profiles.json"); return Some(2); }
+    let result = platform::platform().app_config_dir().map_err(|e| e.to_string())
+        .and_then(|home| coding_tools_personal_runtime::config::inherit(std::path::Path::new(&args[2]), &home.join("data/profiles.json")).map_err(|e| e.to_string()));
+    match result {
+        Ok(receipt) => { println!("{receipt}"); Some(0) }
+        Err(error) => { eprintln!("configuration import: {error}"); Some(1) }
+    }
+}
+
 use app_state::AppState;
 use commands::{
     check_app_update, clear_all_logs, create_workspace, delete_frp_profile, delete_workspace,
@@ -53,7 +66,7 @@ fn signal_existing_instance() -> bool {
         CreateMutexW(
             None,
             false,
-            w!("Local\\CodingToolsMcpDesktop-SingleInstance"),
+            w!("Local\\CodingToolsMcpPersonal-SingleInstance"),
         )
     }) else {
         eprintln!("创建应用单实例锁失败，为避免误清理其他实例的 frpc，本次启动已取消");
@@ -65,7 +78,7 @@ fn signal_existing_instance() -> bool {
             OpenEventW(
                 EVENT_MODIFY_STATE,
                 false,
-                w!("Local\\CodingToolsMcpDesktop-ShowWindow"),
+                w!("Local\\CodingToolsMcpPersonal-ShowWindow"),
             )
         } {
             let _ = unsafe { SetEvent(event) };
@@ -82,7 +95,7 @@ fn signal_existing_instance() -> bool {
             None,
             false,
             false,
-            w!("Local\\CodingToolsMcpDesktop-ShowWindow"),
+            w!("Local\\CodingToolsMcpPersonal-ShowWindow"),
         )
     }) else {
         return true;
@@ -125,7 +138,7 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
 
     let mut builder = TrayIconBuilder::with_id("main-tray")
         .menu(&menu)
-        .tooltip("Coding Tools MCP")
+        .tooltip("Coding Tools MCP Personal")
         .on_menu_event(|app, event| match event.id.as_ref() {
             "show" => {
                 let _ = commands::window_chrome::show_main_window(app.clone());

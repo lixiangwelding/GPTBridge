@@ -1,6 +1,6 @@
 [package]
-name = "coding-tools-mcp-desktop"
-version = "0.2.3"
+name = "coding-tools-mcp-personal"
+version = "0.3.0"
 description = "Coding Tools MCP desktop client"
 authors = ["Coding Tools MCP Contributors"]
 edition = "2021"
@@ -13,6 +13,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+coding-tools-personal-runtime = { path = "../personal-runtime" }
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
@@ -39,7 +40,7 @@ flate2 = "1"
 tar = "0.4"
 fs2 = "0.4"
 # 审计库内置 SQLite，避免桌面端依赖系统动态库；访问日志只启用本地时钟与标准库。
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "=0.40.2", features = ["bundled"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
 [dev-dependencies]

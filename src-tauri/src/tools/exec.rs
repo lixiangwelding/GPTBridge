@@ -56,6 +56,14 @@ pub fn exec_command(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceE
         }
         return Ok(tool_ok(result));
     }
+    if !args.get("tty").and_then(Value::as_bool).unwrap_or(false)
+        && args.get("durable").and_then(Value::as_bool).unwrap_or(true)
+    {
+        return durable_command(ctx, args, cmd, &workdir.path);
+    }
+    if args.get("task_id").is_some() {
+        return Err(WorkspaceError::invalid_argument("task-bound commands must use non-interactive durable execution; interactive legacy sessions cannot be recovered"));
+    }
     let timeout_ms = args
         .get("timeout_ms")
         .and_then(Value::as_u64)
@@ -104,6 +112,82 @@ pub fn exec_command(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceE
             None => Err(error),
         },
     }
+}
+
+fn durable_command(ctx: &ToolContext, args: &Value, cmd: &str, cwd: &Path) -> Result<Value, WorkspaceError> {
+    use coding_tools_personal_runtime::jobs::JobSpec;
+    use super::personal::error;
+    // Reuse the exact legacy path/executable resolver after dispatcher policy validation.
+    let (program, argv) = parse_and_resolve(cmd, cwd, ctx.workspace.root(), &ctx.policy)?;
+    let platform_command = command_for_program(&program, &argv);
+    let command = platform_command.as_std();
+    let executable = std::path::PathBuf::from(command.get_program());
+    let executable = if executable.is_absolute() { executable } else {
+        which::which(&executable).map_err(|_| WorkspaceError::invalid_argument("platform command runner is unavailable"))?
+    };
+    #[cfg(windows)]
+    if matches!(Path::new(&program).extension().and_then(|x|x.to_str()), Some("bat"|"cmd")) {
+        return Err(WorkspaceError::invalid_argument("durable Windows batch quoting is not yet supported; use an explicit validated interpreter command"));
+    }
+    let mode = args.get("mode").and_then(Value::as_str).unwrap_or("write");
+    let mut resources: Vec<String> = args.get("resources").and_then(Value::as_array)
+        .map(|items| items.iter().map(|v| v.as_str().map(str::to_owned).ok_or_else(|| WorkspaceError::invalid_argument("resources must be strings"))).collect())
+        .transpose()?.unwrap_or_default();
+    if mode == "build" && resources.is_empty() { resources.push("build-output:workspace".into()); }
+    let spec = JobSpec {
+        program: executable,
+        args: command.get_args().map(|x|x.to_string_lossy().into_owned()).collect(),
+        cwd: cwd.to_path_buf(), workspace: ctx.workspace.root().to_path_buf(),
+        stdin: args.get("stdin").and_then(Value::as_str).unwrap_or("").into(),
+        mode: mode.into(), resources,
+        timeout_ms: args.get("timeout_ms").and_then(Value::as_u64).unwrap_or(30_000),
+    };
+    let task = args.get("task_id").and_then(Value::as_str);
+    if task.is_some() && args.get("request_id").and_then(Value::as_str).is_none() {
+        return Err(WorkspaceError::invalid_argument("task-bound exec_command requires a stable request_id"));
+    }
+    let generated = format!("exec-{}", uuid::Uuid::new_v4());
+    let request = args.get("request_id").and_then(Value::as_str).unwrap_or(&generated);
+    let worker = personal_worker_path()?;
+    let first = ctx.personal.launch_job(&worker, &spec, task, request).map_err(error)?;
+    let job = first["job_id"].as_str().ok_or_else(|| WorkspaceError::invalid_argument("worker returned no job identity"))?;
+    let wait = args.get("yield_time_ms").and_then(Value::as_u64).unwrap_or(1000).min(30_000);
+    let max = args.get("max_output_bytes").and_then(Value::as_u64).unwrap_or(65_536).clamp(1,1_048_576) as usize;
+    let start = Instant::now();
+    let mut output = loop {
+        let status = ctx.personal.job_status(job, max).map_err(error)?;
+        if !matches!(status["status"].as_str(), Some("queued"|"running")) || start.elapsed() >= Duration::from_millis(wait) { break status; }
+        std::thread::sleep(Duration::from_millis(20));
+    };
+    output["deduplicated"] = first.get("deduplicated").cloned().unwrap_or(json!(false));
+    output["transport_ok"] = json!(true);
+    output["execution_boundary"] = json!("policy_only");
+    output["sandbox_enforced"] = json!(false);
+    output["stdin_open"] = json!(false);
+    output["interactive"] = json!(false);
+    output["execution_mode"] = json!("durable_worker");
+    output["resolved_cwd"] = json!(cwd);
+    output["request_id_generated"] = json!(request == generated);
+    Ok(tool_ok(output))
+}
+
+fn personal_worker_path() -> Result<std::path::PathBuf, WorkspaceError> {
+    // This is server startup configuration, never a remotely supplied tool argument.
+    if let Some(path) = std::env::var_os("CODING_TOOLS_PERSONAL_WORKER") {
+        let path = std::path::PathBuf::from(path);
+        if !path.is_absolute() || !path.is_file() { return Err(WorkspaceError::invalid_argument("configured personal worker must be an existing absolute executable")); }
+        return Ok(path);
+    }
+    let executable = std::env::current_exe().map_err(|e|WorkspaceError::invalid_argument(e.to_string()))?;
+    #[cfg(test)]
+    {
+        let name = if cfg!(windows) { "coding-tools-personal-worker.exe" } else { "coding-tools-personal-worker" };
+        let candidate = executable.parent().and_then(|p|p.parent()).unwrap_or(Path::new(".")).join(name);
+        if !candidate.is_file() { return Err(WorkspaceError::invalid_argument("build personal-runtime's worker binary before executing integration tests")); }
+        return Ok(candidate);
+    }
+    #[cfg(not(test))]
+    Ok(executable)
 }
 
 fn validate_child_process_scope(_ctx: &ToolContext, args: &Value) -> Result<(), WorkspaceError> {

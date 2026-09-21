@@ -16,12 +16,13 @@ impl Platform for MacPlatform {
     }
 
     fn app_config_dir(&self) -> AppResult<PathBuf> {
+        if let Some(path) = crate::platform::personal_home_override()? { return Ok(path); }
         let base = dirs::home_dir()
             .ok_or_else(|| crate::error::AppError::Message("home dir not found".into()))?;
         Ok(base
             .join("Library")
             .join("Application Support")
-            .join("coding-tools-mcp-desktop"))
+            .join("coding-tools-mcp-personal"))
     }
 
     fn find_pid_listening_on_port(&self, port: u16) -> AppResult<Option<u32>> {

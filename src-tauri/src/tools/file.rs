@@ -57,6 +57,7 @@ pub fn read_file(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> 
             retryable: false,
         });
     }
+    let file_sha256 = coding_tools_personal_runtime::digest(&data);
     let text = String::from_utf8(data).map_err(|_| WorkspaceError::Tool {
         code: "UNSUPPORTED_ENCODING",
         message: "File is not valid utf-8.".into(),
@@ -89,6 +90,7 @@ pub fn read_file(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> 
         "end_line": actual_end,
         "total_lines": total_lines,
         "total_bytes": text.len(),
+        "file_sha256": file_sha256,
         "bytes_read": content.len(),
         "truncated": truncated,
         "truncated_by": truncated_by,

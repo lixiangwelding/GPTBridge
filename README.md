@@ -1,3 +1,11 @@
+# Coding Tools MCP Personal 0.3.0
+
+这是 `lixiangwelding` 的独立个人二开版。**先看 [个人版使用与验收说明](PERSONAL.md)**：无需复制初始化长提示词、同目录多任务不使用 worktree、持久任务与命令恢复、独立配置与端口。
+
+本版与正在运行的旧应用并存；构建、导入和自测不会启动或停止旧服务。个人版尚不提供签名安装包，下方是保留的上游桌面版说明，其安装包链接和历史会话流程不代表本版交付。
+
+---
+
 <p align="center">
   <img src="src-tauri/icons/128x128.png" width="96" alt="Coding Tools MCP 图标">
 </p>

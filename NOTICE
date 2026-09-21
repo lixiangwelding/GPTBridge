@@ -1,0 +1,19 @@
+Coding Tools MCP
+Copyright 2026 Coding Tools MCP Contributors
+
+This product includes software and documentation developed for the
+Coding Tools MCP project.
+
+Source: https://github.com/xyTom/coding-tools-mcp
+
+This personal fork retains the Rust/Tauri implementation and Git history from
+https://github.com/mybolide/coding-tools-mcp
+Base revision: 8e76bd06cce5519acad624cce209cd03a6f7bceb
+
+Personal modifications (2026): task-scoped persistence, cooperative concurrent
+patches, independent durable workers, isolated configuration inheritance,
+simplified initialization instructions, and reproducible regression tests.
+Personal fork: https://github.com/lixiangwelding/coding-tools-mcp-personal
+
+The personal fork is not an official upstream release. Existing notices and
+third-party dependency licenses remain applicable.

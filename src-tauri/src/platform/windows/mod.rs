@@ -16,7 +16,8 @@ impl Platform for WindowsPlatform {
     }
 
     fn app_config_dir(&self) -> AppResult<PathBuf> {
-        paths::roaming_app_data().map(|dir| dir.join("coding-tools-mcp-desktop"))
+        if let Some(path) = crate::platform::personal_home_override()? { return Ok(path); }
+        paths::roaming_app_data().map(|dir| dir.join("coding-tools-mcp-personal"))
     }
 
     fn find_pid_listening_on_port(&self, port: u16) -> AppResult<Option<u32>> {

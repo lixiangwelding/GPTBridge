@@ -16,10 +16,11 @@ impl Platform for LinuxPlatform {
     }
 
     fn app_config_dir(&self) -> AppResult<PathBuf> {
+        if let Some(path) = crate::platform::personal_home_override()? { return Ok(path); }
         let base = dirs::config_dir()
             .or_else(dirs::home_dir)
             .ok_or_else(|| crate::error::AppError::Message("config dir not found".into()))?;
-        Ok(base.join("coding-tools-mcp-desktop"))
+        Ok(base.join("coding-tools-mcp-personal"))
     }
 
     fn find_pid_listening_on_port(&self, port: u16) -> AppResult<Option<u32>> {

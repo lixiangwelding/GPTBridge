@@ -28,7 +28,7 @@ pub const P0_TOOLS: &[(&str, &str, &str, bool, bool, bool)] = &[
     (
         "history_session_bootstrap",
         "Initialize or restore development session",
-        "At the start of every new ChatGPT conversation, call this exactly once before the first response and pass the user's verbatim initial_user_input. It creates or resumes a lossless archive, then returns bounded current state and search/read guidance rather than all history.",
+        "Legacy Markdown archive compatibility only. For new personal workflows use task_open with a goal or task_id; no initialization template is needed. Use this tool only when the user explicitly requests an old history_session archive. Pass available initial_user_input explicitly; unseen chat text cannot be captured.",
         false,
         false,
         false,
@@ -36,7 +36,7 @@ pub const P0_TOOLS: &[(&str, &str, &str, bool, bool, bool)] = &[
     (
         "history_session_checkpoint",
         "Save development checkpoint",
-        "Append an idempotent, redacted development checkpoint. Pass session_key and expected_path exactly as returned by history_session_bootstrap, plus the user's verbatim raw_user_input; the server cannot read ChatGPT transcripts that were not passed as arguments. Changed content for the same turn_id is preserved as a revision.",
+        "Legacy Markdown checkpoint compatibility; new personal tasks use task_checkpoint. For an explicitly requested legacy archive, preserve its bootstrap session_key and expected_path and supply the available raw_user_input. The server cannot read unprovided chat transcripts. Revisions preserve changed content for the same turn_id.",
         false,
         false,
         false,
@@ -409,6 +409,9 @@ pub const ALLOWED_TOOLS: &[&str] = &[
 ];
 
 pub const MUTATING_TOOLS: &[&str] = &[
+    "task_open",
+    "task_checkpoint",
+    "task_status",
     "history_session_bootstrap",
     "history_session_checkpoint",
     "history_session_validate",
@@ -455,7 +458,7 @@ pub const READ_ONLY_TOOLS: &[&str] = &[
 ];
 
 pub fn is_allowed_tool(name: &str) -> bool {
-    ALLOWED_TOOLS.contains(&name)
+    ALLOWED_TOOLS.contains(&name) || super::personal::TOOLS.contains(&name)
 }
 
 pub fn canonical_tool_name(name: &str) -> &str {
@@ -475,11 +478,13 @@ pub fn normalize_tool_profile(profile: &str) -> &'static str {
 }
 
 pub fn exposed_tool_names(tool_profile: &str) -> Vec<&'static str> {
-    match normalize_tool_profile(tool_profile) {
+    let mut names = match normalize_tool_profile(tool_profile) {
         "read-only" => CORE_READ_ONLY_TOOLS.to_vec(),
         "advanced" | "compat-readonly-all" => P0_TOOLS.iter().map(|(name, ..)| *name).collect(),
         _ => CORE_TOOLS.to_vec(),
-    }
+    };
+    if normalize_tool_profile(tool_profile) != "read-only" { names.extend_from_slice(super::personal::TOOLS); }
+    names
 }
 
 pub fn list_tools() -> Vec<Value> {
@@ -487,17 +492,13 @@ pub fn list_tools() -> Vec<Value> {
 }
 
 pub fn list_tools_for_profile(tool_profile: &str) -> Vec<Value> {
-    let compat = tool_profile == "compat-readonly-all";
     exposed_tool_names(tool_profile)
         .into_iter()
         .filter_map(|name| {
+            if super::personal::TOOLS.contains(&name) { return Some(super::personal_schema::definition(name)); }
             P0_TOOLS.iter().find(|(n, ..)| *n == name).map(|entry| {
                 let (name, title, description, read_only, destructive, open_world) = *entry;
-                let (read_only, destructive, open_world) = if compat {
-                    (true, false, false)
-                } else {
-                    (read_only, destructive, open_world)
-                };
+                // A compatibility profile must not mislabel writes as read-only.
                 json!({
                     "name": name,
                     "title": title,
@@ -517,6 +518,13 @@ pub fn list_tools_for_profile(tool_profile: &str) -> Vec<Value> {
 }
 
 pub fn input_schema(name: &str) -> Value {
+    if let Some(schema) = super::personal_schema::schema(name) { return schema; }
+    let mut schema = base_input_schema(name);
+    super::personal_schema::extend(name, &mut schema);
+    schema
+}
+
+fn base_input_schema(name: &str) -> Value {
     match name {
         "history_session_bootstrap" => json!({
             "type": "object",
@@ -931,7 +939,7 @@ mod tests {
             .collect();
         let unique: HashSet<_> = names.iter().copied().collect();
 
-        assert_eq!(tools.len(), 26);
+        assert_eq!(tools.len(), 29);
         assert_eq!(unique.len(), tools.len());
         assert!(names.contains(&"history_session_bootstrap"));
         assert!(names.contains(&"history_session_checkpoint"));

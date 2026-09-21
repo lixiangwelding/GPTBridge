@@ -8,6 +8,11 @@ pub mod git;
 pub mod history;
 mod image_tool;
 pub mod patch;
+pub mod personal;
+mod personal_schema;
+mod personal_patch;
+#[cfg(test)]
+mod personal_tests;
 pub mod policy;
 pub mod registry;
 pub mod session;

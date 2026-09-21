@@ -83,10 +83,10 @@ fn initialize_result() -> Value {
         },
         "serverInfo": {
             "name": "coding-tools-mcp",
-            "title": "Coding Tools MCP",
+            "title": "Coding Tools MCP Personal",
             "version": env!("CARGO_PKG_VERSION")
         },
-        "instructions": "Use these tools only for local coding operations inside the configured workspace. At the start of every new ChatGPT conversation, before answering the user's first request, call history_session_bootstrap exactly once and pass the user's verbatim first request as initial_user_input. Treat bootstrap as required conversation initialization: it creates or resumes a lossless Markdown archive and returns bounded current state, not all history. Use history_session_search followed by history_session_read only when exact earlier context is needed. history_session_read returns a bounded UTF-8-safe page; follow next_cursor with the returned content hash until the relevant archive is complete. Repeated successful bootstrap calls in the same conversation resume the same session and must not create duplicates. Preserve session_key and current_path returned by bootstrap, then pass them unchanged as session_key and expected_path to every history_session_checkpoint call. After completing each user-requested task in the conversation, call history_session_checkpoint before the final response and pass that user's verbatim request as raw_user_input. Only state that progress was saved after checkpoint returns ok=true with the same session_key and path. The server cannot access ChatGPT transcript text that was not provided as a tool argument; persistence is not automatic background persistence."
+        "instructions": crate::tools::personal::INSTRUCTIONS
     })
 }
 
@@ -159,7 +159,9 @@ fn tool_arguments(name: &str, params: &Value) -> Value {
         .get("arguments")
         .cloned()
         .unwrap_or_else(|| serde_json::json!({}));
-    if name.starts_with("history_session_") {
+    if name.starts_with("history_session_") || matches!(name, "task_open" | "task_status") {
+        if !args.is_object() { args = serde_json::json!({}); }
+        args.as_object_mut().unwrap().remove("_host_session_key");
         if let Some(session_key) = params
             .get("_meta")
             .and_then(|meta| meta.get("openai/session"))
@@ -212,23 +214,13 @@ mod tests {
     fn initialize_instructions_define_the_history_persistence_workflow() {
         let initialized = initialize_result();
         let instructions = initialized["instructions"].as_str().expect("instructions");
-        assert!(instructions.contains("history_session_bootstrap"));
-        assert!(instructions.contains("At the start of every new ChatGPT conversation"));
-        assert!(instructions.contains("before answering the user's first request"));
-        assert!(instructions.contains("required conversation initialization"));
-        assert!(instructions.contains("initial_user_input"));
-        assert!(instructions.contains("must not create duplicates"));
-        assert!(instructions.contains("history_session_checkpoint"));
+        assert!(instructions.contains("task_open"));
+        assert!(instructions.contains("task_checkpoint"));
+        assert!(instructions.contains("no pasted startup prompt"));
         assert!(instructions.contains("raw_user_input"));
-        assert!(instructions.contains("history_session_search"));
-        assert!(instructions.contains("history_session_read"));
-        assert!(instructions.contains("follow next_cursor"));
-        assert!(instructions.contains("session_key and current_path returned by bootstrap"));
-        assert!(instructions.contains("session_key and expected_path"));
-        assert!(instructions.contains("After completing each user-requested task"));
-        assert!(instructions.contains("before the final response"));
-        assert!(instructions.contains("checkpoint returns ok=true"));
-        assert!(instructions.contains("not automatic background persistence"));
+        assert!(instructions.contains("Legacy history_session"));
+        assert!(instructions.contains("Unknown results"));
+        assert!(!instructions.contains("call history_session_bootstrap exactly once"));
     }
 
     #[test]
@@ -241,15 +233,10 @@ mod tests {
     #[test]
     fn workspace_prompt_initializes_or_restores_a_chatgpt_session() {
         let component = include_str!("../../../src/lib/components/ChatGptSessionPrompt.svelte");
-
-        assert!(component.contains("ChatGPT 新会话启动提示词"));
-        assert!(component.contains("请初始化或恢复当前项目会话"));
-        assert!(component.contains("如果没有历史记录"));
-        assert!(component.contains("initial_user_input"));
-        assert!(component.contains("raw_user_input"));
-        assert!(component.contains("history_session_search"));
-        assert!(component.contains("history_session_checkpoint"));
-        assert!(!component.contains("打开连接器设置"));
+        assert!(component.contains("无需复制初始化提示词"));
+        assert!(component.contains("task_id"));
+        assert!(component.contains("history_session"));
+        assert!(!component.contains("复制完整提示词"));
     }
 
     #[test]

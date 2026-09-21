@@ -18,7 +18,9 @@ pub fn load_or_migrate() -> AppResult<AppData> {
     let path = data_file_path()?;
     if path.exists() {
         let raw = fs::read_to_string(&path)?;
-        return Ok(serde_json::from_str(&raw).unwrap_or_default());
+        return serde_json::from_str(&raw).map_err(|error| crate::error::AppError::Message(
+            format!("个人版配置无法解析，原文件保持不变: {error}")
+        ));
     }
 
     let app_root = platform().app_config_dir()?;

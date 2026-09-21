@@ -1,3 +1,11 @@
+# Coding Tools MCP Personal 0.3.0
+
+This is the independent `lixiangwelding` personal fork. See [PERSONAL.md](PERSONAL.md) for the new task workflow, cooperative same-directory writes, durable execution, isolated configuration, and reproducible tests. No worktree or pasted initialization template is required.
+
+Build/import/test do not start or stop the legacy application. The upstream desktop documentation below is retained for reference; its downloads and legacy history workflow are not this fork's release artifacts.
+
+---
+
 <p align="center">
   <img src="src-tauri/icons/128x128.png" width="96" alt="Coding Tools MCP icon">
 </p>

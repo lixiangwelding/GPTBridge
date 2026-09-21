@@ -25,20 +25,21 @@ test("GPT 配置卡片不再重复展示会话恢复入口", async () => {
   assert.doesNotMatch(source, /ChatGptSessionPrompt/);
 });
 
-test("会话恢复快捷入口默认紧凑，并可展开完整提示词", async () => {
+test("任务入口无需复制模板，恢复说明默认收起", async () => {
   const source = await readFile(sessionPromptPath, "utf8");
 
   assert.match(source, /let expanded = \$state\(false\)/);
   assert.match(source, /aria-expanded=\{expanded\}/);
-  assert.match(source, /查看完整提示词/);
-  assert.match(source, /\{#if expanded\}[\s\S]*<pre/);
+  assert.match(source, /无需复制初始化提示词/);
+  assert.match(source, /\{#if expanded\}[\s\S]*task_id/);
+  assert.doesNotMatch(source, /const sessionPrompt|navigator.clipboard/);
 });
 
-test("复制和展开操作保留可触达尺寸与状态反馈", async () => {
+test("说明按钮保留可触达尺寸和展开状态", async () => {
   const source = await readFile(sessionPromptPath, "utf8");
 
-  assert.ok((source.match(/min-h-11/g) ?? []).length >= 2, "两个操作按钮都应至少为 44px 高");
-  assert.match(source, /aria-live="polite"/);
-  assert.match(source, /复制完整提示词/);
-  assert.match(source, /已复制/);
+  assert.match(source, /min-h-11/);
+  assert.match(source, /aria-expanded/);
+  assert.match(source, /不会自动读取未传入的聊天/);
+  assert.doesNotMatch(source, /复制完整提示词/);
 });

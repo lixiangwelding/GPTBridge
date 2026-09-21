@@ -28,3 +28,16 @@ src-tauri/icons/logo-design.png
 
 docs/history-session/
 tmp-run
+
+# Personal development outputs and private inherited configuration
+/.artifacts/
+/.personal-home/
+/personal-runtime/target/
+/personal-runtime/.artifacts/
+/.mcp-probe-kit/
+/.cursor/rules/
+**/__pycache__/
+*.pyc
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm

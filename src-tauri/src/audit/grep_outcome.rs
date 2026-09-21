@@ -57,6 +57,7 @@ pub(super) fn classify(
         return response;
     }
 
+
     let session_id = output.get("session_id").and_then(Value::as_str);
     let is_grep = match tool_name {
         "exec_command" => args
@@ -91,7 +92,7 @@ pub(super) fn classify(
 
     if is_grep
         && tool_name == "exec_command"
-        && output.get("status").and_then(Value::as_str) == Some("running")
+        && matches!(output.get("status").and_then(Value::as_str), Some("queued" | "running"))
     {
         if let Some(id) = session_id.filter(|id| !id.is_empty()) {
             if let Ok(mut state) = sessions.lock() {
@@ -359,6 +360,16 @@ mod tests {
         let state = sessions.lock().unwrap();
         assert_eq!(state.sessions.len(), MAX_GREP_SESSIONS);
         assert_eq!(state.sessions.front().unwrap().2, "s-1");
+    }
+
+    #[test]
+    fn queued_durable_grep_retains_its_type_until_polling() {
+        let sessions = Mutex::new(GrepSessions::default());
+        let queued = json!({"ok":true,"transport_ok":true,"status":"queued","session_id":"job-grep"});
+        classify(&sessions,"workspace","mcp","exec_command",&json!({"cmd":"grep missing file"}),&queued);
+        let mut exited = no_match();
+        exited["session_id"] = json!("job-grep");
+        assert_eq!(classify(&sessions,"workspace","mcp","write_stdin",&json!({"session_id":"job-grep"}),&exited).status,"success");
     }
 
     #[cfg(unix)]

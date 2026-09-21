@@ -6,10 +6,10 @@ use serde::{Deserialize, Serialize};
 use crate::error::{AppError, AppResult};
 use crate::settings::AppSettings;
 
-pub const REPO_URL: &str = "https://github.com/mybolide/coding-tools-mcp";
-pub const RELEASES_LATEST_URL: &str = "https://github.com/mybolide/coding-tools-mcp/releases/latest";
+pub const REPO_URL: &str = "https://github.com/lixiangwelding/coding-tools-mcp-personal";
+pub const RELEASES_LATEST_URL: &str = "https://github.com/lixiangwelding/coding-tools-mcp-personal/releases/latest";
 pub const RELEASES_API_URL: &str =
-    "https://api.github.com/repos/mybolide/coding-tools-mcp/releases/latest";
+    "https://api.github.com/repos/lixiangwelding/coding-tools-mcp-personal/releases/latest";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -144,6 +144,14 @@ pub async fn check_app_update(settings: &AppSettings) -> AppResult<UpdateCheckRe
         .map_err(|err| AppError::Message(format!("检查更新失败: {err}")))?;
 
     let status = response.status();
+    // Private source-only builds have no public release yet; never fall back to
+    // upstream binaries, which would replace the user's personal implementation.
+    if status == reqwest::StatusCode::NOT_FOUND {
+        return Ok(UpdateCheckResult {
+            current_version: current_app_version().into(), latest_version: current_app_version().into(),
+            latest_tag: String::new(), update_available: false, release_url: REPO_URL.into(),
+        });
+    }
     let body = response
         .text()
         .await

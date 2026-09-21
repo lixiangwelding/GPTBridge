@@ -126,6 +126,11 @@ pub fn apply_patch(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceEr
     })))
 }
 
+pub(crate) fn touched_paths(text: &str) -> Result<Vec<String>, WorkspaceError> {
+    let mut paths: Vec<String> = parse_unified_diff(text)?.into_iter().map(|file| file.path).collect();
+    paths.sort(); paths.dedup(); Ok(paths)
+}
+
 pub fn patch_check(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
     let mut check_args = args.clone();
     check_args["dry_run"] = Value::Bool(true);
@@ -361,7 +366,7 @@ fn apply_hunks(original: &str, hunks: &[Hunk]) -> Result<String, WorkspaceError>
             .collect();
 
         let pos = find_hunk_position(&lines, &hunk_old, search_at)
-            .ok_or_else(|| patch_failed("Hunk context did not match file content."))?;
+            .ok_or_else(|| patch_failed("Hunk context is missing or ambiguous; re-read the file and include unique surrounding context."))?;
 
         let mut idx = pos;
         for hl in &hunk.lines {
@@ -390,21 +395,23 @@ fn apply_hunks(original: &str, hunks: &[Hunk]) -> Result<String, WorkspaceError>
 
 fn find_hunk_position(lines: &[String], pattern: &[String], start: usize) -> Option<usize> {
     if pattern.is_empty() {
-        return Some(start);
+        return lines.is_empty().then_some(0);
     }
     if start > lines.len() || pattern.len() > lines.len().saturating_sub(start) {
         return None;
     }
+    let mut found = None;
     for i in start..=lines.len().saturating_sub(pattern.len()) {
         if lines[i..i + pattern.len()]
             .iter()
             .zip(pattern.iter())
             .all(|(a, b)| a == b)
         {
-            return Some(i);
+            if found.is_some() { return None; }
+            found = Some(i);
         }
     }
-    None
+    found
 }
 
 fn commit_staged(
