@@ -39,12 +39,15 @@ pub fn create_workspace(
 #[tauri::command]
 pub async fn update_workspace(state: State<'_, AppState>, profile: WorkspaceProfile) -> AppResult<()> {
     validate_upstream_mcps(&profile.runtime.upstream_mcps).map_err(AppError::Message)?;
+    let ids=state.with_workspaces(|store|Ok(store.list().iter().map(|p|p.id.clone()).collect::<Vec<_>>()))?;
+    let running=state.with_runtime(|runtime|Ok(ids.into_iter().filter(|id|runtime.is_running(id,ServiceKind::Mcp)).collect::<std::collections::BTreeSet<_>>()))?;
     let current = state.with_workspaces(|store| {
         let current = store
             .get(&profile.id)
             .cloned()
             .ok_or_else(|| AppError::Message(format!("workspace not found: {}", profile.id)))?;
         validate_workspace_resources_update(store.list(), &current, &profile)?;
+        crate::mcp::gateway::validate_update(&current,&profile,store.list(),&running).map_err(AppError::Message)?;
         store.update(profile.clone())?;
         Ok(current)
     })?;
@@ -94,6 +97,9 @@ pub fn open_workspace_directory(path: String) -> AppResult<()> {
 #[tauri::command]
 pub async fn delete_workspace(state: State<'_, AppState>, id: String) -> AppResult<()> {
     let profile = state.with_workspaces(|store| {
+        if store.list().iter().any(|p|p.runtime.gateway_workspace_ids.contains(&id)) {
+            return Err(AppError::Message("该仓库仍被共享入口引用，请先从入口成员列表移除".into()));
+        }
         store
             .get(&id)
             .cloned()

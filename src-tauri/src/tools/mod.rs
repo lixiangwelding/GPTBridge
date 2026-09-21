@@ -13,6 +13,8 @@ mod personal_schema;
 mod personal_patch;
 #[cfg(test)]
 mod personal_tests;
+#[cfg(test)]
+mod review_tests;
 pub mod policy;
 pub mod registry;
 pub mod session;

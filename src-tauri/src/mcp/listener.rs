@@ -9,7 +9,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::{json, Value};
-use tokio::sync::oneshot;
+use tokio::sync::{oneshot, Semaphore};
 use tower_http::cors::CorsLayer;
 
 use crate::audit::request_context_from_headers;
@@ -39,7 +39,13 @@ struct ListenerState {
     bearer_token: Option<String>,
     oauth: Option<Arc<OAuthRuntime>>,
     oauth_client_secret: Option<String>,
+    gateway: Option<Arc<super::gateway::WorkspaceHub>>,
+    request_slots: Arc<Semaphore>,
 }
+
+#[cfg(test)]
+#[path = "gateway_http_tests.rs"]
+mod gateway_http_tests;
 
 #[allow(clippy::too_many_arguments)]
 pub fn spawn_listener(
@@ -81,6 +87,7 @@ pub fn spawn_listener(
         runtime.permission_mode.clone(),
         upstream,
     );
+    let gateway = super::gateway::WorkspaceHub::load(&workspace_id,mcp.clone(),&runtime.gateway_workspace_ids)?;
     let bearer_token = if auth.bearer_enabled() {
         let key = "bearer_token";
         if auth.use_shared_secrets {
@@ -120,6 +127,8 @@ pub fn spawn_listener(
         bearer_token,
         oauth,
         oauth_client_secret,
+        gateway,
+        request_slots: Arc::new(Semaphore::new(32)),
     };
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
     let profile_id = state.workspace_id.clone();
@@ -151,7 +160,20 @@ async fn serve(
     // 分区避免和同工作区 Actions 日志混写。
     let access_log_state =
         crate::access_log::AccessLogState::new(profile_id.clone(), "mcp", state.mcp.audit_store());
-    let app = Router::new()
+    let app = router(state).layer(middleware::from_fn_with_state(
+        access_log_state, crate::access_log::middleware,
+    ));
+
+    append_profile_log(&profile_id,"stdout.log",&format!("[mcp] listening on http://127.0.0.1:{port}/mcp"));
+    let result = axum::serve(listener, app)
+        .with_graceful_shutdown(async { let _ = shutdown.await; }).await;
+    upstream.shutdown().await;
+    result?;
+    Ok(())
+}
+
+fn router(state: ListenerState) -> Router {
+    Router::new()
         .route("/mcp", get(mcp_discovery).post(mcp_post))
         .route(
             "/.well-known/oauth-authorization-server",
@@ -164,25 +186,8 @@ async fn serve(
         .route("/oauth/authorize", get(oauth_authorize_get).post(oauth_authorize_post))
         .route("/oauth/token", post(oauth_token_post))
         .with_state(state)
+        .layer(axum::extract::DefaultBodyLimit::max(2 * 1024 * 1024))
         .layer(CorsLayer::permissive())
-        .layer(middleware::from_fn_with_state(
-            access_log_state,
-            crate::access_log::middleware,
-        ));
-
-    append_profile_log(
-        &profile_id,
-        "stdout.log",
-        &format!("[mcp] listening on http://127.0.0.1:{port}/mcp"),
-    );
-    let result = axum::serve(listener, app)
-        .with_graceful_shutdown(async {
-            let _ = shutdown.await;
-        })
-        .await;
-    upstream.shutdown().await;
-    result?;
-    Ok(())
 }
 
 fn bind_listener(port: u16) -> Result<tokio::net::TcpListener, String> {
@@ -220,6 +225,9 @@ async fn mcp_post(
     if let Some(response) = require_mcp_auth(&state, &headers) {
         return response;
     }
+    let Ok(permit) = state.request_slots.clone().try_acquire_owned() else {
+        return (StatusCode::TOO_MANY_REQUESTS,[("retry-after","1")],Json(json!({"error":"request capacity reached; query original jobs before retrying writes"}))).into_response();
+    };
     let method = body
         .get("method")
         .and_then(Value::as_str)
@@ -253,13 +261,17 @@ async fn mcp_post(
     );
 
     let mcp = state.mcp.clone();
+    let gateway = state.gateway.clone();
     let profile_id = state.workspace_id.clone();
     let result = tokio::task::spawn_blocking(move || {
-        handle_request_with_context(&mcp, &body, &request_context)
+        // Hold capacity until actual execution ends, including when the HTTP client disconnects.
+        let _permit = permit;
+        match gateway {Some(hub)=>hub.handle(&body,&request_context),None=>handle_request_with_context(&mcp,&body,&request_context)}
     })
     .await;
     match result {
         Ok(response) => {
+            if response.is_null() {return StatusCode::ACCEPTED.into_response();}
             append_profile_log(
                 &profile_id,
                 "mcp-requests.log",

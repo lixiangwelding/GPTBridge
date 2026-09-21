@@ -1,6 +1,8 @@
 # Coding Tools MCP Personal
 
-版本：0.3.0（个人 fork 版本号，不表示与其他上游同号版本实现相同）。
+版本：0.3.1（个人 fork 版本号，不表示与其他上游同号版本实现相同）。
+
+0.3.1 支持 **一个 MCP 地址、一条 FRP 隧道、多个仓库**，通过个人版配置页勾选共享成员。详见 [共享入口操作说明](docs/shared-gateway.md)。默认仍为单仓库，不修改旧服务、旧连接或旧 FRP。
 
 ## 直接使用
 
@@ -12,9 +14,12 @@ npm ci --no-audit --no-fund
 python3 scripts/personal.py build
 python3 scripts/personal.py import-config
 python3 scripts/verify_personal_config.py
+python3 scripts/personal.py check-config
 ```
 
 `build` 只构建，`import-config` 只复制配置，均不会启动 GUI、监听器或隧道。已存在个人配置时导入会拒绝覆盖；这不是需要反复执行的日常命令。可通过 `--source /absolute/path/to/profiles.json` 指定源文件。核验只输出哈希、配置数量及布尔状态，不输出凭据。
+
+`check-config` 使用真实桌面端的配置解析器，只读检查已保存的个人配置和共享成员。0.3.1 兼容早期导入器产生的 `upstream_mcps: null`；新导入不再生成该字段的无效空值。无需删除配置或重导入来升级。
 
 明确准备启用个人版时再运行：
 

@@ -142,6 +142,7 @@ pub type WorkspaceResult<T> = Result<T, WorkspaceError>;
 #[derive(Debug, Clone)]
 pub struct Workspace {
     root: PathBuf,
+    strict_reads: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl Workspace {
@@ -154,11 +155,16 @@ impl Workspace {
                 "Workspace root must be a directory",
             ));
         }
-        Ok(Self { root })
+        Ok(Self { root, strict_reads: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)) })
     }
 
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// Multi-repository endpoints must not reuse legacy explicit external-read semantics.
+    pub fn restrict_reads_to_root(&self) {
+        self.strict_reads.store(true,std::sync::atomic::Ordering::Release);
     }
 
     pub fn root_display(&self) -> String {
@@ -210,6 +216,9 @@ impl Workspace {
         let resolved = candidate
             .canonicalize()
             .map_err(|_| WorkspaceError::not_found(format!("Path not found: {raw}")))?;
+        if self.strict_reads.load(std::sync::atomic::Ordering::Acquire) && !resolved.starts_with(&self.root) {
+            return Err(WorkspaceError::path_outside_workspace());
+        }
         let explicit_external = input.is_absolute()
             || input
                 .components()

@@ -28,7 +28,7 @@ pub fn inherit(source:&Path,destination:&Path)->Result<Value>{
         if !profile.get("tunnel").is_some_and(Value::is_object){profile["tunnel"]=json!({});}
         profile["tunnel"]["type"]=json!("none");profile["tunnel"]["public_url"]=json!("");
         profile["actions"]["tunnel_type"]=json!("none");profile["actions"]["public_url"]=json!("");
-        if let Some(upstreams)=profile["runtime"]["upstream_mcps"].as_array_mut(){for upstream in upstreams{upstream["enabled"]=json!(false);}}
+        if let Some(upstreams)=profile["runtime"].get_mut("upstream_mcps").and_then(Value::as_array_mut){for upstream in upstreams{upstream["enabled"]=json!(false);}}
     }
     let parent=destination.parent().ok_or_else(||Error::contract("INVALID_CONFIG_PATH","configuration parent required"))?;
     crate::store::private_dir(parent)?;

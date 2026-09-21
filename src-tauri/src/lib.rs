@@ -23,6 +23,21 @@ mod workspace;
 /// Administrative CLI runs before Tauri, listeners, tunnels or configuration migration.
 pub fn personal_cli() -> Option<i32> {
     let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(String::as_str) == Some("--personal-check-config") {
+        if args.len()!=2 { eprintln!("usage: --personal-check-config");return Some(2); }
+        let result=(|| -> Result<serde_json::Value, String> {
+            let path=platform::platform().app_config_dir().map_err(|_|"personal home unavailable")?.join("data/profiles.json");
+            let meta=std::fs::symlink_metadata(&path).map_err(|_|"personal configuration is missing")?;
+            if !meta.is_file() || meta.file_type().is_symlink() || meta.len()>16*1024*1024 {return Err("invalid personal configuration file".into());}
+            let bytes=std::fs::read(&path).map_err(|_|"cannot read personal configuration")?;
+            let data:crate::data::AppData=serde_json::from_slice(&bytes).map_err(|_|"configuration failed native desktop deserialization")?;
+            for profile in &data.profiles {
+                crate::mcp::gateway::validate_members(profile,&data.profiles)?;
+            }
+            Ok(serde_json::json!({"ok":true,"profiles":data.profiles.len(),"native_deserialization":true,"services_started":false,"configuration_written":false}))
+        })();
+        return Some(match result {Ok(value)=>{println!("{value}");0},Err(error)=>{eprintln!("configuration check: {error}");1}});
+    }
     if args.get(1).map(String::as_str) != Some("--personal-import-config") { return None; }
     if args.len() != 3 { eprintln!("usage: --personal-import-config /absolute/path/to/old/data/profiles.json"); return Some(2); }
     let result = platform::platform().app_config_dir().map_err(|e| e.to_string())

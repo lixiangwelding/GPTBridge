@@ -55,9 +55,7 @@ def expected_copy(source: dict) -> dict:
             profile["tunnel"] = {}
         profile["tunnel"].update(type="none", public_url="")
         profile["actions"].update(tunnel_type="none", public_url="")
-        # serde_json's mutable indexing in the native importer inserts null for
-        # a missing upstream_mcps field; null is not an enabled upstream.
-        upstreams = profile["runtime"].setdefault("upstream_mcps", None)
+        upstreams = profile["runtime"].get("upstream_mcps")
         if isinstance(upstreams, list):
             for upstream in upstreams:
                 upstream["enabled"] = False
@@ -73,7 +71,16 @@ def verify(source: Path, destination: Path) -> dict:
     original, copied = source.read_bytes(), destination.read_bytes()
     source_value = json.loads(original)
     destination_value = json.loads(copied)
-    if not isinstance(source_value, dict) or expected_copy(source_value) != destination_value:
+    # First personal release inserted null for absent upstream_mcps. Native loading
+    # now accepts that old representation; new imports preserve field absence.
+    comparable = copy.deepcopy(destination_value)
+    if isinstance(source_value, dict) and isinstance(comparable, dict):
+        for original_profile, copied_profile in zip(source_value.get("profiles", []), comparable.get("profiles", [])):
+            original_runtime = original_profile.get("runtime", {})
+            copied_runtime = copied_profile.get("runtime", {})
+            if isinstance(original_runtime, dict) and isinstance(copied_runtime, dict) and "upstream_mcps" not in original_runtime and copied_runtime.get("upstream_mcps") is None:
+                copied_runtime.pop("upstream_mcps", None)
+    if not isinstance(source_value, dict) or expected_copy(source_value) != comparable:
         raise ValueError("copied configuration differs from the documented safe transformation")
     if source.read_bytes() != original or destination.read_bytes() != copied:
         raise ValueError("configuration changed during verification")

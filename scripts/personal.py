@@ -54,6 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     imp = commands.add_parser("import-config", help="copy legacy profiles into the new personal home only")
     imp.add_argument("--source", type=Path)
     commands.add_parser("start", help="explicitly launch the personal app; never stop the old one")
+    commands.add_parser("check-config", help="read the personal configuration with the native desktop parser; do not launch")
     commands.add_parser("info", help="show paths without reading credential values")
     args = parser.parse_args(argv)
     if args.command == "info":
@@ -71,6 +72,8 @@ def main(argv: list[str] | None = None) -> int:
     if not binary.is_file():
         print("Run `python3 scripts/personal.py build` first.", file=sys.stderr)
         return 2
+    if args.command == "check-config":
+        return run([str(binary),"--personal-check-config"],60)
     if args.command == "import-config":
         source = args.source
         if source is None:

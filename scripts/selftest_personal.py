@@ -25,6 +25,7 @@ SUITES: dict[str, list[tuple[str, list[str], int]]] = {
         ("full-rust-regression",["cargo","test","--manifest-path","src-tauri/Cargo.toml","--lib"],480),
     ],
     "frontend": [
+        ("shared-workspace-ui",["node","--test","tests/shared-workspace-form.test.mjs"],60),
         ("prompt-ui",["node","--test","tests/chatgpt-session-prompt-layout.test.mjs"],60),
         ("svelte-check",["npm","run","check"],180),
         ("frontend-build",["npm","run","build"],180),

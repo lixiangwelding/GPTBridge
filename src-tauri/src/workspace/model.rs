@@ -73,8 +73,16 @@ pub struct RuntimeConfig {
     pub workspace_script_extensions: String,
     /// Local MCP servers started by this workspace's public MCP runtime.
     /// They are never reachable directly from the public network.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "nullable_upstreams")]
     pub upstream_mcps: Vec<UpstreamMcpConfig>,
+    /// Explicit owner-approved repositories exposed through this one MCP listener.
+    /// Empty preserves the original single-workspace endpoint and schema.
+    #[serde(default)]
+    pub gateway_workspace_ids: Vec<String>,
+}
+
+fn nullable_upstreams<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<UpstreamMcpConfig>, D::Error> {
+    Ok(Option::<Vec<UpstreamMcpConfig>>::deserialize(d)?.unwrap_or_default())
 }
 
 /// A deliberately narrow, workspace-owned MCP configuration. HTTP endpoints
@@ -289,6 +297,7 @@ impl Default for RuntimeConfig {
             workspace_local_entries: default_workspace_local_entries(),
             workspace_script_extensions: default_workspace_script_extensions(),
             upstream_mcps: Vec::new(),
+            gateway_workspace_ids: Vec::new(),
         }
     }
 }

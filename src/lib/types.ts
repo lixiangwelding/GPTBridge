@@ -31,6 +31,7 @@ export interface RuntimeConfig {
   workspace_local_entries?: boolean;
   workspace_script_extensions?: string;
   upstream_mcps?: UpstreamMcpConfig[];
+  gateway_workspace_ids?: string[];
 }
 
 export interface UpstreamMcpConfig {

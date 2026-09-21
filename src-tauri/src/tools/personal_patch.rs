@@ -35,6 +35,11 @@ pub fn apply(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
         let mut prior = prior; prior["deduplicated"] = json!(true); return Ok(prior);
     }
     let outcome = (|| {
+        if let Some(task) = task {
+            if ctx.personal.task_status(task).map_err(error)?["state"] == "completed" {
+                return Err(error(Error::contract("TASK_COMPLETED","open a follow-up task before applying new patches")));
+            }
+        }
         let expected = args.get("expected_hashes").and_then(Value::as_object)
             .ok_or_else(|| error(Error::contract("PRECONDITION_REQUIRED", "pass hashes from read_file or patch_check for every touched file")))?;
         let mut normalized = BTreeMap::new();

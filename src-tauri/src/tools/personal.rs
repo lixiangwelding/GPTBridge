@@ -1,6 +1,6 @@
 //! Small task API. Task identity is explicit; a workspace never has one global active task.
 use std::time::Duration;
-use coding_tools_personal_runtime::{digest, Error, Store};
+use coding_tools_personal_runtime::{Error, Store};
 use serde_json::{json, Value};
 use super::{context::ToolContext, workspace::{tool_ok, WorkspaceError}};
 
@@ -26,58 +26,13 @@ pub fn call(ctx: &ToolContext, name: &str, args: &Value) -> Result<Value, Worksp
 }
 
 fn open(ctx: &ToolContext, args: &Value) -> coding_tools_personal_runtime::Result<Value> {
-    let store = &ctx.personal;
-    let owner = args.get("_host_session_key").and_then(Value::as_str);
-    let request = args.get("request_id").and_then(Value::as_str);
-    let explicit = args.get("task_id").and_then(Value::as_str);
-    let new_task = args.get("new_task").and_then(Value::as_bool).unwrap_or(false);
-    if explicit.is_none() && (owner.is_none() || new_task) && request.is_none() {
-        return Err(Error::contract("REQUEST_ID_REQUIRED", "send a stable request_id to create a task without conversation metadata, or when requesting a new task"));
-    }
-    let _gate = coding_tools_personal_runtime::locks::gate(&store.dir, "task-open", true, Duration::from_secs(5))?;
-    let mut canonical = args.clone();
-    if let Some(obj) = canonical.as_object_mut() { obj.remove("_host_session_key"); }
-    let scope = format!("task-open:{}", digest(owner.unwrap_or("explicit-request")));
-    if let Some(key) = request {
-        if let Some(cached) = store.begin_receipt(&scope, key, &digest(canonical.to_string()))? {
-            if let Some(task) = cached["task_id"].as_str() {
-                let mut view = task_view(store, task, &json!({}))?;
-                view["deduplicated"] = json!(true);
-                return Ok(view);
-            }
-            return Ok(cached);
-        }
-    }
-    let outcome = (|| {
-        let state = if let Some(task) = explicit {
-            let state = store.task_status(task)?;
-            if let Some(goal) = args.get("goal").and_then(Value::as_str) {
-                if state["goal"] != goal { return Err(Error::contract("GOAL_CONFLICT", "task_id refers to a different goal")); }
-            }
-            if let Some(owner) = owner { store.bind_task(owner, task)?; }
-            state
-        } else {
-            let goal = coding_tools_personal_runtime::store::text(args, "goal", 16_384)?;
-            store.task_open(goal, owner, new_task)?
-        };
-        let task = state["task_id"].as_str().ok_or_else(|| Error::contract("STATE_CORRUPT", "task has no ID"))?;
-        // Raw text is optional, private, and never synthesized from unavailable conversations.
-        if let Some(raw) = args.get("raw_user_input").and_then(Value::as_str) {
-            store.event(task, "user_input", &json!({"text": raw}))?;
-        }
-        let mut view = task_view(store, task, &json!({}))?;
-        view["instructions"] = json!(INSTRUCTIONS);
-        view["raw_input_captured"] = json!(args.get("raw_user_input").is_some());
-        Ok(view)
-    })();
-    if let Some(key) = request {
-        match &outcome {
-            Ok(v) => store.finish_receipt(&scope, key, v)?,
-            // The intent stays indeterminate on error; it cannot silently create a duplicate task.
-            Err(_) => {}
-        }
-    }
-    outcome
+    let receipt = ctx.personal.open_task_request(args)?;
+    let task = receipt["task_id"].as_str().ok_or_else(||Error::contract("STATE_CORRUPT","task receipt has no ID"))?;
+    let mut view = task_view(&ctx.personal,task,&json!({}))?;
+    view["instructions"] = json!(INSTRUCTIONS);
+    view["raw_input_captured"] = receipt["raw_input_captured"].clone();
+    view["deduplicated"] = receipt["deduplicated"].clone();
+    Ok(view)
 }
 
 fn status(ctx: &ToolContext, args: &Value) -> coding_tools_personal_runtime::Result<Value> {

@@ -58,7 +58,7 @@ class ConfigVerificationTests(unittest.TestCase):
         source = self.fixture()
         del source["profiles"][0]["runtime"]["upstream_mcps"]
         result = expected_copy(source)
-        self.assertIsNone(result["profiles"][0]["runtime"]["upstream_mcps"])
+        self.assertNotIn("upstream_mcps", result["profiles"][0]["runtime"])
         self.assertNotIn("upstream_mcps", source["profiles"][0]["runtime"])
 
     def test_same_source_destination_is_rejected(self):
@@ -67,6 +67,19 @@ class ConfigVerificationTests(unittest.TestCase):
             path.write_text(json.dumps(self.fixture()))
             with self.assertRaises(ValueError):
                 verify(path, path)
+
+    def test_previous_null_representation_is_accepted_but_never_rewritten(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source, dest = Path(directory)/"source.json", Path(directory)/"copy.json"
+            data = self.fixture()
+            del data["profiles"][0]["runtime"]["upstream_mcps"]
+            source.write_text(json.dumps(data))
+            copied = expected_copy(data)
+            copied["profiles"][0]["runtime"]["upstream_mcps"] = None
+            dest.write_text(json.dumps(copied))
+            before = dest.read_bytes()
+            self.assertTrue(verify(source,dest)["verified"])
+            self.assertEqual(before,dest.read_bytes())
 
 
 if __name__ == "__main__":

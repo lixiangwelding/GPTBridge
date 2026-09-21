@@ -54,24 +54,19 @@ pub fn apply_patch(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceEr
 
     for fp in &file_patches {
         ws.reject_unsafe_text(&fp.path)?;
-        let resolved = if fp.is_new_file {
-            ws.resolve_for_write(&fp.path)?
-        } else {
-            ws.resolve_existing(&fp.path)?
-        };
+        let resolved = ws.resolve_for_write(&fp.path)?;
         ws.reject_write_symlink(&fp.path)?;
 
-        let original = if fp.is_new_file {
-            // An Add File envelope is replacement content even when an earlier
-            // Delete File for the same path exists in this transaction.
-            String::new()
-        } else if resolved.existed {
-            fs::read_to_string(&resolved.path)
-                .map_err(|_| WorkspaceError::not_found(format!("File not found: {}", fp.path)))?
-        } else if fp.is_new_file || fp.is_deleted {
-            String::new()
-        } else {
-            return Err(patch_failed(format!("File not found: {}", fp.path)));
+        // Later file sections must use the already staged text, not the original
+        // on-disk preimage; otherwise the final section silently loses earlier edits.
+        let original = match staged.get(&resolved.display) {
+            Some(Some(text)) if !fp.is_new_file => text.clone(),
+            Some(None) if fp.is_new_file => String::new(),
+            Some(_) => return Err(patch_failed(format!("Conflicting file operations: {}",fp.path))),
+            None if fp.is_new_file => String::new(),
+            None if resolved.existed => fs::read_to_string(&resolved.path)
+                .map_err(|_|WorkspaceError::not_found(format!("File not found: {}",fp.path)))?,
+            None => return Err(WorkspaceError::not_found(format!("File not found: {}",fp.path))),
         };
 
         if fp.is_deleted {

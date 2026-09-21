@@ -2,6 +2,7 @@
 pub mod locks;
 pub mod store;
 pub mod tasks;
+mod task_open;
 pub mod jobs;
 pub mod worker;
 pub mod config;

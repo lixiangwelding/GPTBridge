@@ -1,6 +1,8 @@
-# Coding Tools MCP Personal 0.3.0
+# Coding Tools MCP Personal 0.3.1
 
 This is the independent `lixiangwelding` personal fork. See [PERSONAL.md](PERSONAL.md) for the new task workflow, cooperative same-directory writes, durable execution, isolated configuration, and reproducible tests. No worktree or pasted initialization template is required.
+
+Version 0.3.1 adds an opt-in, authenticated multi-repository gateway on one MCP endpoint and one FRP route. See [shared-gateway.md](docs/shared-gateway.md). It also repairs native configuration loading, atomic task creation, and sequential same-file patches. The running legacy service is not modified.
 
 Build/import/test do not start or stop the legacy application. The upstream desktop documentation below is retained for reference; its downloads and legacy history workflow are not this fork's release artifacts.
 

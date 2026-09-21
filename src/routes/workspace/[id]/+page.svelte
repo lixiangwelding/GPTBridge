@@ -13,6 +13,7 @@
   } from "$lib/components/RuntimePolicyForm.svelte";
   import UpstreamMcpForm from "$lib/components/UpstreamMcpForm.svelte";
   import ChatGptSessionPrompt from "$lib/components/ChatGptSessionPrompt.svelte";
+  import SharedWorkspaceForm from "$lib/components/SharedWorkspaceForm.svelte";
   import ServicePanel from "$lib/components/ServicePanel.svelte";
   import GptQuickCopy from "$lib/components/GptQuickCopy.svelte";
   import StatusOrb from "$lib/components/StatusOrb.svelte";
@@ -428,6 +429,18 @@
     await promptServiceRestart(mcpStatus === "running", "MCP 服务");
   }
 
+  async function saveSharedWorkspaces(ids: string[]) {
+    if (!profile) return;
+    const target = profile.id;
+    if (ids.length && !(await confirm("当前入口的登录凭据将可访问所选仓库。只启动这一条入口和 FRP，其他仓库不需要单独启动。确认保存？", { title: "确认共享仓库", kind: "warning" }))) return;
+    const next: WorkspaceProfile = { ...profile, runtime: { ...profile.runtime, gateway_workspace_ids: ids } };
+    await updateWorkspace(next);
+    if (workspaceId !== target) return;
+    profile = next;
+    await load();
+    showToast("共享入口已保存；下次手动启动个人版 MCP 时生效，未启动或重启任何服务。", { kind: "success" });
+  }
+
   async function saveUpstreamMcps(configs: UpstreamMcpConfig[]) {
     if (!profile) return;
     const next: WorkspaceProfile = {
@@ -677,6 +690,11 @@
                 workspaceScriptExtensions={profile.runtime.workspace_script_extensions ?? ".exe,.bat,.cmd,.ps1"}
                 onSave={saveMcpPolicy}
               />
+            </div>
+            <div>
+              <SharedWorkspaceForm profiles={$workspaces} hostId={profile.id}
+                selectedIds={profile.runtime.gateway_workspace_ids ?? []}
+                running={mcpStatus === "running"} onSave={saveSharedWorkspaces} />
             </div>
             <div>
               <p class="tx-section-label">本地 MCP</p>
