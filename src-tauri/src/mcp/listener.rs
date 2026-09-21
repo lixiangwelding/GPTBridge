@@ -41,6 +41,9 @@ struct ListenerState {
     oauth_client_secret: Option<String>,
     gateway: Option<Arc<super::gateway::WorkspaceHub>>,
     request_slots: Arc<Semaphore>,
+    // Long waits cannot occupy all total slots. Queries and cancellation retain
+    // capacity across repositories; both permits live until execution ends.
+    waiting_slots: Arc<Semaphore>,
 }
 
 #[cfg(test)]
@@ -129,6 +132,7 @@ pub fn spawn_listener(
         oauth_client_secret,
         gateway,
         request_slots: Arc::new(Semaphore::new(32)),
+        waiting_slots: Arc::new(Semaphore::new(24)),
     };
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
     let profile_id = state.workspace_id.clone();
@@ -239,8 +243,17 @@ async fn mcp_post(
     if let Some(response) = require_mcp_auth(&state, &headers) {
         return response;
     }
-    let Ok(permit) = state.request_slots.clone().try_acquire_owned() else {
-        return (StatusCode::TOO_MANY_REQUESTS,[("retry-after","1")],Json(json!({"error":"request capacity reached; query original jobs before retrying writes"}))).into_response();
+    let tool=body["params"]["name"].as_str().unwrap_or("");
+    let waiting=body["method"]=="tools/call" && (
+        state.mcp.upstream.owns_tool(tool) || matches!(crate::tools::registry::canonical_tool_name(tool),
+            "exec_command" | "exec_health_check" | "write_stdin"));
+    let waiting_permit=if waiting {
+        match state.waiting_slots.clone().try_acquire_owned() {
+            Ok(permit)=>Some(permit),Err(_)=>return capacity_response(),
+        }
+    } else {None};
+    let permit=match state.request_slots.clone().try_acquire_owned() {
+        Ok(permit)=>permit,Err(_)=>return capacity_response(),
     };
     let method = body
         .get("method")
@@ -280,6 +293,7 @@ async fn mcp_post(
     let result = tokio::task::spawn_blocking(move || {
         // Hold capacity until actual execution ends, including when the HTTP client disconnects.
         let _permit = permit;
+        let _waiting_permit = waiting_permit;
         match gateway {Some(hub)=>hub.handle(&body,&request_context),None=>handle_request_with_context(&mcp,&body,&request_context)}
     })
     .await;
@@ -379,6 +393,12 @@ async fn mcp_post(
             .into_response()
         }
     }
+}
+
+fn capacity_response() -> Response {
+    (StatusCode::TOO_MANY_REQUESTS,[("retry-after","1")],Json(json!({
+        "error":"request capacity reached; query original jobs before retrying writes"
+    }))).into_response()
 }
 
 fn require_mcp_auth(state: &ListenerState, headers: &HeaderMap) -> Option<Response> {

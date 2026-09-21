@@ -41,8 +41,9 @@ pub fn run(dir: PathBuf, job: &str) -> Result<()> {
     write_json(&logdir.join("worker.json"), &json!({"job_id":job,"worker_pid":std::process::id(),"created":now_ms()}))?;
     let start = Instant::now();
     let mut heartbeat = Instant::now();
+    let control = store.conn()?;
     let guards = loop {
-        if store.job_cancelled(job)? {
+        if store.job_cancelled_on(&control,job)? {
             store.finish_job(job, "cancelled", None, "cancelled before execution")?;
             return Ok(());
         }
@@ -51,22 +52,22 @@ pub fn run(dir: PathBuf, job: &str) -> Result<()> {
             return Ok(());
         }
         if heartbeat.elapsed() >= Duration::from_secs(1) {
-            store.conn()?.execute("UPDATE jobs SET updated=?2 WHERE id=?1 AND state='queued'", (job, now_ms()))?;
+            control.execute("UPDATE jobs SET updated=?2 WHERE id=?1 AND state='queued'", (job, now_ms()))?;
             heartbeat = Instant::now();
         }
         if let Some(guards) = acquire(&store, &spec)? { break guards; }
         std::thread::sleep(Duration::from_millis(100));
     };
-    let claimed = store.conn()?.execute(
+    let claimed = control.execute(
         "UPDATE jobs SET state='running',updated=?2 WHERE id=?1 AND state='queued'", (job, now_ms()),
     )?;
     if claimed != 1 { return Ok(()); }
-    let result = execute(&store, job, &spec, &guards);
+    drop(control);
+    let result = execute(&store, job, &spec, guards);
     // execute's owned-child guard runs before resource locks can be released.
     if let Err(error) = &result {
         let _ = store.finish_job(job, "unknown", None, &format!("worker error {}; inspect effects before retry", error.code()));
     }
-    drop(guards);
     result
 }
 
@@ -107,7 +108,7 @@ impl OwnedCommand {
 }
 impl Drop for OwnedCommand { fn drop(&mut self) { self.stop(); } }
 
-fn execute(store: &Store, job: &str, spec: &JobSpec, guards: &[Guard]) -> Result<()> {
+fn execute(store: &Store, job: &str, spec: &JobSpec, guards: Vec<Guard>) -> Result<()> {
     let logdir = store.dir.join("jobs").join(job);
     let mut command = Command::new(&spec.program);
     command.args(&spec.args).current_dir(&spec.cwd)
@@ -139,6 +140,8 @@ fn execute(store: &Store, job: &str, spec: &JobSpec, guards: &[Guard]) -> Result
     let child = match command.spawn() {
         Ok(child) => child,
         Err(error) => {
+            // No command was started; release reservations before publishing.
+            drop(guards);
             store.finish_job(job, "spawn_failed", None, &format!("command launch failed: {}", error.kind()))?;
             return Ok(());
         }
@@ -163,6 +166,10 @@ fn execute(store: &Store, job: &str, spec: &JobSpec, guards: &[Guard]) -> Result
     write_json(&logdir.join("output.json"), &json!({
         "stdout":stdout_result?,"stderr":stderr_result?,"duration_ms":start.elapsed().as_millis()
     }))?;
+    // Child groups have stopped, pipes are joined and output is durable. A
+    // terminal receipt must not race with still-held source/resource permits.
+    // On earlier errors, parameter drop runs after OwnedCommand's cleanup.
+    drop(guards);
     store.finish_job(job, state, exit_code, if state == "exited" {
         "command exited; business acceptance is separate"
     } else { "owned command stopped; inspect side effects before retry" })?;
@@ -176,12 +183,13 @@ fn execute(store: &Store, job: &str, spec: &JobSpec, guards: &[Guard]) -> Result
 fn monitor(store: &Store, job: &str, owned: &mut OwnedCommand, timeout: Duration) -> Result<(&'static str, Option<i32>)> {
     let start = Instant::now();
     let mut heartbeat = Instant::now();
+    let control = store.conn()?;
     loop {
         if let Some(status) = owned.child.try_wait()? { return Ok(("exited", status.code())); }
-        if store.job_cancelled(job)? { return Ok(("cancelled", None)); }
+        if store.job_cancelled_on(&control,job)? { return Ok(("cancelled", None)); }
         if start.elapsed() >= timeout { return Ok(("timeout", None)); }
         if heartbeat.elapsed() >= Duration::from_secs(1) {
-            store.conn()?.execute("UPDATE jobs SET updated=?2 WHERE id=?1 AND state='running'", (job, now_ms()))?;
+            control.execute("UPDATE jobs SET updated=?2 WHERE id=?1 AND state='running'", (job, now_ms()))?;
             heartbeat = Instant::now();
         }
         std::thread::sleep(Duration::from_millis(30));

@@ -153,12 +153,7 @@ fn durable_command(ctx: &ToolContext, args: &Value, cmd: &str, cwd: &Path) -> Re
     let job = first["job_id"].as_str().ok_or_else(|| WorkspaceError::invalid_argument("worker returned no job identity"))?;
     let wait = args.get("yield_time_ms").and_then(Value::as_u64).unwrap_or(1000).min(30_000);
     let max = args.get("max_output_bytes").and_then(Value::as_u64).unwrap_or(65_536).clamp(1,1_048_576) as usize;
-    let start = Instant::now();
-    let mut output = loop {
-        let status = ctx.personal.job_status(job, max).map_err(error)?;
-        if !matches!(status["status"].as_str(), Some("queued"|"running")) || start.elapsed() >= Duration::from_millis(wait) { break status; }
-        std::thread::sleep(Duration::from_millis(20));
-    };
+    let mut output = ctx.personal.wait_job(job,Duration::from_millis(wait),max).map_err(error)?;
     output["deduplicated"] = first.get("deduplicated").cloned().unwrap_or(json!(false));
     output["transport_ok"] = json!(true);
     output["execution_boundary"] = json!("policy_only");

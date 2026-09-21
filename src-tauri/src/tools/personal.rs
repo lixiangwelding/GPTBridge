@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use super::{context::ToolContext, workspace::{tool_ok, WorkspaceError}};
 
 pub const TOOLS: &[&str] = &["task_open", "task_status", "task_checkpoint"];
-pub const INSTRUCTIONS: &str = "Use task_open with the user's goal (or task_id to resume); no pasted startup prompt is required. Keep task_id on every write/command. Use a stable request_id for each logical mutation and expected_revision for task_checkpoint. Read file_sha256 and pass expected_hashes to apply_patch; on conflict re-read and merge, never restore an old workspace snapshot. Independent work may run concurrently in the same directory; no worktree is required. Non-interactive exec_command uses durable jobs; query the returned job/session before retrying. Save step deltas and evidence using task_checkpoint before replying. Only explicitly supplied goal/raw_user_input is recorded; do not claim automatic access to unprovided chat text. Legacy history_session tools remain available for old archives. Unknown results require inspection, never blind replay.";
+pub const INSTRUCTIONS: &str = "Use task_open with the user's goal (or task_id to resume); no pasted startup prompt is required. Keep task_id on every write/command. Use a stable request_id for each logical mutation and expected_revision for task_checkpoint. Read file_sha256 and pass expected_hashes to apply_patch; on conflict re-read and merge, never restore an old workspace snapshot. Independent work may run concurrently in the same directory; no worktree is required. Non-interactive exec_command uses durable jobs; query the returned job/session before retrying. Save step deltas and evidence using task_checkpoint before replying. Only explicitly supplied goal/raw_user_input is recorded; do not claim automatic access to unprovided chat text. Legacy history_session tools remain available for old archives. Unknown results require inspection, never blind replay. For filesystem reads, prefer the exposed native file/search tools rather than exec_command, whose default write mode takes the source lock. Only declare read/build modes when exposed and accurate; never label writes as reads. For long commands, use short initial yield_time_ms and bounded polling of the original job instead of repeatedly holding 30-second HTTP waits.";
 
 pub fn error(e: Error) -> WorkspaceError {
     WorkspaceError::ToolDetails {
@@ -113,15 +113,9 @@ pub fn job_poll(ctx: &ToolContext, args: &Value, cancel: bool) -> Result<Value, 
     if cancel { ctx.personal.cancel_job(job).map_err(error)?; }
     let wait = args.get(if cancel { "wait_ms" } else { "yield_time_ms" }).and_then(Value::as_u64).unwrap_or(1000).min(30_000);
     let max = args.get("max_output_bytes").and_then(Value::as_u64).unwrap_or(65_536).clamp(1, 1_048_576) as usize;
-    let start = std::time::Instant::now();
-    loop {
-        let mut result = ctx.personal.job_status(job, max).map_err(error)?;
-        if !matches!(result["status"].as_str(), Some("queued" | "running")) || start.elapsed() >= Duration::from_millis(wait) {
-            result["transport_ok"] = json!(true);
-            return Ok(tool_ok(result));
-        }
-        std::thread::sleep(Duration::from_millis(30));
-    }
+    let mut result=ctx.personal.wait_job(job,Duration::from_millis(wait),max).map_err(error)?;
+    result["transport_ok"]=json!(true);
+    Ok(tool_ok(result))
 }
 
 pub fn job_output(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {

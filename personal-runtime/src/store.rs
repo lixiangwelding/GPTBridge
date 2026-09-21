@@ -62,7 +62,10 @@ impl Store {
         CREATE INDEX IF NOT EXISTS events_task_seq ON events(task_id,seq);
         CREATE TABLE IF NOT EXISTS receipts(scope TEXT NOT NULL, request_id TEXT NOT NULL, input_hash TEXT NOT NULL, state TEXT NOT NULL, result TEXT, PRIMARY KEY(scope,request_id));
         CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY, task_id TEXT, scope TEXT NOT NULL, request_id TEXT NOT NULL, input_hash TEXT NOT NULL, spec TEXT NOT NULL, state TEXT NOT NULL, exit_code INTEGER, created INTEGER NOT NULL, updated INTEGER NOT NULL, cancel INTEGER NOT NULL DEFAULT 0, detail TEXT NOT NULL DEFAULT '', UNIQUE(scope,request_id));
-        CREATE INDEX IF NOT EXISTS jobs_task_updated ON jobs(task_id,updated);")?;
+        CREATE INDEX IF NOT EXISTS jobs_task_updated ON jobs(task_id,updated);
+        CREATE INDEX IF NOT EXISTS jobs_created ON jobs(created DESC,id);
+        CREATE INDEX IF NOT EXISTS jobs_task_created ON jobs(task_id,created DESC,id);
+        CREATE INDEX IF NOT EXISTS jobs_active ON jobs(state) WHERE state IN ('queued','running');")?;
         Ok(s)
     }
     pub fn conn(&self) -> Result<Connection> {

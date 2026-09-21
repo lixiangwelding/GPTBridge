@@ -1,5 +1,6 @@
 use std::{fs, io::{Read,Seek,SeekFrom}, path::{Path,PathBuf}, process::{Command,Stdio}};
-use rusqlite::OptionalExtension;
+use rusqlite::{Connection, OptionalExtension};
+use std::time::{Duration, Instant};
 use serde::{Deserialize,Serialize};
 use serde_json::{json,Value};
 use crate::{Store,Error,Result,digest,now_ms};
@@ -76,48 +77,101 @@ impl Store {
         let mut q=c.prepare("SELECT id FROM jobs WHERE state IN ('running','unknown') AND json_extract(spec,'$.mode') <> 'read' LIMIT 64")?;
         let ids=q.query_map([],|r|r.get::<_,String>(0))?.collect::<std::result::Result<Vec<_>,_>>()?;
         let mut result=Vec::new();
-        for id in ids {if self.job_status(&id,1)?["status"]=="unknown" {result.push(id);}}
+        for id in ids {if self.job_status_on(&c,&id,None)?["status"]=="unknown" {result.push(id);}}
         Ok(result)
     }
-    pub fn job_cancelled(&self,job:&str)->Result<bool> {Ok(self.conn()?.query_row("SELECT cancel FROM jobs WHERE id=?1",[id(job)?],|r|r.get::<_,i64>(0))?!=0)}
+    pub fn job_cancelled(&self,job:&str)->Result<bool> {self.job_cancelled_on(&self.conn()?,job)}
+    pub(crate) fn job_cancelled_on(&self,c:&Connection,job:&str)->Result<bool> {
+        Ok(c.prepare_cached("SELECT cancel FROM jobs WHERE id=?1")?
+            .query_row([id(job)?],|r|r.get::<_,i64>(0))?!=0)
+    }
     pub fn cancel_job(&self,job:&str)->Result<Value> {
         id(job)?;self.conn()?.execute("UPDATE jobs SET cancel=1 WHERE id=?1 AND state IN ('queued','running')",[job])?;
         self.job_status(job,4096)
     }
     pub fn job_status(&self,job:&str,max_output:usize)->Result<Value> {
+        self.job_status_on(&self.conn()?,job,Some(max_output))
+    }
+
+    // A connection belongs to this request, never a global mutex. No read
+    // transaction spans a sleep, so worker commits/cancellation remain visible.
+    fn job_status_on(&self,c:&Connection,job:&str,max_output:Option<usize>)->Result<Value> {
         id(job)?;
-        let c=self.conn()?;
-        let row:Option<(Option<String>,String,String,Option<i32>,i64,i64,i64,String)>=c.query_row("SELECT task_id,request_id,state,exit_code,created,updated,cancel,detail FROM jobs WHERE id=?1",[job],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?,r.get(7)?))).optional()?;
-        let Some((task,request,mut state,exit,created,updated,cancel,mut detail))=row else{return Err(Error::contract("JOB_NOT_FOUND","unknown job in this workspace"))};
-        if state=="running" || (state=="queued" && now_ms()-updated>5000) {
+        let mut row=read_job_row(c,job)?;
+        if row.2=="running" || (row.2=="queued" && now_ms()-row.5>5000) {
             if let Some(_guard)=crate::locks::try_gate(&self.dir,&format!("alive:{job}"),true)? {
-                let changed=c.execute("UPDATE jobs SET state='unknown',detail='worker unavailable; verify side effects before retry',updated=?2 WHERE id=?1 AND updated=?3 AND state IN ('queued','running')",(job,now_ms(),updated))?;
-                if changed==1 {state="unknown".into();detail="worker unavailable; verify side effects before retry".into();}
+                c.execute("UPDATE jobs SET state='unknown',detail='worker unavailable; verify side effects before retry',updated=?2 WHERE id=?1 AND updated=?3 AND state IN ('queued','running')",(job,now_ms(),row.5))?;
+                // A late terminal commit or another observer may win the CAS.
+                // Always return its real state and timestamp, not our old row.
+                row=read_job_row(c,job)?;
             }
         }
+        let (task,request,state,exit,created,updated,cancel,detail)=row;
         let command_ok=match state.as_str(){"exited"=>Some(exit==Some(0)),"queued"|"running"|"unknown"|"resolved"=>None,_=>Some(false)};
-        let dir=self.dir.join("jobs").join(job);
-        let (stdout,stdout_truncated)=capture_view(&dir,"stdout",max_output);
-        let (stderr,stderr_truncated)=capture_view(&dir,"stderr",max_output);
-        Ok(json!({"job_id":job,"session_id":format!("job-{job}"),"task_id":task,"request_id":request,"status":state,"termination_reason":state,"exit_code":exit,"command_ok":command_ok,"created":created,"updated":updated,"cancel_requested":cancel!=0,"detail":detail,"stdout":stdout,"stderr":stderr,"stdout_truncated":stdout_truncated,"stderr_truncated":stderr_truncated,"output_refs":{"stdout":format!("job:{job}:stdout"),"stderr":format!("job:{job}:stderr")},"durable":true,"safe_to_replay":false,"limits":{"running":MAX_RUNNING,"heavy":MAX_HEAVY,"queued_and_running":MAX_QUEUED,"stream_bytes":MAX_STREAM_BYTES}}))
+        let mut value=json!({"job_id":job,"session_id":format!("job-{job}"),"task_id":task,"request_id":request,"status":state,"termination_reason":state,"exit_code":exit,"command_ok":command_ok,"created":created,"updated":updated,"cancel_requested":cancel!=0,"detail":detail,"output_loaded":false,"stdout_truncated":null,"stderr_truncated":null,"output_refs":{"stdout":format!("job:{job}:stdout"),"stderr":format!("job:{job}:stderr")},"durable":true,"safe_to_replay":false,"limits":{"running":MAX_RUNNING,"heavy":MAX_HEAVY,"queued_and_running":MAX_QUEUED,"stream_bytes":MAX_STREAM_BYTES}});
+        if let Some(max)=max_output {attach_output(&mut value,&self.dir.join("jobs").join(job),max);}
+        Ok(value)
     }
+
+    /// Poll metadata with one connection and bounded backoff; load output once.
+    /// This waits on the original job and never resubmits an uncertain command.
+    pub fn wait_job(&self,job:&str,wait:Duration,max_output:usize)->Result<Value> {
+        id(job)?;
+        let c=self.conn()?;
+        let start=Instant::now();
+        let wait=wait.min(Duration::from_secs(30));
+        let mut delay=Duration::from_millis(20);
+        loop {
+            let mut value=self.job_status_on(&c,job,None)?;
+            let remaining=wait.saturating_sub(start.elapsed());
+            if !matches!(value["status"].as_str(),Some("queued"|"running")) || remaining.is_zero() {
+                attach_output(&mut value,&self.dir.join("jobs").join(job),max_output);
+                return Ok(value);
+            }
+            std::thread::sleep(delay.min(remaining));
+            delay=(delay*2).min(Duration::from_millis(200));
+        }
+    }
+
     pub fn job_list(&self,task:Option<&str>)->Result<Value> {
         if let Some(t)=task {id(t)?;}
-        let c=self.conn()?;let mut q=c.prepare("SELECT id FROM jobs WHERE (?1 IS NULL OR task_id=?1) ORDER BY created DESC,id LIMIT 51")?;
-        let ids=q.query_map([task],|r|r.get::<_,String>(0))?.collect::<std::result::Result<Vec<_>,_>>()?;
-        let more=ids.len()>50;let mut jobs=Vec::new();for id in ids.iter().take(50){let mut v=self.job_status(id,1024)?;v.as_object_mut().unwrap().remove("stdout");v.as_object_mut().unwrap().remove("stderr");jobs.push(v);}
+        let c=self.conn()?;
+        let ids={
+            let sql=if task.is_some(){"SELECT id FROM jobs WHERE task_id=?1 ORDER BY created DESC,id LIMIT 51"}
+                else{"SELECT id FROM jobs ORDER BY created DESC,id LIMIT 51"};
+            let mut q=c.prepare_cached(sql)?;
+            let params:Vec<&dyn rusqlite::ToSql>=task.as_ref().map(|t|vec![t as &dyn rusqlite::ToSql]).unwrap_or_default();
+            let rows=q.query_map(params.as_slice(),|r|r.get::<_,String>(0))?;
+            rows.collect::<std::result::Result<Vec<_>,_>>()?
+        };
+        let more=ids.len()>50;
+        let jobs=ids.iter().take(50).map(|id|self.job_status_on(&c,id,None)).collect::<Result<Vec<_>>>()?;
+        // Null truncation flags mean output was not inspected, not an empty log.
         Ok(json!({"jobs":jobs,"truncated":more,"limit":50}))
     }
     pub fn job_output(&self,job:&str,stream:&str,offset:u64,limit:usize)->Result<Value> {
         id(job)?;
         if !matches!(stream,"stdout"|"stderr"){return Err(Error::contract("INVALID_STREAM","stream must be stdout or stderr"))}
-        let status=self.job_status(job,1)?;
+        let status=self.job_status_on(&self.conn()?,job,None)?;
         let path=self.dir.join("jobs").join(job).join(format!("{stream}.log"));
         let mut data=Vec::new();let mut total=0;let mut actual=0;
         if path.exists(){let mut f=fs::File::open(path)?;total=f.metadata()?.len();actual=offset.min(total);f.seek(SeekFrom::Start(actual))?;f.take(limit.clamp(1,1_048_576) as u64).read_to_end(&mut data)?;}
         let next=actual+data.len() as u64;
         Ok(json!({"output_ref":format!("job:{job}:{stream}"),"content":String::from_utf8_lossy(&data),"offset":actual,"next_offset":if next<total {Some(next)}else{None},"poll_offset":next,"retained_bytes":total,"stream_cap_bytes":MAX_STREAM_BYTES,"may_be_truncated":total>=MAX_STREAM_BYTES as u64,"job_status":status["status"],"offset_encoding":"bytes; use returned offsets"}))
     }
+}
+type JobRow=(Option<String>,String,String,Option<i32>,i64,i64,i64,String);
+fn read_job_row(c:&Connection,job:&str)->Result<JobRow> {
+    c.prepare_cached("SELECT task_id,request_id,state,exit_code,created,updated,cancel,detail FROM jobs WHERE id=?1")?
+        .query_row([job],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?,r.get(7)?)))
+        .optional()?.ok_or_else(||Error::contract("JOB_NOT_FOUND","unknown job in this workspace"))
+}
+fn attach_output(value:&mut Value,dir:&Path,max:usize) {
+    let (stdout,out_truncated)=capture_view(dir,"stdout",max);
+    let (stderr,err_truncated)=capture_view(dir,"stderr",max);
+    value["stdout"]=json!(stdout);value["stderr"]=json!(stderr);
+    value["stdout_truncated"]=json!(out_truncated);value["stderr_truncated"]=json!(err_truncated);
+    value["output_loaded"]=json!(true);
 }
 fn tail_file(path:&Path,limit:usize)->Result<String>{let mut f=fs::File::open(path)?;let size=f.metadata()?.len();let take=size.min(limit.clamp(1,1_048_576) as u64);f.seek(SeekFrom::End(-(take as i64)))?;let mut b=Vec::new();f.take(take).read_to_end(&mut b)?;Ok(String::from_utf8_lossy(&b).into_owned())}
 

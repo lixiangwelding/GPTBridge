@@ -7,7 +7,7 @@ fn state() -> (tempfile::TempDir,ListenerState) {
     let state=ListenerState{mcp:a,auth:AuthConfig{auth_type:"bearer".into(),..Default::default()},
         workspace_id:"gateway-test".into(),workspace_path:"fixture".into(),bind_port:0,
         configured_public_url:"https://gateway.example.invalid".into(),bearer_token:Some("synthetic-test-token".into()),
-        oauth:None,oauth_client_secret:None,gateway:Some(hub),request_slots:Arc::new(Semaphore::new(32))};
+        oauth:None,oauth_client_secret:None,gateway:Some(hub),request_slots:Arc::new(Semaphore::new(32)),waiting_slots:Arc::new(Semaphore::new(24))};
     (temp,state)
 }
 
@@ -101,4 +101,71 @@ async fn oauth_discovery_stays_on_one_gateway_and_invalid_tokens_are_rejected() 
     let response=c.post(format!("{}/mcp",server.url)).bearer_auth("invalid").json(&body("a")).send().await.unwrap();
     assert_eq!(response.status(),StatusCode::UNAUTHORIZED);
     stop(server).await;
+}
+
+#[tokio::test(flavor="multi_thread",worker_threads=2)]
+async fn long_polls_reserve_capacity_for_other_conversations() {
+    let (_temp,state)=state();let job=uuid::Uuid::new_v4().to_string();let store=&state.mcp.tools.personal;
+    store.conn().unwrap().execute(
+        "INSERT INTO jobs(id,scope,request_id,input_hash,spec,state,created,updated) VALUES(?1,'workspace','capacity-fixture','fixture','{}','running',0,?2)",
+        (&job,coding_tools_personal_runtime::now_ms())).unwrap();
+    let _alive=coding_tools_personal_runtime::locks::try_gate(&store.dir,&format!("alive:{job}"),true).unwrap().unwrap();
+    let slots=state.request_slots.clone();let server=start(state).await;let c=client();
+    let request=json!({"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"write_stdin",
+        "arguments":{"workspace_id":"a","session_id":format!("job-{job}"),"chars":"","yield_time_ms":3000}}});
+    let mut polls=tokio::task::JoinSet::new();
+    for _ in 0..24 {
+        let c=c.clone();let url=format!("{}/mcp",server.url);let request=request.clone();
+        polls.spawn(async move {c.post(url).bearer_auth("synthetic-test-token").json(&request).send().await.unwrap()});
+    }
+    tokio::time::timeout(std::time::Duration::from_secs(2),async {
+        while slots.available_permits()!=8 {tokio::time::sleep(std::time::Duration::from_millis(5)).await;}
+    }).await.expect("24 requests must reach the real listener");
+    let overflow=c.post(format!("{}/mcp",server.url)).bearer_auth("synthetic-test-token").json(&request).send().await.unwrap();
+    assert_eq!(overflow.status(),StatusCode::TOO_MANY_REQUESTS,"long waits must leave eight slots for queries");
+    let response=c.post(format!("{}/mcp",server.url)).bearer_auth("synthetic-test-token").json(&body("b")).send().await.unwrap();
+    assert_eq!(response.status(),StatusCode::OK);
+    assert_eq!(response.json::<Value>().await.unwrap()["result"]["structuredContent"]["content"],"beta");
+    // Saturated long waits must not consume authentication or cancellation capacity.
+    assert_eq!(c.post(format!("{}/mcp",server.url)).json(&request).send().await.unwrap().status(),StatusCode::UNAUTHORIZED);
+    let cancel=json!({"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"kill_session",
+        "arguments":{"workspace_id":"a","session_id":format!("job-{job}"),"wait_ms":0}}});
+    let cancelled:Value=c.post(format!("{}/mcp",server.url)).bearer_auth("synthetic-test-token").json(&cancel).send().await.unwrap().json().await.unwrap();
+    assert_eq!(cancelled["result"]["structuredContent"]["cancel_requested"],true);
+    while let Some(result)=polls.join_next().await {assert_eq!(result.unwrap().status(),StatusCode::OK);}
+    assert_eq!(slots.available_permits(),32);stop(server).await;
+}
+
+
+#[tokio::test]
+async fn total_capacity_rejection_returns_the_wait_permit() {
+    let (_temp,state)=state();let waits=state.waiting_slots.clone();
+    let held=state.request_slots.clone().acquire_many_owned(32).await.unwrap();
+    let server=start(state).await;
+    let request=json!({"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"exec_command","arguments":{"workspace_id":"a","cmd":"not-executed"}}});
+    let response=client().post(format!("{}/mcp",server.url)).bearer_auth("synthetic-test-token").json(&request).send().await.unwrap();
+    assert_eq!(response.status(),StatusCode::TOO_MANY_REQUESTS);assert_eq!(waits.available_permits(),24);
+    drop(held);stop(server).await;
+}
+
+#[tokio::test(flavor="multi_thread",worker_threads=2)]
+async fn disconnected_request_holds_capacity_until_its_worker_finishes() {
+    let (_temp,state)=state();let job=uuid::Uuid::new_v4().to_string();let store=&state.mcp.tools.personal;
+    store.conn().unwrap().execute("INSERT INTO jobs(id,scope,request_id,input_hash,spec,state,created,updated) VALUES(?1,'workspace','disconnect','fixture','{}','running',0,?2)",
+        (&job,coding_tools_personal_runtime::now_ms())).unwrap();
+    let _alive=coding_tools_personal_runtime::locks::try_gate(&store.dir,&format!("alive:{job}"),true).unwrap().unwrap();
+    let slots=state.request_slots.clone();let waits=state.waiting_slots.clone();
+    let mut headers=HeaderMap::new();headers.insert("authorization","Bearer synthetic-test-token".parse().unwrap());
+    let request=json!({"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"write_stdin",
+        "arguments":{"workspace_id":"a","session_id":format!("job-{job}"),"yield_time_ms":700}}});
+    let handler=tokio::spawn(mcp_post(State(state),headers,Json(request)));
+    tokio::time::timeout(std::time::Duration::from_secs(2),async {
+        while slots.available_permits()==32 {tokio::time::sleep(std::time::Duration::from_millis(2)).await;}
+    }).await.unwrap();
+    handler.abort();let _=handler.await;
+    assert_eq!(slots.available_permits(),31);assert_eq!(waits.available_permits(),23);
+    tokio::time::timeout(std::time::Duration::from_secs(3),async {
+        while slots.available_permits()!=32 {tokio::time::sleep(std::time::Duration::from_millis(5)).await;}
+    }).await.unwrap();
+    assert_eq!(waits.available_permits(),24);
 }

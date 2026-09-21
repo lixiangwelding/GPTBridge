@@ -208,3 +208,18 @@ fn killed_test_worker_is_unknown_and_its_foreground_child_keeps_resource_lock() 
     }
     assert_eq!(store.job_status(&id,10).unwrap()["command_ok"],Value::Null);
 }
+
+
+#[test]
+fn published_terminal_results_have_already_released_source_and_resources() {
+    let (_root,store)=fixture();
+    for n in 0..16 {
+        let mut command=spec(&store,"printf complete","write");
+        command.resources=vec!["terminal-receipt-fixture".into()];
+        let id=launch(&store,&command,&format!("terminal-{n}"));
+        let result=store.wait_job(&id,Duration::from_secs(5),100).unwrap();
+        assert_eq!(result["status"],"exited");assert_eq!(result["command_ok"],true);
+        assert!(locks::try_gate(&store.dir,"source",true).unwrap().is_some(),"terminal source gate {n}");
+        assert!(locks::try_gate(&store.dir,"resource:terminal-receipt-fixture",true).unwrap().is_some(),"terminal resource gate {n}");
+    }
+}

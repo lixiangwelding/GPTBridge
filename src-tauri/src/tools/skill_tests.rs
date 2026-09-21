@@ -187,3 +187,74 @@ fn reference_symlink_escape_is_rejected(){
     std::os::unix::fs::symlink(outside.path(),ctx.workspace.root().join(".agents/skills/repair/escape.md")).unwrap();
     assert_eq!(call_tool(&ctx,"read_skill",&json!({"skill_id":id(&ctx),"file":"escape.md"}))["error"]["code"],"SKILL_PATH_DENIED");
 }
+
+#[test]
+fn benchmark_multi_conversation_skill_catalog() {
+    let (_temp,ctx,global)=fixture();
+    for n in 0..200 {
+        let path=write_skill(&global,&format!("skill-{n:03}"),&format!("skill-{n:03}"),"synthetic benchmark");
+        let mut text=fs::read_to_string(&path).unwrap();text.push_str(&"x".repeat(32768));fs::write(path,text).unwrap();
+    }
+    ctx.skills.scan().unwrap();
+    let catalog=Arc::new(ctx.skills);let barrier=Arc::new(std::sync::Barrier::new(8));let start=std::time::Instant::now();
+    let threads:Vec<_>=(0..8).map(|_|{
+        let catalog=catalog.clone();let barrier=barrier.clone();
+        std::thread::spawn(move||{barrier.wait();(0..3).map(|_|{
+            let start=std::time::Instant::now();assert_eq!(catalog.scan().unwrap().skills.len(),201);
+            start.elapsed().as_secs_f64()*1000.0
+        }).collect::<Vec<_>>()})
+    }).collect();
+    let mut latency:Vec<_>=threads.into_iter().flat_map(|t|t.join().unwrap()).collect();latency.sort_by(f64::total_cmp);
+    println!("PERF_SKILL_CATALOG {}",json!({"conversations":8,"requests":latency.len(),"skills":201,
+        "wall_ms":start.elapsed().as_secs_f64()*1000.0,"p50_ms":latency[12],"p95_ms":latency[22]}));
+}
+
+
+#[cfg(unix)]
+#[test]
+fn unchanged_skill_metadata_is_reused_across_catalog_clones() {
+    let (_temp,ctx,_)=fixture();
+    let first=ctx.skills.scan().unwrap();assert_eq!(first.metadata_reads,1);
+    let clone=ctx.skills.clone();let second=clone.scan().unwrap();
+    assert_eq!(second.metadata_reads,0);assert_eq!(second.metadata_cache_hits,1);
+    assert_eq!(first.skills[0].sha,second.skills[0].sha);
+}
+
+#[cfg(unix)]
+#[test]
+fn cached_metadata_detects_same_size_edit_even_when_mtime_is_restored() {
+    let (_temp,ctx,_)=fixture();let path=ctx.workspace.root().join(".agents/skills/repair/SKILL.md");
+    let first=search(&ctx,"");let before=fs::metadata(&path).unwrap().modified().unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(2));
+    let old=fs::read_to_string(&path).unwrap();let new=old.replace("修复接口","修复路径");assert_eq!(old.len(),new.len());
+    fs::write(&path,new).unwrap();
+    fs::OpenOptions::new().write(true).open(&path).unwrap().set_times(fs::FileTimes::new().set_modified(before)).unwrap();
+    let after=search(&ctx,"路径");assert_eq!(after["matches"],1);
+    assert_ne!(first["skills"][0]["sha256"],after["skills"][0]["sha256"]);
+    assert_eq!(after["metadata_reads"],1);
+    assert_eq!(call_tool(&ctx,"read_skill",&json!({"skill_id":first["skills"][0]["skill_id"],"expected_sha256":first["skills"][0]["sha256"]}))["error"]["code"],"SKILL_SOURCE_CHANGED");
+}
+
+#[cfg(unix)]
+#[test]
+fn cached_metadata_detects_atomic_replacement_and_drops_invalid_yaml() {
+    let (_temp,ctx,_)=fixture();let path=ctx.workspace.root().join(".agents/skills/repair/SKILL.md");
+    let first=search(&ctx,"");let before=fs::metadata(&path).unwrap().modified().unwrap();
+    let replacement=path.with_extension("tmp");
+    fs::write(&replacement,fs::read_to_string(&path).unwrap().replace("修复接口","修复路径")).unwrap();
+    fs::OpenOptions::new().write(true).open(&replacement).unwrap().set_times(fs::FileTimes::new().set_modified(before)).unwrap();
+    fs::rename(replacement,&path).unwrap();
+    let second=search(&ctx,"路径");assert_eq!(second["matches"],1);assert_ne!(first["catalog_revision"],second["catalog_revision"]);
+    fs::write(&path,"---\nname: [invalid\n---\n").unwrap();assert_eq!(search(&ctx,"")["matches"],0);
+}
+
+#[cfg(unix)]
+#[test]
+fn warmed_catalog_does_not_follow_a_new_unapproved_symlink() {
+    let (_temp,ctx,_)=fixture();let ident=id(&ctx);
+    let path=ctx.workspace.root().join(".agents/skills/repair/SKILL.md");
+    let outside=tempfile::tempdir().unwrap();let target=write_skill(outside.path(),"outside","outside-skill","private");
+    fs::remove_file(&path).unwrap();std::os::unix::fs::symlink(target,&path).unwrap();
+    assert_eq!(search(&ctx,"")["matches"],0);
+    assert_eq!(call_tool(&ctx,"read_skill",&json!({"skill_id":ident}))["error"]["code"],"SKILL_NOT_FOUND");
+}

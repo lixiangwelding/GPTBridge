@@ -1,0 +1,66 @@
+{
+  "task_date_utc": "2026-09-21",
+  "baseline_commit": "a2c6f2ab0683182b635c77380f597bcd5bd596c7",
+  "tested_source_sha256": "ec6cdf5a2361b61eeac8cffee9ed31825fe79b44b4f754533932f2f7144c337d",
+  "selftest_receipt": ".artifacts/selftest/1790004476748949000/result.json",
+  "selftest_stages": 14,
+  "desktop_rust_tests": 245,
+  "runtime_unique_tests": 35,
+  "cancel_repeats_passed": 6,
+  "benchmark_build": "unoptimized + debuginfo; same local host; isolated temporary fixtures",
+  "results": {
+    "jobs": {
+      "before": {
+        "conversations": 8,
+        "jobs_per_request": 50,
+        "p50_ms": 81.145083,
+        "p95_ms": 87.491625,
+        "requests": 80,
+        "wall_ms": 813.3692500000001
+      },
+      "after": {
+        "conversations": 8,
+        "jobs_per_request": 50,
+        "p50_ms": 3.2858330000000002,
+        "p95_ms": 5.608041999999999,
+        "requests": 80,
+        "wall_ms": 38.925209
+      },
+      "p95_reduction_pct": 93.59,
+      "before_receipt": ".artifacts/checks/perf59-runtime-before-1790003418991329000/result.json",
+      "after_receipt": ".artifacts/checks/perf59-jobs-final-1790004579727428000/result.json"
+    },
+    "skills": {
+      "before": {
+        "conversations": 8,
+        "p50_ms": 707.922791,
+        "p95_ms": 728.276833,
+        "requests": 24,
+        "skills": 201,
+        "wall_ms": 2128.917833
+      },
+      "after": {
+        "conversations": 8,
+        "p50_ms": 50.93875,
+        "p95_ms": 57.776958,
+        "requests": 24,
+        "skills": 201,
+        "wall_ms": 161.97779200000002
+      },
+      "p95_reduction_pct": 92.07,
+      "before_receipt": ".artifacts/checks/perf59-skills-before-1790003616917869000/result.json",
+      "after_receipt": ".artifacts/checks/perf59-skills-final-1790004580118841000/result.json"
+    }
+  },
+  "live_app_replaced": false,
+  "service_restarted": false,
+  "configuration_changed": false,
+  "review_method": "Agent semantic review of the actual diff plus regression evidence; probe code_review supplies guidance and Git evidence, not an independent reviewer",
+  "limitations": [
+    "Not a ChatGPT/FRP end-to-end benchmark",
+    "No macOS release app bundle or installation performed",
+    "Windows runtime not tested; Skill metadata cache falls back to fresh reads outside Unix",
+    "Legacy history archive format and scanning unchanged",
+    "No claim that higher conversation counts scale linearly"
+  ]
+}
