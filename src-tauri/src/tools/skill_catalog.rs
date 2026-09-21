@@ -14,7 +14,7 @@ const MAX_CACHED_SKILLS:usize=1000;
 #[derive(Clone,Debug,PartialEq,Eq)]
 struct FileStamp([i128;8]);
 #[derive(Clone,Debug)]
-struct CachedMetadata {stamp:Option<FileStamp>,name:String,description:String,sha:String}
+struct CachedMetadata {stamp:Option<FileStamp>,name:String,description:String,sha:String,manual_only:bool}
 
 // Length + mtime alone misses in-place writes that restore mtime. Include file
 // identity and ctime. Without this native stamp, fall back to uncached reads.
@@ -29,11 +29,11 @@ fn file_stamp(path:&Path)->Option<FileStamp> {
     #[cfg(not(unix))] {let _=path;None}
 }
 #[derive(Clone)]
-pub struct Skill {pub id:String,pub name:String,pub description:String,pub alias:String,pub scope:&'static str,pub root:PathBuf,pub file:PathBuf,pub sha:String}
+pub struct Skill {pub id:String,pub name:String,pub description:String,pub alias:String,pub scope:&'static str,pub manual_only:bool,pub root:PathBuf,pub file:PathBuf,pub sha:String}
 pub struct Scan {pub skills:Vec<Skill>,pub truncated:bool,pub skipped:usize,pub visited:usize,pub root_count:usize,pub metadata_cache_hits:usize,pub metadata_reads:usize}
 impl Skill {
     pub fn summary(&self)->Value{json!({"skill_id":self.id,"name":self.name,"description":self.description,
-        "folder_alias":self.alias,"scope":self.scope,"sha256":self.sha,
+        "folder_alias":self.alias,"scope":self.scope,"sha256":self.sha,"model_invocable":!self.manual_only,
         "source_ref":format!("skill://{}/{}",self.id,io::uri_component(&self.file.strip_prefix(&self.root).unwrap_or(Path::new("SKILL.md")).to_string_lossy())),"invocation":format!("${}",self.name)})}
 }
 impl Catalog {
@@ -71,7 +71,7 @@ impl Catalog {
         let meta=io::metadata(&text)?;
         let after=file_stamp(file);
         if before!=after {return Err(io::error("SKILL_SOURCE_CHANGED","Skill changed during metadata discovery; search again"));}
-        let value=CachedMetadata{stamp:after,name:meta.name,description:meta.description,sha:digest(text.as_bytes())};
+        let value=CachedMetadata{stamp:after,name:meta.name,description:meta.description,sha:digest(text.as_bytes()),manual_only:meta.disable_model_invocation};
         if value.stamp.is_some() {
             if cache.len()>=MAX_CACHED_SKILLS {
                 if let Some(key)=cache.keys().next().cloned(){cache.remove(&key);}
@@ -108,7 +108,7 @@ impl Catalog {
                                 if hit {scan.metadata_cache_hits+=1;}else{scan.metadata_reads+=1;}
                                 let root=roots.iter().find(|(_,r)|file.starts_with(r)).expect("checked root").1.clone();
                                 scan.skills.push(Skill{id:digest(format!("{}\0{}",self.workspace.display(),file.display()))[..32].into(),
-                                    name:meta.name,description:meta.description,alias:real.file_name().unwrap_or_default().to_string_lossy().to_string(),scope,root,file,sha:meta.sha});
+                                    name:meta.name,description:meta.description,alias:real.file_name().unwrap_or_default().to_string_lossy().to_string(),scope,manual_only:meta.manual_only,root,file,sha:meta.sha});
                             },Err(_)=>scan.skipped+=1,
                         }
                     }else{scan.skipped+=1;}
@@ -133,14 +133,15 @@ impl Catalog {
     pub fn list(&self,args:&Value)->Result<Value,WorkspaceError>{
         let query=io::query(args.get("query").and_then(Value::as_str).unwrap_or(""))?;
         let scan=self.scan()?;
-        let mut ranked:Vec<_>=scan.skills.iter().filter_map(|s|{
+        let automatic=args.get("automatic_only").and_then(Value::as_bool).unwrap_or(false);
+        let mut ranked:Vec<_>=scan.skills.iter().filter(|s|!automatic || !s.manual_only).filter_map(|s|{
             let name=s.name.to_lowercase();let alias=s.alias.to_lowercase();
             let score=if query.is_empty(){1}else if name==query || alias==query {100}else if name.starts_with(&query)||alias.starts_with(&query){80}
                 else if name.contains(&query)||alias.contains(&query){50}else if s.description.to_lowercase().contains(&query){20}else{0};
             (score>0).then_some((score,s))
         }).collect();
         ranked.sort_by(|(a,x),(b,y)|b.cmp(a).then(x.name.cmp(&y.name)).then(x.id.cmp(&y.id)));
-        let revision=digest(json!([self.workspace,query,ranked.iter().map(|(_,s)|(&s.id,&s.sha)).collect::<Vec<_>>()]).to_string());
+        let revision=digest(json!([self.workspace,query,automatic,ranked.iter().map(|(_,s)|(&s.id,&s.sha)).collect::<Vec<_>>()]).to_string());
         let mut offset=0usize;
         if let Some(cursor)=args.get("cursor").and_then(Value::as_str){
             let Some((hash,index))=cursor.split_once(':') else{return Err(io::error("INVALID_SKILL_CURSOR","Invalid cursor"));};
@@ -157,7 +158,7 @@ impl Catalog {
         }
         let next=offset+page.len();
         Ok(json!({"ok":true,"skills":page,"matches":ranked.len(),"next_cursor":if next<ranked.len(){Some(format!("{revision}:{next}"))}else{None},
-            "catalog_revision":revision,"root_count":scan.root_count,"scan_truncated":scan.truncated,"skipped_entries":scan.skipped,
+            "catalog_revision":revision,"automatic_only":automatic,"root_count":scan.root_count,"scan_truncated":scan.truncated,"skipped_entries":scan.skipped,
             "hot_reload":"rescan_each_call","metadata_cache_hits":scan.metadata_cache_hits,"metadata_reads":scan.metadata_reads,
             "metadata_cache_mode":if cfg!(unix){"file_identity_mtime_ctime"}else{"disabled_no_change_stamp"},
             "native_dollar_picker":false,"scripts_executed":false}))

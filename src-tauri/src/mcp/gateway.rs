@@ -6,7 +6,7 @@ use crate::{audit::AuditRequestContext, data::DataStore, tools::{ToolContext, Wo
 use super::{server::{handle_request_with_context, McpState, SharedState}, upstream::UpstreamMcpManager};
 
 pub const MAX_REPOSITORIES: usize = 32;
-const ROUTING: &str = "This endpoint serves multiple owner-approved repositories. First call workspace_list. Every other tool requires an explicit workspace_id from that list, even when resuming task_id/job_id. Never infer a repository from the last call, change a global cwd, or use another repository's task/command IDs. Each repository retains its own paths, policy, task state and output. No worktree is needed.";
+const ROUTING: &str = "Available skills are disclosed by task_open or server_info in the selected repository; list_skills with automatic_only=true is the fallback. Do not merge catalogs or skill IDs from different repositories. This endpoint serves multiple owner-approved repositories. First call workspace_list. Every other tool requires an explicit workspace_id from that list, even when resuming task_id/job_id. Never infer a repository from the last call, change a global cwd, or use another repository's task/command IDs. Each repository retains its own paths, policy, task state and output. No worktree is needed.";
 
 pub struct Member { pub name: String, pub state: SharedState }
 pub struct WorkspaceHub { members: BTreeMap<String, Member>, catalog: Vec<Value>, host: SharedState }
@@ -105,7 +105,7 @@ impl WorkspaceHub {
         let id = body.get("id").cloned().unwrap_or(Value::Null);
         match body["method"].as_str() {
             Some("initialize") => {
-                let mut result=handle_request_with_context(&self.host,body,request);
+                let mut result=json!({"jsonrpc":"2.0","id":id,"result":super::server::initialize_result()});
                 result["result"]["instructions"]=json!(format!("{ROUTING} {} {}",crate::tools::personal::INSTRUCTIONS,crate::tools::skills::INSTRUCTIONS));
                 result
             }

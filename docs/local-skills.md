@@ -4,7 +4,11 @@
 
 个人版提供原生 Rust 技能读取器，不需要另外运行 FastMCP/Python 服务，不复制技能原件，不修改 Codex 配置或当前 FRP。
 
-在连接到新版个人 MCP 的 ChatGPT 对话中，发送 `$技能名` 后，模型可以通过 `search_skills` 检索并用 `invoke_skill` 加载正文。返回结果包含来源路径、行号、SHA256 和分页游标。这里的“调用技能”是读取说明供模型按当前任务使用，**不是自动执行技能目录里的脚本**。
+在连接到包含自动发现改造的个人 MCP 服务后，直接描述任务即可，不需要点名 Skill 或输入 `$`。单仓库会在初始化说明和技能工具说明中自动披露轻量目录；`task_open`、兼容的 `history_session_bootstrap` 和 `server_info` 返回当前仓库的 `skill_discovery`。模型按名称/用途自行选择，目录不完整或没有合适项时自行搜索、分页，再用 `invoke_skill` 读取相关正文。手动 `$技能名` 仍保留。
+
+自动目录最多 32 项、条目合计最多 8KiB，长描述按 UTF-8 边界摘录；`partial`、`available_count`、`shown_count` 明确区分展示数量和发现数量，不冒称首次展示全库。普通文件读取、任务状态轮询和 checkpoint 不重复附加目录。Skill 正文和参考资料按需读取，来源路径、行号、SHA256 和分页契约保留。这里的“调用技能”是读取说明供模型使用，**不是自动执行脚本，也不证明依赖 MCP 已安装或认证**。
+
+实现与验收见 [自动 Skill 选择](automatic-skills-2026-09-21.md)。
 
 **输入框还未发送消息时的原生选择器不是本功能。** 官方当前文档区分 ChatGPT 的 `@` 技能选择与 Codex CLI/IDE 的 `$` 选择。MCP 工具协议不规定输入框菜单；仅改本地服务无法保证把所有本地技能注册进 ChatGPT 的原生 `$` 下拉。此版 `native_dollar_picker=false`，不能把工具返回的来源位置冒充 ChatGPT 原生文件引用。
 
@@ -28,7 +32,9 @@
 ## 对话怎么写
 
 ```text
-@个人版插件 $前端开发skill 检查这个页面
+@个人版插件 检查这个页面并修复交互问题
+@个人版插件 排查这个接口的性能问题
+@个人版插件 $前端开发skill 检查这个页面（可选手动指定）
 @个人版插件 搜索和代码审查相关的本地技能
 @个人版插件 列出这个仓库可用的 Skill
 ```
@@ -37,10 +43,12 @@
 
 模型调用顺序：
 
-1. `search_skills(query="$技能名")`，先拿摘要。
+1. 先看自动目录；缺失、截断或不相关时，自行调用 `list_skills(automatic_only=true)` 或 `search_skills(query="任务关键词", automatic_only=true)`。手动 `$技能名` 检索可不启用自动过滤。
 2. `invoke_skill(skill_id="返回的ID")`，读取正文。
 3. 遇到参考文件，`read_skill(skill_id="...", file="references/guide.md")`。
 4. 遇到分页，保留 `sha256` 并以 `offset=next_offset`、`expected_sha256=sha256` 继续读取。文件变动会拒绝旧分页，不能拼接不同版本。
+
+`SKILL.md` 的 YAML 可声明 `disable-model-invocation: true`，不进入自动目录或自动过滤搜索；明确的手动调用仍可读取。过滤参数是严格布尔值，分页游标绑定自动/手动过滤范围。
 
 重名技能不静默合并或选第一个；先给出候选，再用准确 ID。不完整名称用于搜索，不直接执行模糊命中的技能。
 

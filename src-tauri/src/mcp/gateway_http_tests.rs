@@ -169,3 +169,40 @@ async fn disconnected_request_holds_capacity_until_its_worker_finishes() {
     }).await.unwrap();
     assert_eq!(waits.available_permits(),24);
 }
+
+#[tokio::test]
+async fn automatic_skill_catalog_is_authenticated_and_repository_scoped() {
+    let (temp,state)=state();
+    for (repo,name) in [("alpha","alpha-local-skill"),("beta","beta-local-skill")] {
+        let dir=temp.path().join(repo).join(".agents/skills/test");std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("SKILL.md"),format!("---\nname: {name}\ndescription: isolated task guidance\n---\nACTIVATION_ONLY\n")).unwrap();
+    }
+    let server=start(state).await;let c=client();let endpoint=format!("{}/mcp",server.url);
+    let init=json!({"jsonrpc":"2.0","id":11,"method":"initialize"});
+    assert_eq!(c.post(&endpoint).json(&init).send().await.unwrap().status(),StatusCode::UNAUTHORIZED);
+    let initialized:Value=c.post(&endpoint).bearer_auth("synthetic-test-token").json(&init).send().await.unwrap().json().await.unwrap();
+    let instructions=initialized["result"]["instructions"].as_str().unwrap();
+    assert!(instructions.contains("automatically"));assert!(instructions.contains("workspace_id"));
+    assert!(!instructions.contains("alpha-local-skill"));assert!(!instructions.contains("beta-local-skill"));
+    let mut alpha_id=Value::Null;
+    for (repo,name,other) in [("a","alpha-local-skill","beta-local-skill"),("b","beta-local-skill","alpha-local-skill")] {
+        let request=json!({"jsonrpc":"2.0","id":12,"method":"tools/call","params":{"name":"task_open",
+            "arguments":{"workspace_id":repo,"goal":"fix ordinary page","request_id":"http-auto-test"}}});
+        let value:Value=c.post(&endpoint).bearer_auth("synthetic-test-token").json(&request).send().await.unwrap().json().await.unwrap();
+        let result=&value["result"]["structuredContent"];assert_eq!(result["ok"],true,"{value}");
+        assert_eq!(result["workspace_id"],repo);
+        let catalog=&result["skill_discovery"];assert_eq!(catalog["available_count"],1);
+        assert_eq!(catalog["available_skills"][0]["name"],name);assert!(!catalog.to_string().contains(other));
+        assert!(!catalog.to_string().contains("ACTIVATION_ONLY"));
+        if repo=="a"{alpha_id=catalog["available_skills"][0]["skill_id"].clone();}
+    }
+    let invoke=json!({"jsonrpc":"2.0","id":13,"method":"tools/call","params":{"name":"invoke_skill",
+        "arguments":{"workspace_id":"a","skill_id":alpha_id}}});
+    let value:Value=c.post(&endpoint).bearer_auth("synthetic-test-token").json(&invoke).send().await.unwrap().json().await.unwrap();
+    assert!(value["result"]["structuredContent"]["content"].as_str().unwrap().contains("ACTIVATION_ONLY"));
+    assert_eq!(value["result"]["structuredContent"]["scripts_executed"],false);
+    let mut wrong=invoke;wrong["params"]["arguments"]["workspace_id"]=json!("b");
+    let value:Value=c.post(&endpoint).bearer_auth("synthetic-test-token").json(&wrong).send().await.unwrap().json().await.unwrap();
+    assert_eq!(value["result"]["structuredContent"]["error"]["code"],"SKILL_NOT_FOUND");
+    stop(server).await;
+}

@@ -55,7 +55,11 @@ fn open_regular(path: &Path) -> std::io::Result<File> {
 }
 
 #[derive(Deserialize)]
-pub struct Metadata { pub name: String, pub description: String }
+pub struct Metadata {
+    pub name: String, pub description: String,
+    #[serde(default, rename = "disable-model-invocation")]
+    pub disable_model_invocation: bool,
+}
 
 pub fn metadata(text: &str) -> Result<Metadata, WorkspaceError> {
     let mut lines = text.trim_start_matches('\u{feff}').split_inclusive('\n');

@@ -65,7 +65,9 @@ pub fn call_tool(ctx: &ToolContext, name: &str, args: &Value) -> Value {
     }
 
     if super::personal::TOOLS.contains(&name) {
-        return match super::personal::call(ctx, name, &effective_args) { Ok(v) => v, Err(e) => tool_err(e) };
+        let mut output = match super::personal::call(ctx, name, &effective_args) { Ok(v) => v, Err(e) => tool_err(e) };
+        super::skill_discovery::attach(ctx, name, &mut output);
+        return output;
     }
     if super::skills::TOOLS.contains(&name) {
         return match super::skills::call(ctx, name, &effective_args) { Ok(v) => v, Err(e) => tool_err(e) };
@@ -220,6 +222,7 @@ pub fn call_tool(ctx: &ToolContext, name: &str, args: &Value) -> Value {
         Ok(v) => v,
         Err(e) => tool_err(e),
     };
+    super::skill_discovery::attach(ctx, name, &mut output);
     if task_id.is_none()
         && standalone_operation(name)
         && output.get("ok") == Some(&Value::Bool(true))

@@ -54,10 +54,15 @@ pub fn handle_request_with_context(
     }
 
     let result = match method {
-        "initialize" => Ok(initialize_result()),
+        "initialize" => {
+            let mut initialized = initialize_result();
+            crate::tools::skill_discovery::append_to_instructions(&state.tools, &mut initialized);
+            Ok(initialized)
+        },
         "ping" => Ok(serde_json::json!({})),
         "tools/list" => {
             let mut tools = list_tools_for_profile(&state.tools.tool_profile);
+            crate::tools::skill_discovery::decorate_tools(&state.tools, &mut tools);
             tools.extend(state.upstream.public_tools().iter().cloned());
             Ok(serde_json::json!({ "tools": tools }))
         }
@@ -74,7 +79,7 @@ pub fn handle_request_with_context(
     }
 }
 
-fn initialize_result() -> Value {
+pub(crate) fn initialize_result() -> Value {
     serde_json::json!({
         "protocolVersion": "2025-06-18",
         "capabilities": {
