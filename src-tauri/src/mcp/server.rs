@@ -86,7 +86,7 @@ fn initialize_result() -> Value {
             "title": "Coding Tools MCP Personal",
             "version": env!("CARGO_PKG_VERSION")
         },
-        "instructions": crate::tools::personal::INSTRUCTIONS
+        "instructions": format!("{} {}", crate::tools::personal::INSTRUCTIONS, crate::tools::skills::INSTRUCTIONS)
     })
 }
 

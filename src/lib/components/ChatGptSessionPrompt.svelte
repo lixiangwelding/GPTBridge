@@ -21,6 +21,7 @@
     <div id="task-workflow-help" class="mt-3 border-t border-[var(--color-border)] pt-3 text-xs leading-6 text-[var(--color-text-secondary)]">
       <p>例如直接说“修复登录问题”；继续时说“继续任务”并带上上次返回的 task_id。工具会读取已完成步骤和下一步，不还原整份旧代码。</p>
       <p>运行中的命令使用原 job_id 查询，断线不重复执行。旧 history_session 档案仍可检索；只有明确传给工具的文字会被保存，不会自动读取未传入的聊天。</p>
+      <p>本地技能无需复制：发送“$技能名 + 任务”后，模型通过插件搜索并读取现有 SKILL.md，返回来源位置。脚本不会自动执行；这不是输入框原生 $ 下拉，ChatGPT 原生技能选择使用 @。</p>
       <p>首次连接个人版需刷新工具列表，让客户端读取新的 task_open / task_status / task_checkpoint 说明；旧连接器和正在运行的服务不受影响。</p>
     </div>
   {/if}

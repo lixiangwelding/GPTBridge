@@ -10,6 +10,22 @@ fn state() -> (tempfile::TempDir,ListenerState) {
         oauth:None,oauth_client_secret:None,gateway:Some(hub),request_slots:Arc::new(Semaphore::new(32))};
     (temp,state)
 }
+
+#[tokio::test]
+async fn skill_search_and_read_work_through_authenticated_http(){
+    let (temp,state)=state();
+    let folder=temp.path().join("alpha/.agents/skills/frontend");std::fs::create_dir_all(&folder).unwrap();
+    std::fs::write(folder.join("SKILL.md"),"---\nname: 前端开发\ndescription: 页面修复\n---\n真实测试技能正文\n").unwrap();
+    let server=start(state).await;let c=client();
+    let search=json!({"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"search_skills","arguments":{"workspace_id":"a","query":"$前端开发"}}});
+    assert_eq!(c.post(format!("{}/mcp",server.url)).json(&search).send().await.unwrap().status(),StatusCode::UNAUTHORIZED);
+    let response:Value=c.post(format!("{}/mcp",server.url)).bearer_auth("synthetic-test-token").json(&search).send().await.unwrap().json().await.unwrap();
+    let skill=&response["result"]["structuredContent"]["skills"][0]["skill_id"];assert!(skill.is_string(),"{response}");
+    let invoke=json!({"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"invoke_skill","arguments":{"workspace_id":"a","skill_id":skill}}});
+    let response:Value=c.post(format!("{}/mcp",server.url)).bearer_auth("synthetic-test-token").json(&invoke).send().await.unwrap().json().await.unwrap();
+    assert!(response["result"]["structuredContent"]["content"].as_str().unwrap().contains("真实测试技能正文"));
+    assert_eq!(response["result"]["structuredContent"]["scripts_executed"],false);stop(server).await;
+}
 struct Server { url:String, stop:Option<oneshot::Sender<()>>, handle:tokio::task::JoinHandle<()> }
 impl Drop for Server {fn drop(&mut self){if let Some(stop)=self.stop.take(){let _=stop.send(());}}}
 async fn start(state:ListenerState)->Server {

@@ -16,6 +16,25 @@ pub(super) fn fixture() -> (tempfile::TempDir,SharedState,SharedState,Arc<Worksp
         ("b".into(),Member{name:"Beta".into(),state:b.clone()})]).unwrap());
     (temp,a,b,hub)
 }
+
+#[test]
+fn skills_require_explicit_repository_and_cannot_reuse_another_id(){
+    let (_t,a,b,hub)=fixture();
+    for (state,name) in [(&a,"alpha-skill"),(&b,"beta-skill")] {
+        let folder=state.tools.workspace.root().join(".agents/skills/example");fs::create_dir_all(&folder).unwrap();
+        fs::write(folder.join("SKILL.md"),format!("---\nname: {name}\ndescription: fixture\n---\n{name}\n")).unwrap();
+    }
+    assert_eq!(call(&hub,"list_skills",json!({}))["result"]["structuredContent"]["error"]["code"],"WORKSPACE_REQUIRED");
+    let result=call(&hub,"search_skills",json!({"workspace_id":"a","query":"$alpha"}));
+    let data=&result["result"]["structuredContent"];assert_eq!(data["matches"],1);assert_eq!(data["workspace_id"],"a");
+    assert_eq!(serde_json::from_str::<Value>(result["result"]["content"][0]["text"].as_str().unwrap()).unwrap(),*data);
+    let skill=&data["skills"][0]["skill_id"];
+    assert_eq!(call(&hub,"invoke_skill",json!({"workspace_id":"b","skill_id":skill}))["result"]["structuredContent"]["error"]["code"],"SKILL_NOT_FOUND");
+    let loaded=call(&hub,"invoke_skill",json!({"workspace_id":"a","skill_id":skill}));
+    assert_eq!(loaded["result"]["structuredContent"]["name"],"alpha-skill");
+    assert_eq!(loaded["result"]["structuredContent"]["source_ref"],data["skills"][0]["source_ref"]);
+    assert!(request(&hub,"initialize",json!({}))["result"]["instructions"].as_str().unwrap().contains("search_skills"));
+}
 fn request(hub:&WorkspaceHub,method:&str,params:Value)->Value {
     hub.handle(&json!({"jsonrpc":"2.0","id":1,"method":method,"params":params}),&AuditRequestContext::default())
 }

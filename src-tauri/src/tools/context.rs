@@ -16,6 +16,7 @@ pub struct ToolContext {
     pub permission_mode: String,
     pub harness: Harness,
     pub personal: coding_tools_personal_runtime::Store,
+    pub skills: super::skill_catalog::Catalog,
     // 审计附着在现有 ToolContext，避免修改全部工具签名；生产监听器显式启用，测试与内部
     // 构造保持 None。正式 profile_id 绑定前暂用 Harness 的稳定工作区 ID 作为兼容标签。
     audit: Option<AuditStore>,
@@ -73,6 +74,11 @@ impl ToolContext {
             .expect("无法初始化个人任务状态");
         let harness = Harness::new(root.clone(), harness_root).expect("无法初始化 Harness");
         let audit_workspace_id = harness.workspace_id().to_string();
+        // Unit fixtures never scan the real user's global skill directory.
+        #[cfg(test)]
+        let skills = super::skill_catalog::Catalog::new(root.clone(), Vec::new());
+        #[cfg(not(test))]
+        let skills = super::skill_catalog::Catalog::production(root.clone());
         Self {
             workspace,
             auth,
@@ -81,6 +87,7 @@ impl ToolContext {
             permission_mode,
             harness,
             personal,
+            skills,
             audit: None,
             audit_workspace_id,
             default_cwd: Mutex::new(root),

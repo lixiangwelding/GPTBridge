@@ -1,3 +1,8 @@
+pub(crate) mod skills;
+pub(crate) mod skill_catalog;
+mod skill_io;
+#[cfg(test)]
+mod skill_tests;
 mod command_line;
 mod exec_paths;
 pub mod context;

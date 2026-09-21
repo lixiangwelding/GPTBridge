@@ -67,6 +67,9 @@ pub fn call_tool(ctx: &ToolContext, name: &str, args: &Value) -> Value {
     if super::personal::TOOLS.contains(&name) {
         return match super::personal::call(ctx, name, &effective_args) { Ok(v) => v, Err(e) => tool_err(e) };
     }
+    if super::skills::TOOLS.contains(&name) {
+        return match super::skills::call(ctx, name, &effective_args) { Ok(v) => v, Err(e) => tool_err(e) };
+    }
     let durable_session = effective_args.get("session_id").and_then(Value::as_str).is_some_and(|s|s.starts_with("job-"));
     let durable_output = effective_args.get("output_ref").and_then(Value::as_str).is_some_and(|s|s.starts_with("job:"));
     if matches!(name, "apply_patch" | "patch_check" | "exec_command")
@@ -500,6 +503,8 @@ pub fn server_info(ctx: &ToolContext) -> Result<Value, WorkspaceError> {
         "endpoint_path": "/mcp",
         "tools": tools,
         "tool_count": tools.len(),
+        "skill_bridge": {"enabled":ctx.skills.enabled,"tools":super::skills::TOOLS,"local_files":true,
+            "textual_dollar_alias":true,"native_dollar_picker":false,"executes_scripts":false},
         "personal_runtime": {"enabled":true,"task_scope":"explicit_task_id","durable_jobs":true,"same_directory":true,"worktree_required":false,
             "limits":{"running":8,"heavy":2,"queued_and_running":32},"config_isolated":true,"raw_transcript_capture":"only_explicitly_supplied_text"}
     })))

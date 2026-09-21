@@ -23,6 +23,20 @@ mod workspace;
 /// Administrative CLI runs before Tauri, listeners, tunnels or configuration migration.
 pub fn personal_cli() -> Option<i32> {
     let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(String::as_str)==Some("--personal-skills-check") {
+        if !(3..=4).contains(&args.len()){eprintln!("usage: --personal-skills-check /absolute/repository [query]");return Some(2);}
+        let result=(||->Result<serde_json::Value,String>{
+            let path=std::path::PathBuf::from(&args[2]);
+            if !path.is_absolute(){return Err("repository must be an absolute directory".into());}
+            let path=path.canonicalize().map_err(|_|"repository does not exist")?;
+            if !path.is_dir(){return Err("repository is not a directory".into());}
+            let catalog=tools::skill_catalog::Catalog::production(path);
+            let mut value=catalog.list(&serde_json::json!({"query":args.get(3).map(String::as_str).unwrap_or(""),"limit":10})).map_err(|e|e.message())?;
+            value["services_started"]=serde_json::json!(false);value["configuration_written"]=serde_json::json!(false);
+            Ok(value)
+        })();
+        return Some(match result {Ok(value)=>{println!("{value}");0},Err(error)=>{eprintln!("skill check: {error}");1}});
+    }
     if args.get(1).map(String::as_str) == Some("--personal-check-config") {
         if args.len()!=2 { eprintln!("usage: --personal-check-config");return Some(2); }
         let result=(|| -> Result<serde_json::Value, String> {

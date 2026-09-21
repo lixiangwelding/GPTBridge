@@ -106,7 +106,7 @@ impl WorkspaceHub {
         match body["method"].as_str() {
             Some("initialize") => {
                 let mut result=handle_request_with_context(&self.host,body,request);
-                result["result"]["instructions"]=json!(format!("{ROUTING} {}",crate::tools::personal::INSTRUCTIONS));
+                result["result"]["instructions"]=json!(format!("{ROUTING} {} {}",crate::tools::personal::INSTRUCTIONS,crate::tools::skills::INSTRUCTIONS));
                 result
             }
             Some("tools/list") => json!({"jsonrpc":"2.0","id":id,"result":{"tools":self.catalog}}),

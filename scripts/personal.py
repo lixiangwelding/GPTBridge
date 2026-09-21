@@ -55,6 +55,9 @@ def main(argv: list[str] | None = None) -> int:
     imp.add_argument("--source", type=Path)
     commands.add_parser("start", help="explicitly launch the personal app; never stop the old one")
     commands.add_parser("check-config", help="read the personal configuration with the native desktop parser; do not launch")
+    skills = commands.add_parser("check-skills", help="read local skill metadata with the native bridge; never launch services or scripts")
+    skills.add_argument("--workspace", type=Path, default=ROOT)
+    skills.add_argument("--query", default="")
     commands.add_parser("info", help="show paths without reading credential values")
     args = parser.parse_args(argv)
     if args.command == "info":
@@ -74,6 +77,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.command == "check-config":
         return run([str(binary),"--personal-check-config"],60)
+    if args.command == "check-skills":
+        return run([str(binary),"--personal-skills-check",str(args.workspace.resolve()),args.query],60)
     if args.command == "import-config":
         source = args.source
         if source is None:

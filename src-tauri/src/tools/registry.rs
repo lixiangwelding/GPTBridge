@@ -484,6 +484,7 @@ pub fn exposed_tool_names(tool_profile: &str) -> Vec<&'static str> {
         _ => CORE_TOOLS.to_vec(),
     };
     if normalize_tool_profile(tool_profile) != "read-only" { names.extend_from_slice(super::personal::TOOLS); }
+    names.extend_from_slice(super::skills::TOOLS);
     names
 }
 
@@ -495,6 +496,7 @@ pub fn list_tools_for_profile(tool_profile: &str) -> Vec<Value> {
     exposed_tool_names(tool_profile)
         .into_iter()
         .filter_map(|name| {
+            if super::skills::TOOLS.contains(&name) { return Some(super::skills::definition(name)); }
             if super::personal::TOOLS.contains(&name) { return Some(super::personal_schema::definition(name)); }
             P0_TOOLS.iter().find(|(n, ..)| *n == name).map(|entry| {
                 let (name, title, description, read_only, destructive, open_world) = *entry;
@@ -518,6 +520,7 @@ pub fn list_tools_for_profile(tool_profile: &str) -> Vec<Value> {
 }
 
 pub fn input_schema(name: &str) -> Value {
+    if super::skills::TOOLS.contains(&name) { return super::skills::definition(name)["inputSchema"].clone(); }
     if let Some(schema) = super::personal_schema::schema(name) { return schema; }
     let mut schema = base_input_schema(name);
     super::personal_schema::extend(name, &mut schema);
@@ -939,7 +942,7 @@ mod tests {
             .collect();
         let unique: HashSet<_> = names.iter().copied().collect();
 
-        assert_eq!(tools.len(), 29);
+        assert_eq!(tools.len(), 33);
         assert_eq!(unique.len(), tools.len());
         assert!(names.contains(&"history_session_bootstrap"));
         assert!(names.contains(&"history_session_checkpoint"));

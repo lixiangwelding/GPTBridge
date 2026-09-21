@@ -22,6 +22,7 @@ SUITES: dict[str, list[tuple[str, list[str], int]]] = {
         ("mcp-protocol",["cargo","test","--manifest-path","src-tauri/Cargo.toml","--lib","mcp::server::tests"],300),
         ("policy",["cargo","test","--manifest-path","src-tauri/Cargo.toml","--lib","tools::policy::tests"],300),
         ("registry",["cargo","test","--manifest-path","src-tauri/Cargo.toml","--lib","tools::registry::tests"],300),
+        ("skill-bridge",["cargo","test","--locked","--manifest-path","src-tauri/Cargo.toml","--lib","skill_tests"],300),
         ("full-rust-regression",["cargo","test","--manifest-path","src-tauri/Cargo.toml","--lib"],480),
     ],
     "frontend": [

@@ -389,7 +389,17 @@ mod tests {
             ("grep absent missing.txt", "failure"),
         ] {
             let args = json!({"cmd":command,"workdir":".","yield_time_ms":1000,"timeout_ms":5000});
-            let output = crate::tools::call_tool(&ctx, "exec_command", &args);
+            let mut output = crate::tools::call_tool(&ctx, "exec_command", &args);
+            // This assertion concerns a terminal audit outcome. A loaded host
+            // may legitimately return a durable running job after the first yield.
+            // Poll that same job instead of confusing acceptance with completion.
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+            while matches!(output["status"].as_str(), Some("queued" | "running")) {
+                assert!(std::time::Instant::now() < deadline, "job did not reach a terminal state: {output}");
+                let poll = json!({"session_id":output["session_id"],"chars":"","yield_time_ms":1000});
+                output = crate::tools::call_tool(&ctx, "write_stdin", &poll);
+            }
+            assert_eq!(output["status"], "exited", "{output}");
             let id = record(&store, "exec_command", &args, &output);
             assert_eq!(
                 store.get_record(&id).unwrap().unwrap().status,
