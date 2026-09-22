@@ -81,6 +81,20 @@ impl Store {
         if encoded.len() > 32_768 { return Err(Error::contract("EVENT_TOO_LARGE", "event summaries are limited to 32KiB")); }
         self.conn()?.execute("INSERT INTO events(task_id,kind,body,created) VALUES(?1,?2,?3,?4)", (task_id,kind,encoded,now_ms()))?; Ok(())
     }
+    /// Read a completed intent without a source lock or a new filesystem operation.
+    /// Incomplete receipts remain uncertain and never authorize replay.
+    pub fn peek_receipt(&self, scope: &str, request: &str, hash: &str) -> Result<Option<Value>> {
+        if request.is_empty() || request.len() > 160 { return Err(Error::contract("INVALID_REQUEST_ID", "request_id is required (<=160 bytes)")); }
+        let prior: Option<(String,String,Option<String>)> = self.conn()?.query_row(
+            "SELECT input_hash,state,result FROM receipts WHERE scope=?1 AND request_id=?2",
+            (scope,request), |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?;
+        let Some((previous,state,result)) = prior else { return Ok(None); };
+        if previous != hash { return Err(Error::contract("IDEMPOTENCY_CONFLICT", "request_id already used with different input")); }
+        if state != "complete" { return Err(Error::contract("OPERATION_INDETERMINATE", "previous attempt may have changed files; inspect evidence, do not replay")); }
+        let result: Value = serde_json::from_str(&result.ok_or_else(|| Error::contract("INVALID_RECEIPT", "completed receipt has no result"))?)?;
+        if !result.is_object() { return Err(Error::contract("INVALID_RECEIPT", "completed receipt must be an object")); }
+        Ok(Some(result))
+    }
     // Called under the source gate. Intent is durable before filesystem side effects.
     pub fn begin_receipt(&self, scope: &str, request: &str, hash: &str) -> Result<Option<Value>> {
         if request.is_empty() || request.len() > 160 { return Err(Error::contract("INVALID_REQUEST_ID", "request_id is required (<=160 bytes)")); }
