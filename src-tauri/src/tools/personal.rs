@@ -99,7 +99,17 @@ pub fn task_view(store: &Store, task: &str, args: &Value) -> coding_tools_person
     state["step_counts"] = Value::Object(counts);
     state["next_cursor"] = next;
     state["include_passed"] = json!(include_passed);
-    state["jobs"] = store.job_list(Some(task))?;
+    let mut jobs = store.job_list(Some(task))?;
+    // The task recovery limit also bounds its job summary. Keep the store's
+    // existing 50-job cap and truncation evidence; never mutate/replay jobs.
+    let job_limit = limit(args, 20).min(50);
+    if let Some(items) = jobs.get_mut("jobs").and_then(Value::as_array_mut) {
+        let shortened = items.len() > job_limit;
+        items.truncate(job_limit);
+        if shortened { jobs["truncated"] = json!(true); }
+    }
+    jobs["limit"] = json!(job_limit);
+    state["jobs"] = jobs;
     state["acceptance_source"] = json!("step outcomes are caller-declared; inspect referenced evidence before claiming business acceptance");
     Ok(state)
 }
@@ -128,4 +138,85 @@ pub fn job_output(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceErr
     ctx.personal.job_output(parts[1], parts[2], args.get("offset").and_then(Value::as_u64).unwrap_or(0),
         args.get("limit").and_then(Value::as_u64).unwrap_or(4096).clamp(1, 1_048_576) as usize)
         .map(tool_ok).map_err(error)
+}
+
+
+#[cfg(test)]
+mod task_view_job_limit_tests {
+    use super::*;
+
+    fn fixture(count: usize) -> (tempfile::TempDir, Store, String) {
+        let dir = tempfile::tempdir().unwrap();
+        let workspace = dir.path().join("workspace");
+        std::fs::create_dir(&workspace).unwrap();
+        let store = Store::at(dir.path().join("state"), workspace).unwrap();
+        let task = store.open_task_request(&json!({"goal":"bounded recovery fixture", "request_id":"bounded-task"})).unwrap()["task_id"]
+            .as_str().unwrap().to_owned();
+        let conn = store.conn().unwrap();
+        for index in 0..count {
+            conn.execute("INSERT INTO jobs(id,task_id,scope,request_id,input_hash,spec,state,exit_code,created,updated) VALUES(?1,?2,?2,?3,'fixture','{}','exited',0,?4,?4)",
+                (uuid::Uuid::new_v4().to_string(), &task, format!("job-{index}"), index as i64)).unwrap();
+        }
+        (dir, store, task)
+    }
+
+    #[test]
+    fn explicit_small_limit_bounds_jobs_and_reports_truncation() {
+        let (_dir, store, task) = fixture(3);
+        let view = task_view(&store, &task, &json!({"limit":1})).unwrap();
+        assert_eq!(view["jobs"]["jobs"].as_array().unwrap().len(), 1);
+        assert_eq!(view["jobs"]["limit"], 1);
+        assert_eq!(view["jobs"]["truncated"], true);
+        assert_eq!(view["jobs"]["jobs"][0]["request_id"], "job-2");
+        assert_eq!(view["jobs"]["jobs"][0]["task_id"], task);
+    }
+
+    #[test]
+    fn exact_limit_does_not_claim_missing_jobs() {
+        let (_dir, store, task) = fixture(2);
+        let view = task_view(&store, &task, &json!({"limit":2})).unwrap();
+        assert_eq!(view["jobs"]["jobs"].as_array().unwrap().len(), 2);
+        assert_eq!(view["jobs"]["limit"], 2);
+        assert_eq!(view["jobs"]["truncated"], false);
+    }
+
+    #[test]
+    fn default_recovery_is_bounded_to_twenty_jobs() {
+        let (_dir, store, task) = fixture(25);
+        let view = task_view(&store, &task, &json!({})).unwrap();
+        assert_eq!(view["jobs"]["jobs"].as_array().unwrap().len(), 20);
+        assert_eq!(view["jobs"]["limit"], 20);
+        assert_eq!(view["jobs"]["truncated"], true);
+    }
+
+    #[test]
+    fn upstream_fifty_job_cap_and_truncation_are_preserved() {
+        let (_dir, store, task) = fixture(51);
+        let view = task_view(&store, &task, &json!({"limit":100})).unwrap();
+        assert_eq!(view["jobs"]["jobs"].as_array().unwrap().len(), 50);
+        assert_eq!(view["jobs"]["limit"], 50);
+        assert_eq!(view["jobs"]["truncated"], true);
+    }
+
+    #[test]
+    fn empty_task_does_not_borrow_another_tasks_jobs() {
+        let (_dir, store, _task) = fixture(3);
+        let other = store.open_task_request(&json!({"goal":"unrelated empty fixture", "request_id":"other-task"})).unwrap()["task_id"]
+            .as_str().unwrap().to_owned();
+        let view = task_view(&store, &other, &json!({"limit":1})).unwrap();
+        assert!(view["jobs"]["jobs"].as_array().unwrap().is_empty());
+        assert_eq!(view["jobs"]["truncated"], false);
+        assert_eq!(view["task_id"], other);
+    }
+
+    #[test]
+    fn limiting_a_view_does_not_delete_jobs_or_change_step_cursor() {
+        let (_dir, store, task) = fixture(3);
+        let before = store.task_status(&task).unwrap();
+        let view = task_view(&store, &task, &json!({"limit":1})).unwrap();
+        assert_eq!(store.job_list(Some(&task)).unwrap()["jobs"].as_array().unwrap().len(), 3);
+        assert_eq!(store.task_status(&task).unwrap(), before);
+        assert_eq!(view["next_cursor"], Value::Null);
+        assert!(view["steps"].as_object().unwrap().is_empty());
+    }
 }
