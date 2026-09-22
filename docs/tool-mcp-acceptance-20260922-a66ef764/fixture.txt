@@ -1,0 +1,4 @@
+TOOL-MCP harmless isolated acceptance fixture
+task=a66ef764-4614-4053-9273-c4353fa060f8
+value=after
+text=中文分页🙂🚀验证

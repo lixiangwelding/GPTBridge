@@ -1,0 +1,238 @@
+{
+  "task_id": "a66ef764-4614-4053-9273-c4353fa060f8",
+  "status": "REPAIR_COMMITTED_PUSHED_INSTALLED_ACTIVE_EXTENDED_ACCEPTANCE_OPEN",
+  "latest": {
+    "recorded_at_jst": "2026-09-22T20:49:44.924964+09:00",
+    "status": "REPAIR_COMMITTED_PUSHED_INSTALLED_ACTIVE_EXTENDED_ACCEPTANCE_OPEN",
+    "source_commit": "6be33f257fd64abc41a6c370a926f9781d92ac55",
+    "source_commit_actor": "parallel authorized integration writer; this task verified the 19-file commit rather than duplicating it",
+    "source_sha256": "eec2554fb86ce57089a7d3bd3f45abfd49c9912f94afe2539ec552cceafe1c49",
+    "source_matches_tests_after_install_check": true,
+    "tests": {
+      "stages_passed": 14,
+      "stages_total": 14,
+      "desktop_rust_full_regression": 412,
+      "python": 43,
+      "svelte_errors": 0,
+      "svelte_warnings": 0,
+      "counts_not_additive_with_subsets": true,
+      "receipt": ".artifacts/selftest/1790076977831398000/result.json",
+      "job_id": "2a8006b1-786e-4185-bc03-02cfba068c09"
+    },
+    "push": {
+      "actor_task": "a66ef764-4614-4053-9273-c4353fa060f8",
+      "job_id": "d3769d2b-ae75-406f-a6f5-e80cda961d88",
+      "exit_code": 0,
+      "remote": "origin",
+      "branch": "main",
+      "from": "b29df973f44ee00024fee1b339142d76f1325c08",
+      "to": "6be33f257fd64abc41a6c370a926f9781d92ac55",
+      "force": false,
+      "proxy": "http://127.0.0.1:7897",
+      "proxy_scope": "single git invocation; discovered from existing macOS system settings; no persistent config change"
+    },
+    "installation": {
+      "actor": "parallel authorized installer; no duplicate install by this task",
+      "path": "/Users/didi/Applications/Coding Tools MCP Personal.app",
+      "version": "0.3.4",
+      "binary_sha256": "a9fbc18cad8ad723ef9a87b1a30405904dc18a56ca6997a5908621a3f19655c3",
+      "candidate_and_installed_tree_digest": "b682e48ca259a1d49afa7bb6485691c98f80e4c8fb8da7ae5f63e1e1935ae53c",
+      "official_readonly_plan_app_files_will_change": false,
+      "plan_job": "c684bfbc-56be-4e71-8d6b-8022b1c1c2bb",
+      "sha_job": "5679820e-8660-4a4e-9712-5e6f4f1b9633",
+      "native_verification_job": "f768ab2b-87ae-4849-bdfd-306e951a26d5",
+      "native_profiles": 1,
+      "native_tool_count": 33,
+      "configuration_unchanged_during_independent_check": true,
+      "configuration_sha256_at_check": "497c57079ab59043d8cdfdcac4a723502014b82b0ac80bedcc8c28025777b876",
+      "original_install_transaction_receipt": "NOT_READ_PLATFORM_BLOCKED_JOB_QUERY_NOT_BYPASSED",
+      "current_pid_mapping": "NOT_INDEPENDENTLY_VERIFIED",
+      "formal_signed_distribution": false
+    },
+    "live_acceptance": {
+      "existing_job_output_identity": "PASS: output of job3a90173e-a37d-4487-98d1-04a3b45fc195 now carries persisted job_id/task_id/request_id and correct task_scope",
+      "native_node_path": "PASS v26.3.0; job22de3107-910b-4287-af98-f52ee25ae84f",
+      "new_patch_fixture": "PASS: normal source lock acquisition created fixture; exact replay returned same change_id and deduplicated=true; stale SHA refused and native readback unchanged",
+      "transient_session_terminated": "Observed, recovered original task and completed test job; not a controlled outage benchmark",
+      "initial_resource_busy_no_write_attempts": 2,
+      "fixture_change_id": "dce10b110e3c4168b0241a9c5b4e4451",
+      "fixture_sha256": "4c7019a90d3d389b4cdf6fe87bfb74a49a566bf484b0217fe47e2b4878d51dce",
+      "stale_sha_rejection": "PASS STALE_FILE patch_applied=false; original bytes preserved",
+      "task_status_job_limit": "PASS: limit=1 returned one job, jobs.limit=1, truncated=true"
+    },
+    "review": {
+      "gitnexus_detect_changes": "executed, 15 files / 47 symbols / 28 flows, critical; generic callgraph scope not an automatic semantic PASS",
+      "graph_job": "158975df-c277-4552-8e0a-b16f8db554b3",
+      "manual_review": "inherited differences and later committed overlaps reviewed; output metadata reuses persisted row, null owner remains authoritative, permissions/preconditions preserved, isolated venv fixture correction retained"
+    },
+    "not_claimed": [
+      "unique FRP/edge502 root cause solved",
+      "controlled multi-ChatGPT same-file race",
+      "cold/hot long-tail and concurrent checkpoint benchmark",
+      "Windows/mobile/fresh OAuth end-to-end",
+      "formal signing/distribution",
+      "real rollback drill"
+    ]
+  },
+  "previous_turn": {
+    "task_id": "a66ef764-4614-4053-9273-c4353fa060f8",
+    "domain": "TOOL-MCP",
+    "status": "PARTIAL_BLOCKED_INTEGRATION",
+    "user_snapshot_at": "2026-09-22T19:27:39+09:00",
+    "latest_git_observed_at": "2026-09-22T20:24:22+09:00",
+    "snapshot_is_atomic": false,
+    "initial_head": "21c429ce0d95f5a553f78140dd9b0a2e19262696",
+    "latest_observed_head": "71ba38e10e731a6cea528870b5d6983448be9395",
+    "branch": "main",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "behind": 0,
+    "fetched_by_this_task": false,
+    "commits_by_this_task": [],
+    "pushes_by_this_task": 0,
+    "commit_attempted_by_this_task": false,
+    "commit_gate": "not_closed_shared_writers_and_no_frozen_full_regression",
+    "installations_by_this_task": 0,
+    "restarts_by_this_task": 0,
+    "deployments_by_this_task": 0,
+    "runtime": {
+      "observed_version": "0.3.4",
+      "actual_client_tools": 33,
+      "schema_sha256": "0eaedfaf85246c8e14e6a5c63517c38653cf7beff2d7189010de381de130cc79",
+      "installed_binary_last_successful_sha256": "dcc37a568d49d50eb87d902d73442da0d7c917e822a6a98ecf0417a604f065f0",
+      "installed_hash_job_id": "41804f75-ded1-47e7-90ce-89e0a16ebad1",
+      "current_pid_mapping": "BLOCKED_ALLOWLIST",
+      "final_batch_hash_recheck": "BLOCKED_PLATFORM_SAFETY_NOT_RETRIED",
+      "new_output_identity_fix_installed_by_this_task": false,
+      "current_runtime_contains_new_output_identity_fix": "NOT_REVERIFIED",
+      "native_dollar_picker": false
+    },
+    "source_changes": [
+      {
+        "path": "personal-runtime/src/jobs.rs",
+        "change": "return authoritative persisted job_id/task_id/request_id in output pages",
+        "last_successful_sha256": "edde94910aed139099f19c2d437de19148f91edecad42eb84268204b0c160310"
+      },
+      {
+        "path": "src-tauri/src/tools/session87_tests.rs",
+        "change": "one bound/unbound identity and UTF8 paging regression",
+        "last_successful_sha256": "78707580b170d5bef357afba367a3af09ca7c90ea63b3550d069c09bd1f66135"
+      },
+      {
+        "path": "src-tauri/tests/call_tool_security.rs",
+        "change": "platform Python name and real command_ok assertion",
+        "last_successful_sha256": "9aa51b1829dd0050b0daa342348538bc89d483e89ecfce9e1714c117f4b5f11b"
+      },
+      {
+        "path": "src-tauri/tests/exec_path_regression.rs",
+        "change": "real interpreter and explicit isolated fixture trust; final HashSet.insert already applied by another writer",
+        "last_successful_sha256": "c48a0708db51c67a6cc920f4f4075cb6c285adeb07fc40b7bac1663f63876504",
+        "final_line_writer": "UNBOUND_OTHER_WRITER"
+      }
+    ],
+    "successful_source_patch_changes": [
+      "f6beb32b118045da9733b4786ef76d42",
+      "db53d7b003cb4d33aff9f28be56b6b92"
+    ],
+    "live_fixture_checks": {
+      "protected_create_and_readback": "PASS",
+      "protected_update_and_readback": "PASS",
+      "same_request_patch_replay": "PASS_SAME_CHANGE_ID_DEDUPLICATED",
+      "stale_sha_rejection": "PASS_STALE_FILE_NO_PATCH_APPLIED",
+      "durable_command_replay": "PASS_SAME_JOB_ID_DEDUPLICATED",
+      "utf8_pages": "PASS_15_BYTES_OFFSETS_0_3_6_10_15",
+      "installed_output_page_task_scope": "FAIL_REPRODUCED_NULL_OWNER_SOURCE_FIXED",
+      "timeout": "PASS_EXPECTED_TIMEOUT_STATE",
+      "cancellation": "PASS_EXPECTED_CANCELLED_STATE",
+      "task_checkpoint_readback": "PASS_REVISIONS_1_2_3",
+      "real_transport_disconnect_recovery": "NOT_TESTED",
+      "controlled_multi_chatgpt_same_file_competition": "NOT_TESTED",
+      "cold_hot_tail_and_concurrent_checkpoint": "NOT_TESTED"
+    },
+    "test_runs": [
+      {
+        "kind": "python_stage",
+        "result": "PASS",
+        "receipt": ".artifacts/selftest/1790073870373676000/result.json"
+      },
+      {
+        "kind": "baseline_full_rust",
+        "passed": 370,
+        "failed": 2,
+        "result": "FAIL",
+        "receipt": ".artifacts/checks/toolmcp-a66ef764-rust-regression-1790073984943159000/result.json"
+      },
+      {
+        "kind": "intermediate_full_rust",
+        "passed": 372,
+        "failed": 1,
+        "result": "FAIL",
+        "receipt": ".artifacts/selftest/1790074936539227000/result.json"
+      },
+      {
+        "kind": "intermediate_all",
+        "stages_passed_before_failure": 8,
+        "result": "COMPILE_FAIL_E0599_HASHSET_PUSH",
+        "receipt": ".artifacts/selftest/1790075251193082000/result.json"
+      },
+      {
+        "kind": "current_exec_path_target",
+        "passed": 7,
+        "failed": 0,
+        "result": "PASS",
+        "job_id": "5e71f983-12db-4057-822c-4598e827f9b7",
+        "receipt": ".artifacts/checks/toolmcp-a66ef764-final-exec-path-1790075892183753000/result.json"
+      },
+      {
+        "kind": "current_output_identity_target",
+        "passed": 1,
+        "failed": 0,
+        "filtered_out": 300,
+        "result": "PASS",
+        "job_id": "4e778cd7-02ce-46dc-b0a0-ad6eaefa99fe",
+        "receipt": ".artifacts/checks/toolmcp-a66ef764-current-output-identity-1790076209585383000/result.json"
+      }
+    ],
+    "test_counts_are_not_additive": true,
+    "final_merged_full_regression": "NOT_ESTABLISHED",
+    "final_frozen_desktop_artifact": "NOT_BUILT_BY_THIS_TASK",
+    "code_review": {
+      "inherited_diff_manual_review": "DONE_ON_INITIAL_SOURCE",
+      "own_four_file_review": "DONE_WITH_RECORDED_FIXTURE_FAILURES",
+      "latest_other_writer_changes": "NOT_FULLY_REVIEWED_BY_THIS_TASK",
+      "code_review_tool": "GUIDANCE_AND_REAL_DIFF_COLLECTION_NOT_AUTOMATIC_PASS",
+      "runtime_impact_graph": "TWO_CANDIDATES_RUNTIME_LOW_PUBLIC_DISPATCH_HIGH",
+      "exact_uid_followup": "BLOCKED_PLATFORM_SAFETY_NOT_RETRIED",
+      "test_function_impacts": "LOW_EXACT",
+      "precommit_detect_changes_gate": "NOT_COMPLETED"
+    },
+    "transport": {
+      "host_log_utc_offset": "+08:00",
+      "user_utc_offset": "+09:00",
+      "frpc_snapshot_sha256": "6f50e68e37dc89ffbd1042fcfcb5b91717813b44f63a76cbd170844ebed8d111",
+      "collision_jst": "2026-09-22T19:18:20.207+09:00",
+      "collision_run_id": "77d3a03bef1d3ae1",
+      "recovery_jst": "2026-09-22T19:18:22.760+09:00",
+      "recovery_run_id": "3a551c07b99e621b",
+      "http_summary_job_id": "4d54ccbf-6922-4bac-9917-dd8cb82d86fd",
+      "access_snapshot_sha256": "e7dd4fcf832b000a18ff90d4fa5a7fb7c3c0e8ad0546ed5790dc3224c62c3a37",
+      "post_user_snapshot_backend_requests": 3394,
+      "post_user_snapshot_backend_http200": 3394,
+      "edge_502_excluded": false,
+      "unique_root_cause": "UNPROVEN"
+    },
+    "not_tested": [
+      "Windows real client",
+      "mobile real client",
+      "fresh OAuth flow",
+      "native dollar dropdown",
+      "formal signing and distribution",
+      "real upgrade and rollback",
+      "controlled disconnect recovery",
+      "controlled multi-ChatGPT conflict",
+      "cold/hot long-tail benchmark"
+    ],
+    "cross_requests_delivery": "REGISTERED_IN_THIS_DIRECTORY_NOT_EXTERNALLY_NOTIFIED",
+    "source_of_truth": "referenced native tool receipts plus observed source; caller-declared task states are not independent business acceptance"
+  }
+}
