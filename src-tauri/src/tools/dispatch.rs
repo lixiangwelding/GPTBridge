@@ -506,6 +506,7 @@ pub fn server_info(ctx: &ToolContext) -> Result<Value, WorkspaceError> {
         "endpoint_path": "/mcp",
         "tools": tools,
         "tool_count": tools.len(),
+        "tool_contract": super::registry::catalog_contract(&ctx.tool_profile),
         "skill_bridge": {"enabled":ctx.skills.enabled,"tools":super::skills::TOOLS,"local_files":true,
             "textual_dollar_alias":true,"native_dollar_picker":false,"executes_scripts":false},
         "personal_runtime": {"enabled":true,"task_scope":"explicit_task_id","durable_jobs":true,"same_directory":true,"worktree_required":false,

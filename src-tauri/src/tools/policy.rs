@@ -308,7 +308,9 @@ pub fn validate_command_for_workspace(
     }
 
     if let Some(timeout_ms) = arguments.get("timeout_ms").and_then(Value::as_u64) {
-        let max = if arguments.get("durable").and_then(Value::as_bool) == Some(true) { 86_400_000 } else { 600_000 };
+        let durable = !arguments.get("tty").and_then(Value::as_bool).unwrap_or(false)
+            && arguments.get("durable").and_then(Value::as_bool).unwrap_or(true);
+        let max = if durable { 86_400_000 } else { 600_000 };
         if timeout_ms == 0 || timeout_ms > max {
             return Err(PolicyError(format!("Command timeout must be between 1 and {max} milliseconds")));
         }

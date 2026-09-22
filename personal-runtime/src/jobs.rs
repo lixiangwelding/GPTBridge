@@ -154,10 +154,59 @@ impl Store {
         if !matches!(stream,"stdout"|"stderr"){return Err(Error::contract("INVALID_STREAM","stream must be stdout or stderr"))}
         let status=self.job_status_on(&self.conn()?,job,None)?;
         let path=self.dir.join("jobs").join(job).join(format!("{stream}.log"));
-        let mut data=Vec::new();let mut total=0;let mut actual=0;
-        if path.exists(){let mut f=fs::File::open(path)?;total=f.metadata()?.len();actual=offset.min(total);f.seek(SeekFrom::Start(actual))?;f.take(limit.clamp(1,1_048_576) as u64).read_to_end(&mut data)?;}
-        let next=actual+data.len() as u64;
-        Ok(json!({"output_ref":format!("job:{job}:{stream}"),"content":String::from_utf8_lossy(&data),"offset":actual,"next_offset":if next<total {Some(next)}else{None},"poll_offset":next,"retained_bytes":total,"stream_cap_bytes":MAX_STREAM_BYTES,"may_be_truncated":total>=MAX_STREAM_BYTES as u64,"job_status":status["status"],"offset_encoding":"bytes; use returned offsets"}))
+        let budget = limit.clamp(1, 1_048_576);
+        let mut data = Vec::new();
+        let (mut total, mut actual) = (0, 0);
+        if path.exists() {
+            let mut file = fs::File::open(path)?;
+            total = file.metadata()?.len();
+            actual = offset.min(total);
+            file.seek(SeekFrom::Start(actual))?;
+            // At most three lookahead bytes complete a UTF-8 codepoint. Bind the
+            // read to this file-size snapshot even if the worker is appending.
+            file.take((budget as u64 + 3).min(total - actual)).read_to_end(&mut data)?;
+        }
+        let mut consumed = 0;
+        let mut pending_utf8_bytes = 0;
+        while consumed < budget && consumed < data.len() {
+            let remaining = &data[consumed..];
+            let (valid_bytes, invalid_len) = match std::str::from_utf8(remaining) {
+                Ok(_) => (remaining.len(), None),
+                Err(error) => (error.valid_up_to(), error.error_len()),
+            };
+            if valid_bytes > 0 {
+                let mut take = (budget - consumed).min(valid_bytes);
+                while take < valid_bytes && remaining[take] & 0xc0 == 0x80 { take -= 1; }
+                if take == 0 && consumed == 0 {
+                    // Tiny limits must still advance by one complete codepoint.
+                    take = 1;
+                    while take < valid_bytes && remaining[take] & 0xc0 == 0x80 { take += 1; }
+                }
+                consumed += take;
+                if take < valid_bytes { break; }
+            } else if invalid_len.is_none()
+                && matches!(status["status"].as_str(), Some("queued" | "running" | "unknown")) {
+                // Defer a live partial codepoint without advancing its cursor.
+                if consumed == 0 { pending_utf8_bytes = remaining.len(); }
+                break;
+            } else {
+                // Treat each malformed sequence as a unit, then continue at the
+                // next boundary; don't split normal text following bad bytes.
+                let take = invalid_len.unwrap_or(remaining.len());
+                if consumed > 0 && consumed + take > budget { break; }
+                consumed += take;
+            }
+        }
+        let content = String::from_utf8_lossy(&data[..consumed]);
+        let content_lossy = matches!(&content, std::borrow::Cow::Owned(_));
+        let next = actual + consumed as u64;
+        Ok(json!({"output_ref":format!("job:{job}:{stream}"),"content":content,"offset":actual,
+            "next_offset":if pending_utf8_bytes == 0 && next < total {Some(next)}else{None},
+            "poll_offset":next,"bytes_read":consumed,"content_lossy":content_lossy,
+            "pending_utf8_bytes":pending_utf8_bytes,"retained_bytes":total,
+            "stream_cap_bytes":MAX_STREAM_BYTES,"may_be_truncated":total>=MAX_STREAM_BYTES as u64,
+            "job_status":status["status"],
+            "offset_encoding":"bytes; use returned offsets; a tiny limit may expand by up to 3 bytes for one UTF-8 codepoint"}))
     }
 }
 type JobRow=(Option<String>,String,String,Option<i32>,i64,i64,i64,String);
@@ -173,7 +222,36 @@ fn attach_output(value:&mut Value,dir:&Path,max:usize) {
     value["stdout_truncated"]=json!(out_truncated);value["stderr_truncated"]=json!(err_truncated);
     value["output_loaded"]=json!(true);
 }
-fn tail_file(path:&Path,limit:usize)->Result<String>{let mut f=fs::File::open(path)?;let size=f.metadata()?.len();let take=size.min(limit.clamp(1,1_048_576) as u64);f.seek(SeekFrom::End(-(take as i64)))?;let mut b=Vec::new();f.take(take).read_to_end(&mut b)?;Ok(String::from_utf8_lossy(&b).into_owned())}
+fn tail_file(path: &Path, limit: usize) -> Result<String> {
+    let mut file = fs::File::open(path)?;
+    let size = file.metadata()?.len();
+    let take = size.min(limit.clamp(1, 1_048_576) as u64);
+    let lookbehind = (size - take).min(3) as usize;
+    file.seek(SeekFrom::Start(size - take - lookbehind as u64))?;
+    let mut bytes = Vec::new();
+    file.take(take + lookbehind as u64).read_to_end(&mut bytes)?;
+    // A bounded tail may start inside a valid codepoint. Omit that partial
+    // prefix; complete recovery remains available through read_output.
+    let mut start = lookbehind.min(bytes.len());
+    if start < bytes.len() && bytes[start] & 0xc0 == 0x80 {
+        let mut lead = start;
+        while lead > 0 && bytes[lead] & 0xc0 == 0x80 { lead -= 1; }
+        let width = match bytes[lead] {
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 0,
+        };
+        let end = lead + width;
+        // Skip only a validated codepoint crossing the preview boundary;
+        // orphan continuation bytes must remain visible as invalid data.
+        if lead < start && end > start && end <= bytes.len()
+            && std::str::from_utf8(&bytes[lead..end]).is_ok() {
+            start = end;
+        }
+    }
+    Ok(String::from_utf8_lossy(&bytes[start..]).into_owned())
+}
 
 /// Preserve the legacy execution contract without hiding lost or truncated errors.
 fn capture_view(dir:&Path,stream:&str,limit:usize)->(String,bool){
@@ -205,5 +283,37 @@ mod output_contract_tests {
         fs::write(dir.path().join("stderr.tail"),b"line\n").unwrap();
         fs::write(dir.path().join("output.json"),br#"{"stderr":{"total_bytes":1000}}"#).unwrap();
         assert_eq!(capture_view(dir.path(),"stderr",32),("line\n".to_string(),true));
+    }
+}
+
+#[cfg(test)]
+mod audit_tail_preview_tests {
+    use super::*;
+    #[test]
+    fn audit_tail_preview_never_splits_valid_utf8() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("unicode.log");
+        let text = "log 中文🙂 emoji終";
+        fs::write(&path, text).unwrap();
+        for limit in 1..=text.len()+1 {
+            let tail = tail_file(&path, limit).unwrap();
+            assert!(!tail.contains('\u{fffd}'), "limit={limit}, tail={tail:?}");
+            assert!(text.ends_with(&tail));
+            assert!(tail.len() <= limit);
+        }
+    }
+    #[test]
+    fn audit_tail_preview_keeps_real_invalid_byte_evidence() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("invalid.log");
+        fs::write(&path, [b'A', 0xff, b'B']).unwrap();
+        assert!(tail_file(&path, 10).unwrap().contains('\u{fffd}'));
+    }
+    #[test]
+    fn audit_tail_preview_preserves_orphan_continuation_bytes() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("orphan.log");
+        fs::write(&path, [b'A', 0x80, b'B']).unwrap();
+        assert_eq!(tail_file(&path, 2).unwrap(), "\u{fffd}B");
     }
 }

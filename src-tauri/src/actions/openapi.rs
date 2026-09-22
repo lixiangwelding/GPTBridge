@@ -232,3 +232,15 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[test]
+fn audit_actions_exports_the_exact_mcp_input_contract() {
+    let tools = crate::tools::registry::list_tools_for_profile("core");
+    let doc = build_openapi(&tools, "http://127.0.0.1", "api_key");
+    assert_eq!(doc["paths"].as_object().unwrap().len(), tools.len());
+    for tool in tools {
+        let path = format!("/actions/{}", tool["name"].as_str().unwrap());
+        assert_eq!(doc["paths"][&path]["post"]["requestBody"]["content"]["application/json"]["schema"], tool["inputSchema"]);
+    }
+}

@@ -41,6 +41,13 @@ pub fn schema(name: &str) -> Option<Value> {
 }
 
 pub fn extend(name: &str, schema: &mut Value) {
+    if matches!(name,"list_files"|"search_text"|"grep_text"|"grep") {
+        schema["properties"]["max_visited_entries"] = json!({"type":"integer","minimum":1,"maximum":1000000,"description":"Bound directory traversal independently of matching results."});
+    }
+    if matches!(name,"search_text"|"grep_text"|"grep") {
+        schema["properties"]["include_ignored"] = json!({"type":"boolean","default":false});
+    }
+
     if matches!(name,"apply_patch"|"patch_check"|"exec_command") {
         schema["properties"]["task_id"] = json!({"type":"string","description":"Explicit durable task ID; unrelated tasks are never selected implicitly."});
         schema["properties"]["request_id"] = json!({"type":"string","minLength":1,"maxLength":160,"description":"Stable ID per logical operation. Reuse only to retrieve the same attempt; changed content needs a new ID."});

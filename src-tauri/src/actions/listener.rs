@@ -11,7 +11,7 @@ use axum::{
     Extension, Router,
 };
 use serde_json::{json, Value};
-use tokio::sync::{oneshot, Mutex, RwLock};
+use tokio::sync::{oneshot, Mutex, RwLock, Semaphore};
 use tower_http::cors::CorsLayer;
 
 use crate::auth::{
@@ -38,6 +38,8 @@ struct AppState {
     oauth: Option<Arc<OAuthRuntime>>,
     oauth_client_secret: Option<String>,
     write_lock: Arc<Mutex<()>>,
+    request_slots: Arc<Semaphore>,
+    waiting_slots: Arc<Semaphore>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -182,6 +184,8 @@ async fn serve(
         oauth,
         oauth_client_secret,
         write_lock: Arc::new(Mutex::new(())),
+        request_slots: Arc::new(Semaphore::new(32)),
+        waiting_slots: Arc::new(Semaphore::new(24)),
     };
     // access 中间件包在完整 Router 外层，以覆盖工具、OAuth、discovery 和 404；"actions"
     // 分区使同一工作区内的 MCP 与 Actions 日志可独立查询。
@@ -399,11 +403,29 @@ async fn execute_action(
             .into_response();
     }
 
-    let structured = if tools::registry::MUTATING_TOOLS.contains(&tool_name.as_str()) {
-        let _guard = state.write_lock.lock().await;
-        tools::call_tool_with_audit(state.ctx.as_ref(), &tool_name, &arguments, &request)
-    } else {
-        tools::call_tool_with_audit(state.ctx.as_ref(), &tool_name, &arguments, &request)
+    let waiting = matches!(tool_name.as_str(), "exec_command" | "exec_health_check" | "write_stdin");
+    let ctx = state.ctx.clone();
+    let name = tool_name.clone();
+    let write_lock = state.write_lock.clone();
+    let structured = match run_bounded_action(
+        state.request_slots.clone(), state.waiting_slots.clone(), waiting, move || {
+            // Personal mutations already coordinate through durable SQLite/file
+            // gates. Only the old workspace-global task API needs this lock.
+            let legacy_write = tools::registry::MUTATING_TOOLS.contains(&name.as_str())
+                && !matches!(name.as_str(), "apply_patch" | "exec_command" | "write_stdin" | "kill_session"
+                    | "history_session_bootstrap" | "history_session_checkpoint" | "history_session_validate"
+                    | "task_open" | "task_checkpoint" | "task_status");
+            let _guard = if legacy_write { Some(write_lock.blocking_lock()) } else { None };
+            tools::call_tool_with_audit(ctx.as_ref(), &name, &arguments, &request)
+        },
+    ).await {
+        Ok(value) => value,
+        Err(status) => return (status, Json(json!({
+            "ok": false,
+            "error": if status == StatusCode::TOO_MANY_REQUESTS { "ACTION_CAPACITY" } else { "ACTION_WORKER_FAILED" },
+            "safe_to_replay": false,
+            "recovery": "query the existing task/job before retrying an uncertain mutation"
+        }))).into_response(),
     };
     let result = wrap_tool_result(structured);
     let is_error = result
@@ -438,5 +460,103 @@ mod tests {
         let port = occupied.local_addr().expect("读取测试端口").port();
 
         assert!(bind_listener(port).is_err());
+    }
+}
+
+#[cfg(test)]
+mod audit_async_tests {
+    use super::*;
+    use std::time::{Duration, Instant};
+
+    fn fixture() -> (tempfile::TempDir, tempfile::TempDir, AppState) {
+        let workspace = tempfile::tempdir().unwrap();
+        let runtime = tempfile::tempdir().unwrap();
+        let ctx = Arc::new(ToolContext::for_test(workspace.path().into(), runtime.path().into()).unwrap());
+        let state = AppState {
+            workspace_path: workspace.path().display().to_string(), ctx,
+            openapi: Arc::new(RwLock::new(json!({}))),
+            auth: Arc::new(AuthConfig::new("none".into(), None, None, 0, String::new())),
+            bind_port: 0, configured_public_url: String::new(), oauth: None, oauth_client_secret: None,
+            write_lock: Arc::new(Mutex::new(())),
+            request_slots: Arc::new(Semaphore::new(32)),
+            waiting_slots: Arc::new(Semaphore::new(24)),
+        };
+        (workspace, runtime, state)
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn audit_actions_command_wait_does_not_block_the_async_executor() {
+        let (_workspace, _runtime, state) = fixture();
+        let started = Instant::now();
+        let request = execute_action(State(state), HeaderMap::new(), Path("exec_command".into()),
+            Some(Json(json!({"cmd":"python3 -c \"import time; time.sleep(0.35)\"", "yield_time_ms":1000, "timeout_ms":3000}))));
+        let (response, timer_elapsed) = tokio::join!(request, async {
+            tokio::time::sleep(Duration::from_millis(25)).await;
+            started.elapsed()
+        });
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(timer_elapsed < Duration::from_millis(180), "executor blocked for {timer_elapsed:?}");
+    }
+}
+
+// Both permits belong to the blocking execution, not the HTTP future. Client
+// disconnects cannot release capacity while a command is still using it.
+async fn run_bounded_action<F>(
+    slots: Arc<Semaphore>, waiting_slots: Arc<Semaphore>, waiting: bool, operation: F,
+) -> Result<Value, StatusCode>
+where F: FnOnce() -> Value + Send + 'static {
+    let waiting_permit = if waiting {
+        Some(waiting_slots.try_acquire_owned().map_err(|_| StatusCode::TOO_MANY_REQUESTS)?)
+    } else { None };
+    let permit = slots.try_acquire_owned().map_err(|_| StatusCode::TOO_MANY_REQUESTS)?;
+    tokio::task::spawn_blocking(move || {
+        let _permits = (permit, waiting_permit);
+        operation()
+    }).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+#[cfg(test)]
+mod audit_capacity_tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[tokio::test]
+    async fn audit_actions_waiters_leave_capacity_for_short_queries() {
+        let slots = Arc::new(Semaphore::new(3));
+        let waits = Arc::new(Semaphore::new(2));
+        let _busy = waits.clone().acquire_many_owned(2).await.unwrap();
+        let rejected = run_bounded_action(slots.clone(), waits.clone(), true, || panic!("must not execute")).await;
+        assert_eq!(rejected.unwrap_err(), StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(slots.available_permits(), 3);
+        assert_eq!(run_bounded_action(slots.clone(), waits, false, || json!({"ok":true})).await.unwrap()["ok"], true);
+        assert_eq!(slots.available_permits(), 3);
+    }
+
+    #[tokio::test]
+    async fn audit_actions_disconnect_keeps_permits_until_work_finishes() {
+        let slots = Arc::new(Semaphore::new(1));
+        let waits = Arc::new(Semaphore::new(1));
+        let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+        let (finish_tx, finish_rx) = std::sync::mpsc::channel();
+        let (slot_copy, wait_copy) = (slots.clone(), waits.clone());
+        let request = tokio::spawn(async move {
+            run_bounded_action(slot_copy, wait_copy, true, move || {
+                let _ = started_tx.send(());
+                let _ = finish_rx.recv_timeout(Duration::from_secs(2));
+                json!({"ok":true})
+            }).await
+        });
+        started_rx.await.unwrap();
+        request.abort();
+        let _ = request.await;
+        assert_eq!(slots.available_permits(), 0);
+        assert_eq!(waits.available_permits(), 0);
+        finish_tx.send(()).unwrap();
+        for _ in 0..100 {
+            if slots.available_permits() == 1 { break; }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert_eq!(slots.available_permits(), 1);
+        assert_eq!(waits.available_permits(), 1);
     }
 }

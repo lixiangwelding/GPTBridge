@@ -23,6 +23,15 @@ mod workspace;
 /// Administrative CLI runs before Tauri, listeners, tunnels or configuration migration.
 pub fn personal_cli() -> Option<i32> {
     let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(String::as_str) == Some("--personal-tool-contract") {
+        if args.len() != 2 { eprintln!("usage: --personal-tool-contract"); return Some(2); }
+        let mut report = tools::registry::catalog_contract("core");
+        report["tools"] = serde_json::json!(tools::registry::list_tools_for_profile("core"));
+        report["services_started"] = serde_json::json!(false);
+        report["configuration_written"] = serde_json::json!(false);
+        println!("{report}");
+        return Some(0);
+    }
     if args.get(1).map(String::as_str)==Some("--personal-skills-check") {
         if !(3..=4).contains(&args.len()){eprintln!("usage: --personal-skills-check /absolute/repository [query]");return Some(2);}
         let result=(||->Result<serde_json::Value,String>{

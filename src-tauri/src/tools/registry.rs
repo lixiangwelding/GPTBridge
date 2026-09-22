@@ -212,7 +212,7 @@ pub const P0_TOOLS: &[(&str, &str, &str, bool, bool, bool)] = &[
     (
         "apply_patch",
         "Apply patch",
-        "Apply a patch envelope transactionally inside the workspace.",
+        "Apply a patch transactionally. Non-dry writes require stable request_id and expected_hashes; dry_run returns hashes. Paths are workspace-relative. If these fields are missing in the client schema, refresh its tool catalog; never bypass preconditions.",
         false,
         true,
         false,
@@ -260,7 +260,7 @@ pub const P0_TOOLS: &[(&str, &str, &str, bool, bool, bool)] = &[
     (
         "git_status",
         "Git status",
-        "Return git working tree status for the workspace.",
+        "Return git status for a repository inside the workspace. path must be workspace-relative, not an absolute host path.",
         true,
         false,
         false,
@@ -459,6 +459,7 @@ pub const READ_ONLY_TOOLS: &[&str] = &[
 
 pub fn is_allowed_tool(name: &str) -> bool {
     ALLOWED_TOOLS.contains(&name) || super::personal::TOOLS.contains(&name)
+        || super::skills::TOOLS.contains(&name)
 }
 
 pub fn canonical_tool_name(name: &str) -> &str {
@@ -934,7 +935,7 @@ mod tests {
     use super::{input_schema, list_tools_for_profile};
 
     #[test]
-    fn core_catalog_exposes_26_chatgpt_compatible_tools() {
+    fn core_catalog_exposes_33_chatgpt_compatible_tools() {
         let tools = list_tools_for_profile("core");
         let names: Vec<_> = tools
             .iter()
@@ -961,4 +962,24 @@ mod tests {
             assert!(schema.get("$ref").is_none(), "{name} ref");
         }
     }
+}
+
+/// Stable fingerprint of exported names and parameter schemas. Dynamic skill
+/// descriptions are intentionally excluded so catalog drift is diagnosable.
+pub fn catalog_contract(profile: &str) -> Value {
+    let mut contracts: Vec<Value> = list_tools_for_profile(profile).into_iter()
+        .map(|tool| json!({"name":tool["name"], "inputSchema":tool["inputSchema"]})).collect();
+    contracts.sort_by(|a, b| a["name"].as_str().cmp(&b["name"].as_str()));
+    let input_fields: serde_json::Map<String, Value> = contracts.iter().map(|tool| {
+        let fields: Vec<_> = tool["inputSchema"]["properties"].as_object().unwrap().keys().cloned().collect();
+        (tool["name"].as_str().unwrap().to_string(), json!(fields))
+    }).collect();
+    json!({
+        "version":env!("CARGO_PKG_VERSION"), "profile":normalize_tool_profile(profile),
+        "schema_sha256":coding_tools_personal_runtime::digest(serde_json::to_vec(&contracts).expect("schema JSON")),
+        "tool_count":contracts.len(), "input_fields":input_fields,
+        "client_catalog_synchronized":null,
+        "non_dry_patch_required":["patch","request_id","expected_hashes"],
+        "refresh_hint":"Compare this catalog with client-visible tools/fields. Fewer tools or missing request_id/expected_hashes means the client catalog must be refreshed; restarting the server alone cannot prove synchronization."
+    })
 }

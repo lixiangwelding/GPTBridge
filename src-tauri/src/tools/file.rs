@@ -401,7 +401,7 @@ pub fn list_files(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError>
         .get("max_visited_entries")
         .and_then(Value::as_u64)
         .unwrap_or(DEFAULT_MAX_VISITED_ENTRIES as u64)
-        .max(1) as usize;
+        .clamp(1, 1_000_000) as usize;
     let include_hidden = args
         .get("include_hidden")
         .and_then(Value::as_bool)
@@ -421,6 +421,7 @@ pub fn list_files(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError>
         .into_iter()
         .filter_entry(|entry| {
             walk_allows_entry(ws, &walk_root, entry, include_hidden, include_ignored)
+                && !excluded_scan_directory(ws, &walk_root, entry, &exclude_patterns)
         })
         .filter_map(Result::ok)
     {
@@ -441,10 +442,11 @@ pub fn list_files(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError>
             continue;
         }
         let rel = relative_display(ws.root(), p);
-        if !patterns.iter().any(|pat| glob_match(pat, &rel)) {
+        let scan_rel = relative_display(&walk_root, p);
+        if !patterns.iter().any(|pat| scan_glob_match(pat, &rel, &scan_rel)) {
             continue;
         }
-        if exclude_patterns.iter().any(|pat| glob_match(pat, &rel)) {
+        if exclude_patterns.iter().any(|pat| scan_glob_match(pat, &rel, &scan_rel)) {
             continue;
         }
         let meta = p.symlink_metadata().ok();
@@ -497,7 +499,7 @@ pub fn search_text(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError
         .get("max_visited_entries")
         .and_then(Value::as_u64)
         .unwrap_or(DEFAULT_MAX_VISITED_ENTRIES as u64)
-        .max(1) as usize;
+        .clamp(1, 1_000_000) as usize;
     let max_preview = args
         .get("max_preview_bytes")
         .and_then(Value::as_u64)
@@ -536,7 +538,8 @@ pub fn search_text(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError
             return true;
         }
         let rel = relative_display(ws.root(), p);
-        if !passes_glob_filters(&rel, &include_globs, &exclude_globs) {
+        let scan_rel = relative_display(&resolved.path, p);
+        if !passes_glob_filters(&rel, &scan_rel, &include_globs, &exclude_globs) {
             return true;
         }
         let meta = match p.metadata() {
@@ -580,6 +583,7 @@ pub fn search_text(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError
             .into_iter()
             .filter_entry(|entry| {
                 walk_allows_entry(ws, &walk_root, entry, false, include_ignored)
+                    && !excluded_scan_directory(ws, &walk_root, entry, &exclude_globs)
             })
             .filter_map(Result::ok)
         {
@@ -685,7 +689,7 @@ fn search_file_streaming(
         if context_lines > 0 {
             for pend in &mut pending {
                 if pend.after.len() < context_lines {
-                    pend.after.push(line.clone());
+                    pend.after.push(preview_line(&line, max_preview));
                 }
             }
             while pending
@@ -724,7 +728,7 @@ fn search_file_streaming(
         }
 
         if context_lines > 0 {
-            recent.push_back(line);
+            recent.push_back(preview_line(&line, max_preview));
             while recent.len() > context_lines {
                 recent.pop_front();
             }
@@ -796,23 +800,23 @@ fn build_matcher(
         .map_err(|e| WorkspaceError::invalid_argument(format!("Invalid regex: {e}")))?;
         Ok(Matcher::Regex(pattern))
     } else if case_sensitive {
-        Ok(Matcher::Literal(query.to_string()))
+        Ok(Matcher::Literal(query.to_string(), true))
     } else {
-        Ok(Matcher::Literal(query.to_lowercase()))
+        Ok(Matcher::Literal(query.to_lowercase(), false))
     }
 }
 
 enum Matcher {
     Regex(Regex),
-    Literal(String),
+    Literal(String, bool),
 }
 
 impl Matcher {
     fn is_match(&self, line: &str) -> bool {
         match self {
             Matcher::Regex(re) => re.is_match(line),
-            Matcher::Literal(lit) => {
-                if lit.chars().any(|c| c.is_uppercase()) {
+            Matcher::Literal(lit, case_sensitive) => {
+                if *case_sensitive {
                     line.contains(lit.as_str())
                 } else {
                     line.to_lowercase().contains(lit)
@@ -946,11 +950,32 @@ fn search_globs(args: &Value) -> (Vec<String>, Vec<String>) {
     (include, string_list_arg(args, "exclude_globs"))
 }
 
-fn passes_glob_filters(rel: &str, include: &[String], exclude: &[String]) -> bool {
-    if !include.is_empty() && !include.iter().any(|pat| glob_match(pat, rel)) {
+// Accept paths relative to the selected scan root as well as the legacy workspace
+// root. Returned paths stay workspace-relative; path authorization is unchanged.
+fn scan_glob_match(pattern: &str, rel: &str, scan_rel: &str) -> bool {
+    glob_match(pattern, rel) || (rel != scan_rel && glob_match(pattern, scan_rel))
+}
+
+fn passes_glob_filters(rel: &str, scan_rel: &str, include: &[String], exclude: &[String]) -> bool {
+    if !include.is_empty() && !include.iter().any(|pat| scan_glob_match(pat, rel, scan_rel)) {
         return false;
     }
-    !exclude.iter().any(|pat| glob_match(pat, rel))
+    !exclude.iter().any(|pat| scan_glob_match(pat, rel, scan_rel))
+}
+
+// Prune only explicit whole-subtree exclusions. A file-only glob must not hide
+// an ancestor directory that might still contain eligible files.
+fn excluded_scan_directory(
+    ws: &Workspace, scan_root: &Path, entry: &walkdir::DirEntry, excludes: &[String],
+) -> bool {
+    if !entry.file_type().is_dir() || entry.path() == scan_root { return false; }
+    let rel = relative_display(ws.root(), entry.path());
+    let scan_rel = relative_display(scan_root, entry.path());
+    excludes.iter().any(|pattern| {
+        let normalized = pattern.replace('\\', "/");
+        normalized.strip_suffix("/**/*").or_else(|| normalized.strip_suffix("/**"))
+            .is_some_and(|prefix| !prefix.is_empty() && scan_glob_match(prefix, &rel, &scan_rel))
+    })
 }
 
 fn glob_match(pattern: &str, path: &str) -> bool {
