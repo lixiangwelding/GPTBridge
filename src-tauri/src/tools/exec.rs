@@ -114,6 +114,18 @@ pub fn exec_command(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceE
     }
 }
 
+/// Resolve only: a permission response must not promise that a hard executable
+/// boundary was lifted. This function starts no worker and runs no command.
+pub(super) fn preflight_executable(ctx: &ToolContext, args: &Value) -> Result<(), WorkspaceError> {
+    validate_child_process_scope(ctx, args)?;
+    let cmd = args.get("cmd").and_then(Value::as_str)
+        .ok_or_else(|| WorkspaceError::invalid_argument("cmd is required"))?;
+    let raw = args.get("workdir").or_else(|| args.get("cwd")).and_then(Value::as_str).unwrap_or(".");
+    let cwd = resolve_workdir(&ctx.workspace, raw)?;
+    if !cwd.path.is_dir() { return Err(WorkspaceError::not_a_directory("workdir is not a directory")); }
+    parse_and_resolve(cmd, &cwd.path, ctx.workspace.root(), &ctx.policy).map(|_| ())
+}
+
 fn durable_command(ctx: &ToolContext, args: &Value, cmd: &str, cwd: &Path) -> Result<Value, WorkspaceError> {
     use coding_tools_personal_runtime::jobs::JobSpec;
     use super::personal::error;

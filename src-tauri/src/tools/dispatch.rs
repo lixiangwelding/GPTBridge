@@ -9,6 +9,30 @@ use crate::tools::policy::{validate_tool_arguments_for_workspace, PolicyError};
 use crate::tools::workspace::{tool_err, tool_err_code, tool_ok, WorkspaceError};
 use crate::tools::{exec, file, git, history, image_tool, patch, session};
 
+/// A dangerous-mode permission acknowledgement cannot override hard runtime
+/// boundaries. Use the same cwd, policy and resolver as the eventual command.
+fn executable_permission_failure(ctx: &ToolContext, args: &Value) -> Option<Value> {
+    if !ctx.policy.skip_permission_gates()
+        || args.get("tool_name").and_then(Value::as_str) != Some("exec_command")
+        || args.get("permission").and_then(Value::as_str) != Some("privileged_executable") {
+        return None;
+    }
+    let requested = args.get("arguments").unwrap_or(&Value::Null);
+    let requested = apply_default_cwd(ctx, "exec_command", requested);
+    let failure = match validate_tool_arguments_for_workspace("exec_command", &requested, &ctx.policy, Some(&ctx.workspace)) {
+        Err(error) => Some(policy_tool_err(error)),
+        Ok(()) => exec::preflight_executable(ctx, &requested).err().map(tool_err),
+    };
+    failure.map(|mut output| {
+        output["status"] = json!("denied");
+        output["grant_id"] = Value::Null;
+        output["expires_at"] = Value::Null;
+        output["preflight_only"] = json!(true);
+        output["command_executed"] = json!(false);
+        output
+    })
+}
+
 fn policy_tool_err(err: PolicyError) -> Value {
     let dangerous = err
         .0
@@ -178,7 +202,9 @@ pub fn call_tool(ctx: &ToolContext, name: &str, args: &Value) -> Value {
         "git_blame" => git::git_blame(ws, &effective_args),
         "view_image" => image_tool::view_image(ws, &effective_args),
         "request_permissions" => {
-            if ctx.policy.skip_permission_gates() {
+            if let Some(failure) = executable_permission_failure(ctx, &effective_args) {
+                Ok(failure)
+            } else if ctx.policy.skip_permission_gates() {
                 Ok(tool_ok(json!({
                     "ok": true,
                     "status": "granted",
@@ -190,7 +216,7 @@ pub fn call_tool(ctx: &ToolContext, name: &str, args: &Value) -> Value {
                         "requested": effective_args
                     },
                     "warnings": [
-                        "dangerous permission mode is enabled; permission-gated operations are auto-granted"
+                        "dangerous permission mode skips permission gates only; workspace, executable and argument checks still apply"
                     ]
                 })))
             } else {
