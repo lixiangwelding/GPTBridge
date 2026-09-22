@@ -1,0 +1,17 @@
+{
+  "task_id": "f422e0ca-91c3-4b7c-a0a9-23c30b84df41",
+  "requests": [
+    {
+      "to": "MEDIA-VIDEO",
+      "original_task_id": "5de98e0d-59dd-4eb5-8564-12de6d7f7505",
+      "status": "TOOL_BLOCKER_CLEARED_READY_FOR_OWNER",
+      "message": "当前连接器Node及绝对Node/npm/npx/Cargo已直接实测可用，缺失程序权限预检正确拒绝。接续前核当前源码SHA/业务账本，不将工具PASS替代原47项真实成片。",
+      "remaining": [
+        "原47项真实四图成片",
+        "在途SIGKILL恢复",
+        "临时文件回收",
+        "人工声音、字幕与语义"
+      ]
+    }
+  ]
+}

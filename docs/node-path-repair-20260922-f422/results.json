@@ -1,0 +1,108 @@
+{
+  "schema": "tool-mcp-node-path-repair/v1",
+  "task_id": "f422e0ca-91c3-4b7c-a0a9-23c30b84df41",
+  "written_at": "2026-09-22T11:53:34.041019+00:00",
+  "status": "PASS_SCOPED_REPAIR_INSTALL_AND_OBSERVED_LIVE_RUNTIME",
+  "source_sha256": "eec2554fb86ce57089a7d3bd3f45abfd49c9912f94afe2539ec552cceafe1c49",
+  "code_commit": "b29df973f44ee00024fee1b339142d76f1325c08",
+  "code_remote_readback": "b29df973f44ee00024fee1b339142d76f1325c08",
+  "release_receipt": ".artifacts/media-video-mcp-f422/release-r01/release.json",
+  "release_receipt_sha256": "59fdc13ca293484dfe2a6bf988c60d60c1ab945ea85083ad535c8556f0eab5fb",
+  "selftest": {
+    "path": ".artifacts/selftest/1790076743519901000/result.json",
+    "passed_stages": 14,
+    "total_stages": 14,
+    "same_source_before_after": true,
+    "repeated_suites_not_added_to_test_count": true
+  },
+  "installation": {
+    "version": "0.3.4",
+    "target": "/Users/didi/Applications/Coding Tools MCP Personal.app",
+    "own_binary_sha256": "ecd76007ae5fcdfe4cf3b27b9e44610516c6719b2cd21969fc75f78c4af8b343",
+    "own_installer_receipt": "/Users/didi/Library/Application Support/coding-tools-mcp-personal-backups/20260922T113431Z-1790076871001367000/upgrade.json",
+    "own_install_config_bytes_preserved": true,
+    "activation_performed_by_this_task": false,
+    "later_activation_observed_from_concurrent_sessions": true,
+    "final_observed_runtime": {
+      "captured_at_epoch": 1790077926,
+      "binary_sha256": "a9fbc18cad8ad723ef9a87b1a30405904dc18a56ca6997a5908621a3f19655c3",
+      "listener_pid": 66242,
+      "installed_and_mapped_inode": 703129183,
+      "port": 28766,
+      "identity_job": "b920e291-ace1-4fc7-97f9-98d954b691a4",
+      "node_recheck_job": "0a7c443e-b8b2-41bc-adf9-26013db4ae21",
+      "node_stdout": "v26.3.0",
+      "newer_install_receipt": "/Users/didi/Library/Application Support/coding-tools-mcp-personal-backups/20260922T114400Z-1790077440709757000/upgrade.json"
+    }
+  },
+  "configuration": {
+    "own_install_before_sha256": "86d4d6370b6700e62e7ac0c681824a816f298ca986c058dcebea8cd85c507363",
+    "own_install_after_sha256": "86d4d6370b6700e62e7ac0c681824a816f298ca986c058dcebea8cd85c507363",
+    "postactivation_semantic_check_job": "67c1e339-6fb8-4953-a39a-1dbc35af6d6f",
+    "semantic_equal": true,
+    "changed_paths": [],
+    "shared_secrets_equal": true,
+    "workspace_secrets_equal": true,
+    "auth_equal": true,
+    "note": "运行后文件字节表示变化；与正式备份解析后的内容完全相同，不宣称整个运行周期字节不变。"
+  },
+  "live_checks": [
+    {
+      "name": "bare-node",
+      "result": "v26.3.0",
+      "job": "f69f4756-18f5-48b9-9c1b-05084a489ffc"
+    },
+    {
+      "name": "absolute-node",
+      "result": "v26.3.0",
+      "job": "c97fd961-e9d3-4f47-8ed4-8c89c64b9796"
+    },
+    {
+      "name": "npm",
+      "result": "11.16.0",
+      "job": "96588198-3097-499d-a439-0894a03a65e3"
+    },
+    {
+      "name": "npx",
+      "result": "11.16.0",
+      "job": "1a5f8582-3d65-464c-990b-280c03604895"
+    },
+    {
+      "name": "cargo",
+      "result": "1.96.0",
+      "job": "dccdd8f1-3cee-4c70-a915-d9dbdec05ad3"
+    },
+    {
+      "name": "missing-program-permission",
+      "expected_denial": true,
+      "status": "denied",
+      "command_executed": false,
+      "grant_id": null,
+      "code": "COMMAND_REJECTED",
+      "request_id": "mcp-path-20260922-live-missing-preflight"
+    },
+    {
+      "name": "root-listing-relative-paths",
+      "sample_limit": 5,
+      "truncated": true,
+      "complete_listing_claimed": false
+    }
+  ],
+  "preserved_failures": [
+    "Initial bare Node missing and absolute Node outside-workspace denial",
+    "Permission red regression 1 PASS / 3 FAIL",
+    "Initial missing-node case hit allowlist before resolver; corrected input and added separate policy negative",
+    "Git Vec<Value> inference compile failure; minimal type fix",
+    "list_dir roundtrip 1 PASS / 3 FAIL; empty-prefix fix",
+    "Source drift blocked early commit before staging",
+    "Outer safety layer blocked accessibility read query; not retried or bypassed",
+    "Old process still failed immediately after own app-file installation; later activation verified separately",
+    "Final docs preflight stopped before writes when newer app no longer matched older installation receipt"
+  ],
+  "not_claimed": [
+    "MEDIA-VIDEO original real47 acceptance",
+    "Business production deployment or posting",
+    "OS sandbox enforcement",
+    "Signing/notarization acceptance"
+  ]
+}
