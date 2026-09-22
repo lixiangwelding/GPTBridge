@@ -138,7 +138,15 @@ def _upgrade_locked(source: Path, target: Path, home: Path, backups: Path, versi
     if not apply:
         return {**report, "status": "plan", "app_files_will_change": source_files != old_files}
     if source_files == old_files:
-        return {**report, "status": "already_installed", "native_check": validator(target, home, version)}
+        checked = validator(target, home, version)
+        # A native check can overlap another build or a live configuration edit.
+        # No replacement does not mean that the pre-check snapshot is still true.
+        # Refuse stale success without restoring or moving another writer's data.
+        executable_sha = sha(target / "Contents/MacOS" / new_info["CFBundleExecutable"])
+        if manifest(data) != data_files or manifest(target, internal_links=True) != old_files or manifest(source, internal_links=True) != source_files:
+            raise ValueError("input changed during already-installed validation; verification stopped")
+        return {**report, "status": "already_installed", "native_check": checked,
+                "exact_configuration_preserved": True, "executable_sha256": executable_sha}
     identifier = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()) + "-" + str(time.time_ns())
     backup = backups / identifier
     backup.mkdir(parents=True, mode=0o700)
