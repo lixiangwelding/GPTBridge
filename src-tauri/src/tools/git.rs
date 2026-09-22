@@ -543,7 +543,13 @@ fn parse_branch_line(line: &str) -> (String, String, i64, i64) {
     let mut upstream = tracking.clone();
     if let Some(idx) = tracking.find(' ') {
         upstream = tracking[..idx].to_string();
-        let meta = &tracking[idx + 1..];
+        // Porcelain v1 encloses tracking counts in brackets. Parse the payload,
+        // otherwise both "[ahead N" and "behind N]" silently become zero.
+        let raw_meta = tracking[idx + 1..].trim();
+        let meta = raw_meta
+            .strip_prefix('[')
+            .and_then(|value| value.strip_suffix(']'))
+            .unwrap_or(raw_meta);
         for token in meta.split(',') {
             let token = token.trim();
             if let Some(n) = token.strip_prefix("ahead ") {
@@ -557,14 +563,18 @@ fn parse_branch_line(line: &str) -> (String, String, i64, i64) {
 }
 
 fn parse_diff_files(diff: &str) -> Vec<Value> {
-    let mut files = Vec::new();
+    let mut files: Vec<Value> = Vec::new();
     for line in diff.lines() {
         if let Some(path) = line.strip_prefix("+++ b/") {
-            files.push(json!({
-                "path": path,
-                "status": "modified",
-                "binary": false
-            }));
+            // A modified path occurs in both headers and may occur again when
+            // staged and unstaged diffs are combined. Keep first-seen order.
+            if !files.iter().any(|f| f["path"] == path) {
+                files.push(json!({
+                    "path": path,
+                    "status": "modified",
+                    "binary": false
+                }));
+            }
         } else if line.starts_with("--- /dev/null") {
             continue;
         } else if let Some(path) = line.strip_prefix("--- a/") {
@@ -586,5 +596,62 @@ fn git_error(message: &str) -> WorkspaceError {
         message: message.to_string(),
         category: "runtime",
         retryable: false,
+    }
+}
+
+#[cfg(test)]
+mod metadata_regression_tests {
+    use super::{parse_branch_line, parse_diff_files};
+
+    #[test]
+    fn reports_ahead_from_porcelain_tracking_brackets() {
+        assert_eq!(parse_branch_line("main...origin/main [ahead 2]"),
+            ("main".into(), "origin/main".into(), 2, 0));
+    }
+
+    #[test]
+    fn reports_behind_from_porcelain_tracking_brackets() {
+        assert_eq!(parse_branch_line("main...origin/main [behind 3]"),
+            ("main".into(), "origin/main".into(), 0, 3));
+    }
+
+    #[test]
+    fn reports_both_divergence_counts() {
+        assert_eq!(parse_branch_line("main...origin/main [ahead 2, behind 3]"),
+            ("main".into(), "origin/main".into(), 2, 3));
+    }
+
+    #[test]
+    fn retains_clean_untracked_and_gone_branch_metadata() {
+        assert_eq!(parse_branch_line("main...origin/main"),
+            ("main".into(), "origin/main".into(), 0, 0));
+        assert_eq!(parse_branch_line("main"),
+            ("main".into(), String::new(), 0, 0));
+        assert_eq!(parse_branch_line("main...origin/main [gone]"),
+            ("main".into(), "origin/main".into(), 0, 0));
+    }
+
+    const MODIFIED: &str = "diff --git a/src/main.rs b/src/main.rs\n--- a/src/main.rs\n+++ b/src/main.rs\n@@ -1 +1 @@\n-old\n+new\n";
+
+    #[test]
+    fn reports_a_modified_file_once_not_once_per_header() {
+        let files = parse_diff_files(MODIFIED);
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0]["path"], "src/main.rs");
+        assert_eq!(files[0]["status"], "modified");
+    }
+
+    #[test]
+    fn deduplicates_a_file_present_in_staged_and_unstaged_diffs() {
+        assert_eq!(parse_diff_files(&format!("{MODIFIED}\n{MODIFIED}")).len(), 1);
+    }
+
+    #[test]
+    fn retains_distinct_changed_paths_in_first_seen_order() {
+        let diff = format!("{MODIFIED}\ndiff --git a/new.rs b/new.rs\n--- /dev/null\n+++ b/new.rs\n");
+        let files = parse_diff_files(&diff);
+        assert_eq!(files.len(), 2);
+        assert_eq!(files[0]["path"], "src/main.rs");
+        assert_eq!(files[1]["path"], "new.rs");
     }
 }
