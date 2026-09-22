@@ -205,6 +205,9 @@ impl Store {
             "poll_offset":next,"bytes_read":consumed,"content_lossy":content_lossy,
             "pending_utf8_bytes":pending_utf8_bytes,"retained_bytes":total,
             "stream_cap_bytes":MAX_STREAM_BYTES,"may_be_truncated":total>=MAX_STREAM_BYTES as u64,
+            // Reuse the authoritative row already read above, including an
+            // explicitly unbound null owner; never infer ownership from callers.
+            "job_id":status["job_id"],"task_id":status["task_id"],"request_id":status["request_id"],
             "job_status":status["status"],
             "offset_encoding":"bytes; use returned offsets; a tiny limit may expand by up to 3 bytes for one UTF-8 codepoint"}))
     }

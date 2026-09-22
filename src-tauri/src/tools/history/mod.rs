@@ -3,7 +3,7 @@ mod model;
 mod storage;
 
 use std::fs;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use serde_json::{json, Value};
 
@@ -19,11 +19,17 @@ const DEFAULT_READ_MAX_BYTES: usize = 32 * 1024;
 const MAX_READ_MAX_BYTES: usize = 64 * 1024;
 
 pub fn bootstrap(ctx: &ToolContext, args: &Value) -> WorkspaceResult<Value> {
+    let history_started = Instant::now();
     let (session_key, source) = resolve_session_key(args)?;
     let history_dir = resolve_dir(ctx, args)?;
     storage::ensure_directory(&history_dir)?;
+    let lock_started = Instant::now();
     let _lock = storage::lock_directory(&history_dir)?;
+    let lock_wait_ms = lock_started.elapsed().as_millis();
+    let scan_started = Instant::now();
     let report = storage::scan(&ctx.workspace, &history_dir)?;
+    let initial_scan_ms = scan_started.elapsed().as_millis();
+    let archive_started = Instant::now();
     reject_ambiguous_history(&report)?;
     if !report.missing_numbers.is_empty() {
         return Err(history_error(
@@ -140,6 +146,8 @@ pub fn bootstrap(ctx: &ToolContext, args: &Value) -> WorkspaceResult<Value> {
             (number, relative_path, true, false, initial_input.is_some())
         };
 
+    let archive_update_ms = archive_started.elapsed().as_millis();
+    let derived_started = Instant::now();
     let refreshed = storage::scan(&ctx.workspace, &history_dir)?;
     reject_ambiguous_history(&refreshed)?;
     let manifest = storage::build_manifest(&refreshed);
@@ -158,6 +166,7 @@ pub fn bootstrap(ctx: &ToolContext, args: &Value) -> WorkspaceResult<Value> {
     storage::write_index(&history_dir, &storage::rebuild_index(&refreshed))?;
     storage::write_manifest(&history_dir, &manifest)?;
     storage::write_state(&history_dir, &state)?;
+    let derived_refresh_ms = derived_started.elapsed().as_millis();
 
     let mut result = json!({
         "is_new_session": created,
@@ -173,6 +182,12 @@ pub fn bootstrap(ctx: &ToolContext, args: &Value) -> WorkspaceResult<Value> {
         "history_count": refreshed.documents.len(),
         "total_history_bytes": refreshed.total_bytes(),
         "state_revision": state.state_revision,
+        "state_scope":"current_session",
+        "diagnostics": {
+            "scope":"history_excludes_transport", "lock_wait_ms":lock_wait_ms,
+            "initial_scan_ms":initial_scan_ms, "archive_update_ms":archive_update_ms,
+            "derived_refresh_ms":derived_refresh_ms, "total_ms":history_started.elapsed().as_millis()
+        },
         "archive_revision": manifest.archive_revision,
         "state": state,
         "history_read_mode": "bounded_state_with_on_demand_search_and_read",
@@ -205,6 +220,7 @@ pub fn bootstrap(ctx: &ToolContext, args: &Value) -> WorkspaceResult<Value> {
 }
 
 pub fn checkpoint(ctx: &ToolContext, args: &Value) -> WorkspaceResult<Value> {
+    let history_started = Instant::now();
     let session_key = required_checkpoint_argument(args, "session_key")?;
     let expected_path = required_checkpoint_argument(args, "expected_path")?;
     let host_session_key_mismatch = host_session_key(args)
@@ -214,8 +230,13 @@ pub fn checkpoint(ctx: &ToolContext, args: &Value) -> WorkspaceResult<Value> {
     if !history_dir.exists() {
         return Err(session_not_bootstrapped());
     }
+    let lock_started = Instant::now();
     let _lock = storage::lock_directory(&history_dir)?;
+    let lock_wait_ms = lock_started.elapsed().as_millis();
+    let scan_started = Instant::now();
     let report = storage::scan(&ctx.workspace, &history_dir)?;
+    let initial_scan_ms = scan_started.elapsed().as_millis();
+    let archive_started = Instant::now();
     reject_ambiguous_history(&report)?;
     let document = report
         .documents
@@ -272,6 +293,8 @@ pub fn checkpoint(ctx: &ToolContext, args: &Value) -> WorkspaceResult<Value> {
         )?;
     }
 
+    let archive_update_ms = archive_started.elapsed().as_millis();
+    let derived_started = Instant::now();
     let refreshed = storage::scan(&ctx.workspace, &history_dir)?;
     let manifest = storage::build_manifest(&refreshed);
     let state_revision = storage::read_state(&history_dir)
@@ -289,6 +312,7 @@ pub fn checkpoint(ctx: &ToolContext, args: &Value) -> WorkspaceResult<Value> {
     storage::write_index(&history_dir, &storage::rebuild_index(&refreshed))?;
     storage::write_manifest(&history_dir, &manifest)?;
     storage::write_state(&history_dir, &state)?;
+    let derived_refresh_ms = derived_started.elapsed().as_millis();
 
     let mut warnings: Vec<String> = Vec::new();
     if !user_input_captured {
@@ -319,72 +343,71 @@ pub fn checkpoint(ctx: &ToolContext, args: &Value) -> WorkspaceResult<Value> {
         "content_hash": storage::sha256(final_content.as_bytes()),
         "archive_revision": manifest.archive_revision,
         "state_revision": state.state_revision,
+        "state_scope":"current_session",
+        "diagnostics": {
+            "scope":"history_excludes_transport", "lock_wait_ms":lock_wait_ms,
+            "initial_scan_ms":initial_scan_ms, "archive_update_ms":archive_update_ms,
+            "derived_refresh_ms":derived_refresh_ms, "total_ms":history_started.elapsed().as_millis()
+        },
         "warnings": warnings
     })))
 }
 
 pub fn search(ctx: &ToolContext, args: &Value) -> WorkspaceResult<Value> {
-    let history_dir = resolve_dir(ctx, args)?;
-    let report = storage::scan(&ctx.workspace, &history_dir)?;
-    let manifest = storage::read_manifest(&history_dir)
-        .ok()
-        .flatten()
-        .filter(|manifest| {
-            manifest.archive_revision == storage::build_manifest(&report).archive_revision
-        })
-        .unwrap_or_else(|| storage::build_manifest(&report));
-    let query = args
-        .get("query")
-        .and_then(Value::as_str)
-        .unwrap_or("")
-        .trim();
+    let started = Instant::now();
+    let query = args.get("query").and_then(Value::as_str).unwrap_or("").trim();
     let tokens = storage::tokenize(query);
     let limit = bounded_usize(args, "limit", DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT)?;
     let cursor = bounded_usize(args, "cursor", 0, usize::MAX)?;
-    let mut hits = manifest
-        .entries
-        .iter()
-        .filter_map(|entry| {
-            let document = report
-                .documents
-                .iter()
-                .find(|document| document.number == entry.number)?;
-            let score = search_score(entry, &document.content, &tokens);
-            if !tokens.is_empty() && score == 0 {
-                return None;
-            }
-            Some(SearchHit {
-                number: entry.number,
-                path: entry.path.clone(),
-                title: entry.title.clone(),
-                updated_at: entry.updated_at.clone(),
-                sha256: entry.sha256.clone(),
-                score,
-                snippet: search_snippet(&document.content, &tokens),
-            })
+    let history_dir = resolve_dir(ctx, args)?;
+    let phase = Instant::now();
+    let report = storage::scan(&ctx.workspace, &history_dir)?;
+    let scan_ms = phase.elapsed().as_millis();
+    let phase = Instant::now();
+    // Derive once from the bytes just read; validating the persisted manifest
+    // already did this work, and stale metadata used to repeat it a second time.
+    let manifest = storage::build_manifest(&report);
+    let manifest_ms = phase.elapsed().as_millis();
+    let phase = Instant::now();
+    let documents = report.documents.iter().map(|doc| (doc.number, doc))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut hits = manifest.entries.iter().filter_map(|entry| {
+        let document = documents.get(&entry.number)?;
+        let score = search_score(entry, &document.content, &tokens);
+        if !tokens.is_empty() && score == 0 { return None; }
+        Some(SearchHit {
+            number: entry.number, path: entry.path.clone(), title: entry.title.clone(),
+            updated_at: entry.updated_at.clone(), sha256: entry.sha256.clone(), score,
+            snippet: String::new(),
         })
-        .collect::<Vec<_>>();
+    }).collect::<Vec<_>>();
     hits.sort_by(|left, right| {
-        right
-            .score
-            .cmp(&left.score)
+        right.score.cmp(&left.score)
             .then_with(|| right.updated_at.cmp(&left.updated_at))
             .then_with(|| right.number.cmp(&left.number))
     });
+    let ranking_ms = phase.elapsed().as_millis();
+    let phase = Instant::now();
     let total_matches = hits.len();
     let end = cursor.saturating_add(limit).min(total_matches);
-    let page = if cursor >= total_matches {
-        Vec::new()
-    } else {
-        hits.drain(cursor..end).collect()
-    };
+    let mut page = if cursor >= total_matches { Vec::new() }
+        else { hits.drain(cursor..end).collect::<Vec<_>>() };
+    // Unicode source-offset maps can be large; only construct the requested page.
+    for hit in &mut page {
+        if let Some(document) = documents.get(&hit.number) {
+            hit.snippet = search_snippet(&document.content, &tokens);
+        }
+    }
+    let page_ms = phase.elapsed().as_millis();
     Ok(tool_ok(json!({
-        "query": query,
-        "history_count": report.documents.len(),
-        "total_matches": total_matches,
-        "cursor": cursor,
-        "limit": limit,
-        "next_cursor": (end < total_matches).then_some(end),
+        "query": query, "history_count": report.documents.len(), "total_matches": total_matches,
+        "cursor": cursor, "limit": limit, "next_cursor": (end < total_matches).then_some(end),
+        "diagnostics": {
+            "scope":"history_search_excludes_transport", "scan_ms":scan_ms,
+            "manifest_ms":manifest_ms, "ranking_ms":ranking_ms, "page_ms":page_ms,
+            "total_ms":started.elapsed().as_millis(), "manifest_builds":1,
+            "documents_scanned":report.documents.len(), "snippets_built":page.len()
+        },
         "results": page
     })))
 }

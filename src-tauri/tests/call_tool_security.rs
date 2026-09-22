@@ -140,8 +140,13 @@ fn exec_command_rejects_workdir_escape_via_policy() {
 fn exec_command_allows_workspace_child_process_during_transition() {
     let fx = tiny_js_fixture();
     let ctx = ctx_for(&fx.root);
-    let out = invoke(&ctx, "exec_command", json!({"cmd": "python --version"}));
+    let python = if cfg!(windows) { "python" } else { "python3" };
+    let out = invoke(&ctx, "exec_command", json!({
+        "cmd": format!("{python} --version"), "yield_time_ms": 5000,
+        "request_id": "workspace-child-process-contract"
+    }));
     let result = assert_ok(&out);
+    assert_eq!(result["command_ok"], true, "{result}");
     assert_eq!(result["filesystem_scope"], "workspace");
     assert_eq!(result["sandbox_enforced"], false);
     assert_eq!(result["child_process"], true);
@@ -186,15 +191,19 @@ fn dangerous_command_requires_explicit_confirmation() {
 #[test]
 fn deleting_readme_requires_explicit_confirmation() {
     let fx = tiny_js_fixture();
+    fs::write(fx.root.join("README.md"), "project\n").expect("create protected README fixture");
     let ctx = ctx_for(&fx.root);
     let out = invoke(
         &ctx,
         "apply_patch",
         json!({
+            "request_id": "deleting_readme_requires_explicit_confirmation",
+            "expected_hashes": {"README.md": coding_tools_personal_runtime::digest(fs::read(fx.root.join("README.md")).unwrap())},
             "patch": "--- a/README.md\n+++ /dev/null\n@@\n-project\n"
         }),
     );
-    assert_eq!(out["error"]["code"], "DANGEROUS_OPERATION_REQUIRES_CONFIRMATION");
+    assert_eq!(out["error"]["code"], "DANGEROUS_OPERATION_REQUIRES_CONFIRMATION", "{out}");
+    assert_eq!(fs::read_to_string(fx.root.join("README.md")).unwrap(), "project\n");
 }
 
 #[test]
@@ -214,7 +223,7 @@ fn deleting_git_assets_is_always_rejected() {
             "patch": "--- a/.git/config\n+++ /dev/null\n@@\n-[core]\n"
         }),
     );
-    assert_eq!(out["error"]["code"], "PROTECTED_REPOSITORY_ASSET");
+    assert_eq!(out["error"]["code"], "PROTECTED_PATH");
     assert_eq!(fs::read_to_string(git_dir.join("config")).unwrap(), "[core]\n");
 }
 
@@ -231,7 +240,7 @@ fn patch_check_rejects_all_git_and_github_writes() {
                 "patch": format!("*** Begin Patch\n*** Add File: {path}\n+probe\n*** End Patch\n")
             }),
         );
-        assert_eq!(out["error"]["code"], "PROTECTED_REPOSITORY_ASSET");
+        assert_eq!(out["error"]["code"], "PROTECTED_PATH");
     }
 }
 
@@ -317,6 +326,8 @@ fn apply_patch_allows_modifying_a_normal_file() {
         &ctx,
         "apply_patch",
         json!({
+            "request_id": "apply_patch_allows_modifying_a_normal_file",
+            "expected_hashes": {"src/normal.txt": coding_tools_personal_runtime::digest(fs::read(fx.root.join("src/normal.txt")).unwrap())},
             "patch": "--- a/src/normal.txt\n+++ b/src/normal.txt\n@@\n-before\n+after\n"
         }),
     );
@@ -336,6 +347,8 @@ fn apply_patch_allows_deleting_a_normal_file() {
         &ctx,
         "apply_patch",
         json!({
+            "request_id": "apply_patch_allows_deleting_a_normal_file",
+            "expected_hashes": {"src/delete-me.js": coding_tools_personal_runtime::digest(fs::read(fx.root.join("src/delete-me.js")).unwrap())},
             "patch": "--- a/src/delete-me.js\n+++ /dev/null\n@@\n-delete me\n"
         }),
     );
@@ -392,4 +405,18 @@ fn safe_permission_mode_blocks_network_looking_command() {
     )
     .expect_err("network command should be blocked in safe mode");
     assert!(err.0.contains("Network-looking"));
+}
+
+#[test]
+fn protected_patch_still_requires_request_identity_and_full_file_preconditions() {
+    let fx = tiny_js_fixture();
+    let path = fx.root.join("src/guarded.txt");
+    fs::write(&path, "before\n").unwrap();
+    let ctx = ctx_for(&fx.root);
+    let patch = "*** Begin Patch\n*** Update File: src/guarded.txt\n@@\n-before\n+after\n*** End Patch\n";
+    let missing_id = invoke(&ctx, "apply_patch", json!({"patch":patch}));
+    assert_eq!(missing_id["error"]["code"], "REQUEST_ID_REQUIRED");
+    let missing_hash = invoke(&ctx, "apply_patch", json!({"patch":patch,"request_id":"missing-hash"}));
+    assert_eq!(missing_hash["error"]["code"], "PRECONDITION_REQUIRED");
+    assert_eq!(fs::read_to_string(path).unwrap(), "before\n");
 }

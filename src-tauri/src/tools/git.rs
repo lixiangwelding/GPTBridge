@@ -8,7 +8,7 @@ use crate::tools::workspace::{tool_ok, Workspace, WorkspaceError};
 
 pub fn git_status(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> {
     let path = args.get("path").and_then(Value::as_str).unwrap_or(".");
-    let resolved = ws.resolve_existing(path)?;
+    let resolved = resolve_status_path(ws, path)?;
     let max_entries = args
         .get("max_entries")
         .and_then(Value::as_u64)
@@ -94,6 +94,21 @@ pub fn git_status(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError>
         "truncated": entries.len() >= max_entries && total_lines > max_entries + 1,
         "warnings": []
     })))
+}
+
+/// Support inside-root absolute spelling for git_status only. This does not
+/// broaden the workspace or change any general read/write permission.
+fn resolve_status_path(ws: &Workspace, raw: &str) -> Result<crate::tools::workspace::ResolvedPath, WorkspaceError> {
+    let path = std::path::Path::new(raw);
+    if !path.is_absolute() { return ws.resolve_existing(raw); }
+    if raw.contains('\0') || path.components().any(|c| c == std::path::Component::ParentDir) {
+        return Err(WorkspaceError::path_outside_workspace());
+    }
+    // Component-wise prefix, not a string prefix. Resolve again through the
+    // original canonical containment checks to reject symlink escapes.
+    let relative = path.strip_prefix(ws.root()).map_err(|_| WorkspaceError::path_outside_workspace())?;
+    let text = relative.to_str().ok_or_else(|| WorkspaceError::invalid_argument("Path must be UTF-8"))?;
+    ws.resolve_existing(if text.is_empty() { "." } else { text })
 }
 
 pub fn git_diff(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> {

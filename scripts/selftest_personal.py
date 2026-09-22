@@ -23,7 +23,7 @@ SUITES: dict[str, list[tuple[str, list[str], int]]] = {
         ("policy",["cargo","test","--manifest-path","src-tauri/Cargo.toml","--lib","tools::policy::tests"],300),
         ("registry",["cargo","test","--manifest-path","src-tauri/Cargo.toml","--lib","tools::registry::tests"],300),
         ("skill-bridge",["cargo","test","--locked","--manifest-path","src-tauri/Cargo.toml","--lib","skill_tests"],300),
-        ("full-rust-regression",["cargo","test","--manifest-path","src-tauri/Cargo.toml","--lib"],480),
+        ("full-rust-regression",["cargo","test","--manifest-path","src-tauri/Cargo.toml","--tests","--no-fail-fast"],480),
     ],
     "frontend": [
         ("shared-workspace-ui",["node","--test","tests/shared-workspace-form.test.mjs"],60),
@@ -36,7 +36,7 @@ SUITES: dict[str, list[tuple[str, list[str], int]]] = {
 
 def fingerprint() -> str:
     digest = hashlib.sha256()
-    for directory in ("personal-runtime/src","personal-runtime/tests","src-tauri/src","src","scripts","tests"):
+    for directory in ("personal-runtime/src","personal-runtime/tests","src-tauri/src","src-tauri/tests","src","scripts","tests"):
         for path in sorted((ROOT/directory).rglob("*")):
             if path.is_file() and "__pycache__" not in path.parts and path.suffix in {".rs",".py",".ts",".svelte",".mjs",".js"}:
                 digest.update(str(path.relative_to(ROOT)).encode()); digest.update(path.read_bytes())

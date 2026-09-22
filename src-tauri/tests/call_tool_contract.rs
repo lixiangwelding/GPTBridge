@@ -183,6 +183,7 @@ fn advanced_profile_exposes_every_declared_tool() {
     let declared = coding_tools_mcp_desktop_lib::tools::registry::P0_TOOLS
         .iter()
         .map(|(name, ..)| *name)
+        .chain(["task_open", "task_status", "task_checkpoint", "list_skills", "search_skills", "read_skill", "invoke_skill"])
         .collect::<std::collections::HashSet<_>>();
     let tool_values = coding_tools_mcp_desktop_lib::tools::list_tools_for_profile("advanced");
     let exposed = tool_values
@@ -206,9 +207,10 @@ fn core_profile_keeps_the_default_capabilities_and_adds_history_tools() {
     let expected = coding_tools_mcp_desktop_lib::tools::registry::CORE_TOOLS
         .iter()
         .copied()
+        .chain(["task_open", "task_status", "task_checkpoint", "list_skills", "search_skills", "read_skill", "invoke_skill"])
         .collect::<std::collections::HashSet<_>>();
     assert_eq!(names, expected);
-    assert_eq!(names.len(), 26);
+    assert_eq!(names.len(), 33);
     assert!(names.contains("grep_text"));
     assert!(names.contains("history_session_bootstrap"));
     assert!(names.contains("history_session_checkpoint"));
@@ -245,8 +247,8 @@ fn native_diagnostics_support_pwd_and_ls_without_a_shell() {
         .unwrap_or("")
         .contains("tiny-js-project"));
     assert_eq!(pwd["execution_mode"], "native_builtin");
-    assert_eq!(pwd["harness_mode"], "standalone");
-    assert_eq!(pwd["task_required"], false);
+    assert_eq!(pwd["task_scope"], Value::Null);
+    assert_eq!(pwd["operation_status"], "succeeded");
     assert_eq!(pwd["command_runner"], "native_builtin");
     assert_eq!(pwd["status"], "exited");
     assert_eq!(pwd["exit_code"], 0);
@@ -270,14 +272,14 @@ fn direct_exec_uses_the_same_result_contract() {
     let result = invoke(
         &ctx,
         "exec_command",
-        json!({"cmd": format!("{TEST_PYTHON} --version"), "filesystem_scope": "workspace"}),
+        json!({"cmd": format!("{TEST_PYTHON} --version"), "filesystem_scope": "workspace", "durable": false}),
     );
     let payload = assert_ok(&result);
 
     assert_eq!(payload["command"], format!("{TEST_PYTHON} --version"));
     assert_eq!(payload["execution_mode"], "direct");
-    assert_eq!(payload["harness_mode"], "standalone");
-    assert_eq!(payload["task_required"], false);
+    assert_eq!(payload["task_scope"], Value::Null);
+    assert_eq!(payload["operation_status"], "succeeded");
     assert_eq!(payload["status"], "exited");
     assert_eq!(payload["exit_code"], 0);
     assert!(payload["stdout"].is_string());
@@ -297,11 +299,13 @@ fn nonzero_command_exit_keeps_transport_ok_but_sets_command_ok_false() {
         "exec_command",
         json!({
             "cmd": format!("{TEST_PYTHON} -c \"import sys; sys.exit(1)\""),
-            "filesystem_scope": "workspace"
+            "filesystem_scope": "workspace", "yield_time_ms": 5000, "request_id":"nonzero-durable-contract"
         }),
     );
     let payload = assert_ok(&result);
 
+    assert_eq!(payload["execution_mode"], "durable_worker");
+    assert_eq!(payload["request_id"], "nonzero-durable-contract");
     assert_eq!(payload["ok"], true);
     assert_eq!(payload["transport_ok"], true);
     assert_eq!(payload["command_ok"], false);
@@ -319,6 +323,7 @@ fn retained_session_timeout_stops_the_process_after_deadline() {
         json!({
             "cmd": format!("{TEST_PYTHON} -c \"import time; time.sleep(2)\""),
             "filesystem_scope": "workspace",
+            "durable": false, // This case explicitly tests the retained interactive-compatible session contract.
             "timeout_ms": 100,
             "yield_time_ms": 0
         }),
@@ -355,6 +360,7 @@ fn killed_session_reports_command_failure_even_when_transport_succeeds() {
         json!({
             "cmd": format!("{TEST_PYTHON} -c \"import time; time.sleep(2)\""),
             "filesystem_scope": "workspace",
+            "durable": false, // This case explicitly tests the retained interactive-compatible session contract.
             "timeout_ms": 10_000,
             "yield_time_ms": 0
         }),

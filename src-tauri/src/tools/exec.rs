@@ -169,6 +169,8 @@ fn durable_command(ctx: &ToolContext, args: &Value, cmd: &str, cwd: &Path) -> Re
     output["deduplicated"] = first.get("deduplicated").cloned().unwrap_or(json!(false));
     output["transport_ok"] = json!(true);
     output["execution_boundary"] = json!("policy_only");
+    output["filesystem_scope"] = json!("workspace");
+    output["child_process"] = json!(true);
     output["sandbox_enforced"] = json!(false);
     output["stdin_open"] = json!(false);
     output["interactive"] = json!(false);

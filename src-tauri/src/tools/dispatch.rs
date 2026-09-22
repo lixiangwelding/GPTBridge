@@ -121,7 +121,12 @@ pub fn call_tool(ctx: &ToolContext, name: &str, args: &Value) -> Value {
             else if matches!(output["status"].as_str(), Some("queued"|"running"|"unknown")) { output["status"].as_str().unwrap() }
             else { "succeeded" }.to_string();
         output["operation_status"] = json!(outcome);
-        output["task_scope"] = effective_args.get("task_id").cloned().unwrap_or(Value::Null);
+        // Polls carry session_id, not task_id. Preserve the persisted job owner
+        // instead of overwriting it with a missing request field. Persisted null
+        // also means unbound: a caller cannot relabel that job by passing task_id.
+        output["task_scope"] = output.get("task_id").cloned()
+            .or_else(|| effective_args.get("task_id").filter(|v| v.is_string()).cloned())
+            .unwrap_or(Value::Null);
         output["recovery_hint"] = json!("Use the existing task_id and job_id/session_id; query uncertain outcomes before a new attempt. No worktree or whole-workspace rollback.");
         return output;
     }
@@ -312,9 +317,10 @@ pub fn call_tool_with_audit(
     let started_at_ms = current_time_ms();
     let started = Instant::now();
     let audited_args = apply_default_cwd(ctx, name, args);
-    let output = call_tool(ctx, name, args);
+    let mut output = call_tool(ctx, name, args);
     let elapsed_ms = started.elapsed().as_millis().min(i64::MAX as u128) as i64;
     let finished_at_ms = started_at_ms.saturating_add(elapsed_ms);
+    let audit_started = Instant::now();
     if let Some(audit) = ctx.audit_store() {
         if let Err(error) = audit.record_tool_call(
             request,
@@ -328,6 +334,17 @@ pub fn call_tool_with_audit(
         ) {
             eprintln!("audit tool record failed: {error}");
         }
+    }
+    // Added after recording: do not recursively audit timings or change outcome.
+    // This excludes transport/queue latency and the full durable job lifetime.
+    let audit_ms = audit_started.elapsed().as_millis();
+    let total_ms = started.elapsed().as_millis();
+    output["dispatcher_timing"] = json!({
+        "dispatch_ms":elapsed_ms, "audit_ms":audit_ms, "total_ms":total_ms,
+        "includes_transport":false, "includes_worker_lifetime":false
+    });
+    if total_ms >= 1000 {
+        eprintln!("mcp_dispatch_timing {}", json!({"tool":name, "timing":output["dispatcher_timing"]}));
     }
     output
 }

@@ -4,6 +4,18 @@ from __future__ import annotations
 import argparse, datetime, json, os, pathlib, signal, subprocess, sys, time
 from personal_env import toolchain_environment
 
+def verification_environment(root: pathlib.Path, run: pathlib.Path) -> dict[str, str]:
+    env = toolchain_environment()
+    worker = root.resolve() / '.artifacts' / 'cargo' / 'debug' / (
+        'coding-tools-personal-worker.exe' if os.name == 'nt' else 'coding-tools-personal-worker')
+    # Integration-test libraries are compiled without cfg(test). Their current_exe
+    # is a test harness, not the app's worker entry. Use the same explicit worker
+    # as selftest_personal; missing builds then fail clearly instead of staying queued.
+    env.update(CODING_TOOLS_PERSONAL_HOME=str(run / 'home'), CODING_TOOLS_PERSONAL_IMPORT='off',
+               CODING_TOOLS_PERSONAL_WORKER=str(worker), CARGO_TARGET_DIR=str(root / '.artifacts' / 'cargo'),
+               CARGO_BUILD_JOBS='2', RUST_TEST_THREADS='2')
+    return env
+
 def main() -> int:
     parser=argparse.ArgumentParser()
     parser.add_argument('--name',required=True)
@@ -16,8 +28,7 @@ def main() -> int:
     root=pathlib.Path(__file__).resolve().parents[1]
     run=root/'.artifacts'/'checks'/f'{args.name}-{time.time_ns()}'
     run.mkdir(parents=True,mode=0o700)
-    env=toolchain_environment()
-    env.update(CODING_TOOLS_PERSONAL_HOME=str(run/'home'),CODING_TOOLS_PERSONAL_IMPORT='off',CARGO_TARGET_DIR=str(root/'.artifacts'/'cargo'),CARGO_BUILD_JOBS='2',RUST_TEST_THREADS='2')
+    env=verification_environment(root, run)
     record={'name':args.name,'command':command,'status':'running','exit_code':None,'started':datetime.datetime.now(datetime.timezone.utc).isoformat(),'runtime_state':str(run/'home'),'stdout':str(run/'stdout.log'),'stderr':str(run/'stderr.log')}
     receipt=run/'result.json'
     receipt.write_text(json.dumps(record,indent=2))

@@ -40,3 +40,6 @@ pub use workspace::{wrap_mcp_tool_result, wrap_tool_result, Workspace};
 
 #[cfg(test)]
 mod audit_regression_tests;
+
+#[cfg(test)]
+mod session87_tests;

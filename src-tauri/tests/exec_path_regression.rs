@@ -75,10 +75,12 @@ fn missing_program_is_an_mcp_error_not_a_completed_operation() {
         "exec_command",
         &json!({"cmd": "scripts/missing-python --version"}),
     );
-    assert_eq!(out["transport_ok"], true, "{out}");
-    assert_eq!(out["command_ok"], false);
-    assert_eq!(out["ok"], false);
-    assert_eq!(out["status"], "spawn_failed");
+    assert_eq!(out["ok"], false, "{out}");
+    assert_eq!(out["operation_status"], "rejected");
+    assert_eq!(out["error"]["code"], "COMMAND_REJECTED");
+    assert!(out.get("job_id").is_none(), "validation must fail before starting a worker");
+    assert_ne!(out["command_ok"], true);
+    assert_eq!(out["status"], "error");
     assert!(!out["recovery_hint"]
         .as_str()
         .unwrap_or("")
@@ -108,7 +110,9 @@ fn nonzero_and_running_commands_do_not_receive_a_success_hint() {
         "exec_command",
         &json!({"cmd": format!("{PYTHON} -c \"import time; time.sleep(10)\""), "yield_time_ms": 0}),
     );
-    assert_eq!(out["status"], "running", "{out}");
+    assert!(matches!(out["status"].as_str(), Some("queued" | "running")), "{out}");
+    assert_eq!(out["command_ok"], Value::Null);
+    assert_eq!(out["execution_mode"], "durable_worker");
     assert!(out["recovery_hint"]
         .as_str()
         .unwrap()
@@ -116,9 +120,11 @@ fn nonzero_and_running_commands_do_not_receive_a_success_hint() {
     let stopped = call_tool(
         &ctx,
         "kill_session",
-        &json!({"session_id":out["session_id"],"wait_ms":2000}),
+        &json!({"session_id":out["session_id"],"wait_ms":5000}),
     );
     assert_eq!(stopped["ok"], true, "{stopped}");
+    assert_eq!(stopped["status"], "cancelled", "{stopped}");
+    assert_eq!(stopped["command_ok"], false);
 }
 
 #[cfg(unix)]
@@ -130,9 +136,17 @@ fn venv_entry_keeps_its_environment_and_versioned_python_is_allowed() {
     let bin = dir.path().join("venv/bin");
     std::fs::create_dir_all(&base).unwrap();
     std::fs::create_dir_all(&bin).unwrap();
-    let python = which::which(PYTHON).unwrap();
+    // macOS /usr/bin/python3 can be an xcode-select launcher. Linking that
+    // launcher under the name "python" changes what it tries to launch. Resolve
+    // the real interpreter first without changing PATH or production policy.
+    let resolved = std::process::Command::new(PYTHON)
+        .args(["-c", "import sys; print(sys.executable)"])
+        .output().expect("resolve the test interpreter");
+    assert!(resolved.status.success(), "{resolved:?}");
+    let python = Path::new(std::str::from_utf8(&resolved.stdout).unwrap().trim()).to_path_buf();
+    assert!(python.is_absolute() && python.is_file(), "{}", python.display());
     let versioned = base.join("python3.13");
-    symlink(python, &versioned).unwrap();
+    symlink(&python, &versioned).unwrap();
     // A minimal pyvenv.cfg is sufficient to observe the invocation identity.
     std::fs::write(
         dir.path().join("venv/pyvenv.cfg"),
@@ -140,7 +154,11 @@ fn venv_entry_keeps_its_environment_and_versioned_python_is_allowed() {
     )
     .unwrap();
     symlink(&versioned, bin.join("python")).unwrap();
-    let ctx = common::ctx_for(dir.path());
+    let mut ctx = common::ctx_for(dir.path());
+    // This isolated fixture tests invocation identity, not implicit trust in a
+    // macOS launcher target. Allow only its resolved interpreter in this test
+    // context; production policy and the outside-impersonation test stay intact.
+    ctx.policy.allowed_commands.insert(python.to_string_lossy().into_owned());
     let out = run(
         &ctx,
         format!(

@@ -324,25 +324,20 @@ pub fn build_state(
         .unwrap_or_else(|| "尚未记录当前焦点".to_string());
     let mut recent_changes = Vec::new();
     let mut open_items = Vec::new();
-    for document in report.documents.iter().rev() {
+    // The active summary belongs only to this explicit session. Other sessions
+    // remain searchable references, never implicit work assigned to this caller.
+    if let Some(document) = current_document {
         let records = markdown::parse_checkpoint_records(&document.content);
-        for record in latest_revisions(&records).into_iter().rev() {
-            push_bounded(
-                &mut recent_changes,
-                record.files_changed.iter().map(String::as_str),
-            );
-            push_bounded(
-                &mut recent_changes,
-                record.decisions.iter().map(String::as_str),
-            );
-            push_bounded(
-                &mut open_items,
-                record.remaining_issues.iter().map(String::as_str),
-            );
-            push_bounded(
-                &mut open_items,
-                record.next_actions.iter().map(String::as_str),
-            );
+        let latest = latest_revisions(&records);
+        // remaining_issues/next_actions are the newest checkpoint's snapshot,
+        // not a union with old issues which may already have been resolved.
+        if let Some(record) = latest.last() {
+            push_bounded(&mut open_items, record.remaining_issues.iter().map(String::as_str));
+            push_bounded(&mut open_items, record.next_actions.iter().map(String::as_str));
+        }
+        for record in latest.into_iter().rev() {
+            push_bounded(&mut recent_changes, record.files_changed.iter().map(String::as_str));
+            push_bounded(&mut recent_changes, record.decisions.iter().map(String::as_str));
         }
     }
     let references = manifest
@@ -354,7 +349,7 @@ pub fn build_state(
         .map(|entry| MemoryReference {
             number: entry.number,
             path: entry.path.clone(),
-            reason: "最近历史档案；可按需读取原文".into(),
+            reason: "其他会话的只读背景；按需检索，不属于当前任务".into(),
         })
         .collect();
     MemoryState {
@@ -381,14 +376,14 @@ pub fn build_state(
 }
 
 fn latest_user_focus(content: &str) -> Option<String> {
-    markdown::parse_checkpoint_records(content)
-        .into_iter()
-        .max_by_key(|record| record.revision)
+    let records = markdown::parse_checkpoint_records(content);
+    latest_revisions(&records)
+        .last()
         .and_then(|record| {
             if record.raw_user_input.trim().is_empty() {
-                (!record.user_intent.trim().is_empty()).then_some(record.user_intent)
+                (!record.user_intent.trim().is_empty()).then(|| record.user_intent.clone())
             } else {
-                Some(record.raw_user_input)
+                Some(record.raw_user_input.clone())
             }
         })
         .or_else(|| {
@@ -402,17 +397,24 @@ fn latest_user_focus(content: &str) -> Option<String> {
 fn latest_revisions(
     records: &[super::model::CheckpointRecord],
 ) -> Vec<&super::model::CheckpointRecord> {
+    // Revision numbers are local to a turn. Select the latest version of each
+    // turn, then retain archive append order rather than lexical turn IDs.
     let mut latest = BTreeMap::new();
-    for record in records {
+    for (position, record) in records.iter().enumerate() {
         let should_replace = latest
             .get(record.turn_id.as_str())
-            .map(|existing: &&super::model::CheckpointRecord| record.revision >= existing.revision)
+            .map(|(_, existing): &(usize, &super::model::CheckpointRecord)| record.revision >= existing.revision)
             .unwrap_or(true);
         if should_replace {
-            latest.insert(record.turn_id.as_str(), record);
+            // A correction replaces its own turn but must not make that old
+            // turn newer than an already-recorded subsequent user request.
+            let first_position = latest.get(record.turn_id.as_str()).map(|(first, _)| *first).unwrap_or(position);
+            latest.insert(record.turn_id.as_str(), (first_position, record));
         }
     }
-    latest.into_values().collect()
+    let mut ordered = latest.into_values().collect::<Vec<_>>();
+    ordered.sort_by_key(|(position, _)| *position);
+    ordered.into_iter().map(|(_, record)| record).collect()
 }
 
 fn push_bounded<'a>(target: &mut Vec<String>, values: impl Iterator<Item = &'a str>) {
@@ -571,4 +573,72 @@ fn io_error(code: &'static str, error: io::Error, retryable: bool) -> WorkspaceE
         retryable,
         details: serde_json::json!({"kind": format!("{:?}", error.kind())}),
     }
+}
+
+
+#[cfg(test)]
+mod session87_regressions {
+    use super::*;
+    use super::super::model::CheckpointRecord;
+
+    fn record(turn: &str, revision: u64, focus: &str, issues: &[&str]) -> CheckpointRecord {
+        CheckpointRecord {
+            turn_id: turn.into(), revision, raw_user_input: focus.into(),
+            remaining_issues: issues.iter().map(|v| v.to_string()).collect(),
+            ..CheckpointRecord::default()
+        }
+    }
+    fn document(number: u64, records: &[CheckpointRecord]) -> HistoryDocument {
+        let mut content = markdown::render_document(number, "fixture", &format!("session-{number}"), "unix:1", None);
+        for record in records { content = markdown::append_checkpoint_record(&content, record); }
+        HistoryDocument { number, path: format!("docs/history-session/{number}.md"),
+            session_key: Some(format!("session-{number}")), created_at: Some("unix:1".into()),
+            updated_at: Some("unix:2".into()), content }
+    }
+    fn state(documents: Vec<HistoryDocument>, current: u64) -> MemoryState {
+        let report = ScanReport { documents, ..ScanReport::default() };
+        build_state(&report, &build_manifest(&report), Some(current), "unix:3", 1)
+    }
+    #[test]
+    fn session87_state_is_scoped_to_current_session() {
+        let value = state(vec![document(1, &[record("mine", 1, "MCP", &["mine"])]),
+            document(2, &[record("other", 1, "game", &["foreign"])])], 1);
+        assert_eq!(value.open_items, vec!["mine"]);
+        assert_eq!(value.current_focus, "MCP");
+        assert_eq!(value.references.len(), 1);
+    }
+    #[test]
+    fn session87_new_session_has_no_foreign_tasks() {
+        let value = state(vec![document(1, &[record("other", 1, "game", &["foreign"])]), document(2, &[])], 2);
+        assert!(value.open_items.is_empty());
+        assert!(value.recent_changes.is_empty());
+    }
+    #[test]
+    fn session87_focus_follows_last_turn_not_largest_revision() {
+        let doc = document(1, &[record("z-old", 8, "old request", &[]), record("a-new", 1, "new request", &[])]);
+        assert_eq!(latest_user_focus(&doc.content).as_deref(), Some("new request"));
+    }
+    #[test]
+    fn session87_resolved_items_do_not_resurface() {
+        let value = state(vec![document(1, &[record("z-old", 1, "old", &["resolved issue"]), record("a-new", 1, "fixed", &[])])], 1);
+        assert!(value.open_items.is_empty(), "{:?}", value.open_items);
+    }
+    #[test]
+    fn session87_latest_revisions_keep_append_order() {
+        let records = vec![record("z-old", 1, "old", &[]), record("a-new", 1, "new", &[])];
+        let latest = latest_revisions(&records);
+        assert_eq!(latest.iter().map(|r| r.turn_id.as_str()).collect::<Vec<_>>(), vec!["z-old", "a-new"]);
+    }
+    #[test]
+    fn session87_correcting_an_old_turn_does_not_replace_newer_focus() {
+        let records = vec![record("old", 1, "old", &["old issue"]),
+            record("new", 1, "new", &[]), record("old", 2, "corrected old", &["old issue"])];
+        let value = state(vec![document(1, &records)], 1);
+        assert_eq!(value.current_focus, "new");
+        assert!(value.open_items.is_empty());
+        let latest = latest_revisions(&records);
+        assert_eq!(latest[0].revision, 2);
+        assert_eq!(latest[1].turn_id, "new");
+    }
+
 }

@@ -3,6 +3,11 @@ use std::fs;
 use coding_tools_mcp_desktop_lib::tools::{call_tool, ToolContext};
 use serde_json::json;
 
+#[cfg(windows)]
+const PYTHON: &str = "python";
+#[cfg(not(windows))]
+const PYTHON: &str = "python3";
+
 #[test]
 fn 无任务时仍可执行_dry_run_预检() {
     let temp = tempfile::tempdir().expect("创建临时目录");
@@ -22,7 +27,7 @@ fn 无任务时仍可执行_dry_run_预检() {
 
     assert_eq!(result["ok"], true);
     assert_eq!(result["preflight"], true);
-    assert_eq!(result["harness_mode"], "standalone");
+    assert_eq!(result["task_scope"], json!(null));
     assert_eq!(
         fs::read_to_string(temp.path().join("workspace/README.md")).unwrap(),
         "初始内容\n"
@@ -51,7 +56,7 @@ fn codex_patch格式支持新增文件dry_run和实际应用() {
         .any(|file| file["path"] == "probe.txt" && file["operation"] == "add"));
     assert!(!workspace.join("probe.txt").exists());
 
-    let applied = call_tool(&ctx, "apply_patch", &json!({"patch": patch}));
+    let applied = call_tool(&ctx, "apply_patch", &json!({"patch": patch, "request_id":"add-probe", "expected_hashes":{"probe.txt":null}}));
     assert_eq!(applied["ok"], true);
     assert_eq!(
         fs::read_to_string(workspace.join("probe.txt")).expect("读取新增文件"),
@@ -60,36 +65,31 @@ fn codex_patch格式支持新增文件dry_run和实际应用() {
 }
 
 #[test]
-fn 无任务时普通_patch也可执行并保留撤销能力() {
+fn 无任务时受保护_patch可执行且回执可幂等重放() {
     let temp = tempfile::tempdir().expect("创建临时目录");
     let workspace = temp.path().join("workspace");
     fs::create_dir_all(&workspace).expect("创建工作区");
     fs::write(workspace.join("README.md"), "初始内容\n").expect("写入文件");
     let ctx = ToolContext::for_test(workspace.clone(), temp.path().join("harness")).expect("创建上下文");
 
-    let result = call_tool(
-        &ctx,
-        "apply_patch",
-        &json!({
-            "patch": "--- a/README.md\n+++ b/README.md\n@@\n-初始内容\n+已修改\n"
-        }),
-    );
+    let args = json!({
+        "patch": "--- a/README.md\n+++ b/README.md\n@@\n-初始内容\n+已修改\n",
+        "request_id":"standalone-readme", "expected_hashes":{"README.md":coding_tools_personal_runtime::digest("初始内容\n")}
+    });
+    let result = call_tool(&ctx, "apply_patch", &args);
 
     assert_eq!(result["ok"], true);
-    assert_eq!(result["harness_mode"], "standalone");
+    assert_eq!(result["task_scope"], json!(null));
     assert!(!result.as_object().unwrap().contains_key("pre_change_snapshot_id"));
     assert_eq!(
         fs::read_to_string(workspace.join("README.md")).unwrap(),
         "已修改\n"
     );
 
-    let log = call_tool(&ctx, "operation_log", &json!({}));
-    assert_eq!(log["ok"], true);
-    assert!(log["operations"]
-        .as_array()
-        .expect("操作日志")
-        .iter()
-        .any(|operation| operation["tool"] == "apply_patch"));
+    assert_eq!(result["receipt_persisted"], true);
+    let replay = call_tool(&ctx, "apply_patch", &args);
+    assert_eq!(replay["deduplicated"], true);
+    assert_eq!(fs::read_to_string(workspace.join("README.md")).unwrap(), "已修改\n");
 }
 
 #[test]
@@ -102,19 +102,15 @@ fn 无任务时_exec_command不返回任务门禁错误() {
     let result = call_tool(
         &ctx,
         "exec_command",
-        &json!({"cmd": "git status", "filesystem_scope": "workspace"}),
+        &json!({"cmd": "git status", "filesystem_scope": "workspace", "request_id":"standalone-status", "yield_time_ms":5000}),
     );
 
-    assert_ne!(result["error"]["code"], "TASK_STATE_REQUIRED");
-    assert_eq!(result["harness_mode"], "standalone");
-    assert_eq!(result["execution_mode"], "direct");
-    assert_eq!(result["task_required"], false);
-    assert_eq!(result["command"], "git status");
+    assert_eq!(result["ok"], true, "{result}");
+    assert_eq!(result["task_scope"], json!(null));
+    assert_eq!(result["execution_mode"], "durable_worker");
+    assert_eq!(result["request_id"], "standalone-status");
     assert_eq!(result["status"], "exited");
-    assert!(result["exit_code"].is_i64() || result["exit_code"].is_u64());
-    assert!(result["duration_ms"].is_u64());
-    assert_eq!(result["duration_ms"], result["elapsed_ms"]);
-    assert_eq!(result["next_actions"], json!([]));
+    assert!(result["exit_code"].is_i64());
     assert!(result["recovery_hint"].is_string());
     assert!(!result.as_object().unwrap().contains_key("pre_change_snapshot_id"));
 }
@@ -129,12 +125,12 @@ fn 无任务时_exec错误不应建议启动任务() {
     let result = call_tool(
         &ctx,
         "exec_command",
-        &json!({"cmd": "python -c \"import sys; sys.exit(1)\""}),
+        &json!({"cmd": format!("{PYTHON} -c \"import sys; sys.exit(1)\""), "yield_time_ms":5000}),
     );
 
-    assert_eq!(result["harness_mode"], "standalone");
-    assert_eq!(result["task_required"], false);
-    assert_eq!(result["next_actions"], json!([]));
+    assert_eq!(result["task_scope"], json!(null));
+    assert_eq!(result["command_ok"], false, "{result}");
+    assert_eq!(result["status"], "exited");
     assert!(result["recovery_hint"].is_string());
     if let Some(actions) = result["harness"]["next_actions"].as_array() {
         assert!(!actions.iter().any(|action| action == "start_task"));
@@ -148,7 +144,7 @@ fn workspace_allows_exec_during_transition() {
     fs::create_dir_all(&workspace).expect("创建工作区");
     let ctx = ToolContext::for_test(workspace, temp.path().join("harness")).expect("创建上下文");
 
-    let result = call_tool(&ctx, "exec_command", &json!({"cmd": "python --version"}));
+    let result = call_tool(&ctx, "exec_command", &json!({"cmd": format!("{PYTHON} --version"), "durable":false}));
 
     assert_ne!(result["error"]["code"], "EXEC_SANDBOX_UNAVAILABLE");
     assert_eq!(result["execution_mode"], "direct");
@@ -206,12 +202,14 @@ fn 外部修改会在写工具执行前被拒绝() {
 
     let result = call_tool(
         &ctx,
-        "exec_command",
-        &json!({"cmd": "git status", "filesystem_scope": "workspace"}),
+        "apply_patch",
+        &json!({"request_id":"stale-readme", "expected_hashes":{"README.md":coding_tools_personal_runtime::digest("初始内容\n")},
+            "patch":"*** Begin Patch\n*** Update File: README.md\n@@\n-初始内容\n+不得覆盖\n*** End Patch\n"}),
     );
 
-    assert_eq!(result["ok"], false);
-    assert_eq!(result["error"]["code"], "FILE_CHANGED_EXTERNALLY");
+    assert_eq!(result["ok"], false, "{result}");
+    assert_eq!(fs::read_to_string(workspace.join("README.md")).unwrap(), "外部修改\n");
+    assert_eq!(result["error"]["code"], "STALE_FILE");
     assert_eq!(
         ctx.harness
             .current_task()
