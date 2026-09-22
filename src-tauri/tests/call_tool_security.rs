@@ -27,8 +27,14 @@ fn read_file_rejects_symlink_escape() {
 fn apply_patch_rejects_traversal_target() {
     let fx = malicious_fixture();
     let ctx = ctx_for(&fx.root);
-    let out = invoke(&ctx, "apply_patch", json!({"patch": TRAVERSAL_PATCH}));
+    let before = fs::read(&fx.outside_secret).expect("read isolated fixture");
+    let out = invoke(&ctx, "apply_patch", json!({
+        "patch": TRAVERSAL_PATCH,
+        "request_id": "security-traversal-target",
+        "expected_hashes": {"../outside-secret.txt": coding_tools_personal_runtime::digest(&before)}
+    }));
     assert_security_or_policy_err(&out);
+    assert_eq!(fs::read(&fx.outside_secret).unwrap(), before);
 }
 
 #[test]
@@ -203,10 +209,13 @@ fn deleting_git_assets_is_always_rejected() {
         "apply_patch",
         json!({
             "confirm": true,
+            "request_id": "security-protected-git-target",
+            "expected_hashes": {".git/config": coding_tools_personal_runtime::digest("[core]\n")},
             "patch": "--- a/.git/config\n+++ /dev/null\n@@\n-[core]\n"
         }),
     );
     assert_eq!(out["error"]["code"], "PROTECTED_REPOSITORY_ASSET");
+    assert_eq!(fs::read_to_string(git_dir.join("config")).unwrap(), "[core]\n");
 }
 
 #[test]
@@ -342,6 +351,8 @@ fn apply_patch_rejects_absolute_path_target() {
         &ctx,
         "apply_patch",
         json!({
+            "request_id": "security-absolute-target",
+            "expected_hashes": {"C:/outside-secret.txt": null},
             "patch": "--- a/C:/outside-secret.txt\n+++ b/C:/outside-secret.txt\n@@\n-TOP_SECRET_DO_NOT_READ\n+unsafe\n"
         }),
     );
