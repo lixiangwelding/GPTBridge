@@ -22,6 +22,8 @@
 
 job `00d77a52-59a1-426a-8ea7-0259ded2391b` 等待同一source独占锁，以create-only方式补存并逐字节回读原前端RUN的STATUS.md、HANDOFF.md、results.json、cross-requests.json。没有绕锁或覆盖已有结果。这是原revision2证据补存，不是新业务PASS，前端路由/权限/截图/性能未验项仍保留，不晋升public current。
 
-真实dry_run在6ms完成并返回预条件、未写文件。新实例上的原生apply_patch实际写入仍遇RESOURCE_BUSY，因此本轮不能将它的实时写入/幂等重放验收写成PASS；排队受管写操作成功也不替代这个独立验收。后续先核实际占用，不强清锁、不取消他人作业，不重包被安全层拒绝的进程查询。
+真实dry_run在6ms完成并返回预条件、未写文件。新实例初次原生apply_patch仍遇RESOURCE_BUSY，失败回执保留，排队受管写成功没有被冒充为原生补丁PASS。后继请求 `t08-mcp-20260922-live-node-receipt-append` 已实际写入，change_id `7e694c70aeea494bac558dca4e0defaa`，dispatch31ms、receipt_persisted=true；完全相同请求再次调用得到deduplicated=true、相同change_id和相同after_hashes，dispatch2ms，没有重复追加。这两个独立真实验收现已通过。全过程不强清锁、不取消他人作业，不重包被安全层拒绝的进程查询。
 
 本文件为本会话唯一个人仓提交文件；Git与远端回读保存在 `.artifacts/t08-mcp-recovery-95b3e0cd/delivery.json` 及任务checkpoint，生成文档不代表业务闭合。
+
+后继真实工具：job `9baadded-93c5-444d-ad8c-afb8bccbed13` 的裸 `node --version` 返回 v26.3.0/exit0；read_output保留相同task_id、request_id和job_id，未借助解释器复制或权限绕过。
