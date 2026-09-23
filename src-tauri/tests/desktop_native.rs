@@ -33,7 +33,9 @@ fn stdio_uses_real_dispatch_and_does_not_pollute_stdout_or_rewrite_config() {
     let initialize=values.iter().find(|v|v["id"]==1).unwrap();
     assert_eq!(initialize["result"]["serverInfo"]["version"],env!("CARGO_PKG_VERSION"));
     assert!(initialize["result"]["instructions"].as_str().unwrap().contains("absolute paths"));
-    assert_eq!(values.iter().find(|v|v["id"]==2).unwrap()["result"]["tools"].as_array().unwrap().len(),33);
+    let tools=values.iter().find(|v|v["id"]==2).unwrap()["result"]["tools"].as_array().unwrap();
+    assert_eq!(tools.len(),37);
+    for name in ["check_command", "tool_catalog_check", "read_files", "stat_path"] { assert!(tools.iter().any(|tool|tool["name"]==name)); }
     let info=&values.iter().find(|v|v["id"]==3).unwrap()["result"]["structuredContent"];
     assert_eq!(info["delivery"]["mode"],"local_files");assert_eq!(info["runtime_pressure"]["active"],0);
     assert!(values.iter().any(|v|v["error"]["code"]==-32600));

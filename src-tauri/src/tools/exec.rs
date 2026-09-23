@@ -188,14 +188,14 @@ fn personal_worker_path() -> Result<std::path::PathBuf, WorkspaceError> {
         return Ok(path);
     }
     let executable = std::env::current_exe().map_err(|e|WorkspaceError::invalid_argument(e.to_string()))?;
-    #[cfg(test)]
-    {
+    // Integration tests compile this library without cfg(test), but their
+    // executable still lives in target/{profile}/deps and cannot run jobs.
+    if executable.parent().and_then(|dir| dir.file_name()).is_some_and(|name| name == "deps") {
         let name = if cfg!(windows) { "coding-tools-personal-worker.exe" } else { "coding-tools-personal-worker" };
         let candidate = executable.parent().and_then(|p|p.parent()).unwrap_or(Path::new(".")).join(name);
         if !candidate.is_file() { return Err(WorkspaceError::invalid_argument("build personal-runtime's worker binary before executing integration tests")); }
         return Ok(candidate);
     }
-    #[cfg(not(test))]
     Ok(executable)
 }
 

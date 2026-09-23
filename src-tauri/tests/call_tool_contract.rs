@@ -100,7 +100,7 @@ fn request_permissions_exposes_public_schema_and_grants_in_dangerous_mode() {
         "tool_name": "exec_command",
         "permission": "network",
         "reason": "verify dangerous-mode compatibility",
-        "arguments": {"cmd": "curl https://example.com"}
+        "arguments": {"cmd": "git ls-remote https://example.com"}
     });
     let out = invoke(&ctx, "request_permissions", args.clone());
     let payload = assert_ok(&out);
@@ -184,6 +184,7 @@ fn advanced_profile_exposes_every_declared_tool() {
         .iter()
         .map(|(name, ..)| *name)
         .chain(["task_open", "task_status", "task_checkpoint", "list_skills", "search_skills", "read_skill", "invoke_skill"])
+        .chain(["check_command", "tool_catalog_check", "read_files", "stat_path"])
         .collect::<std::collections::HashSet<_>>();
     let tool_values = coding_tools_mcp_desktop_lib::tools::list_tools_for_profile("advanced");
     let exposed = tool_values
@@ -208,9 +209,10 @@ fn core_profile_keeps_the_default_capabilities_and_adds_history_tools() {
         .iter()
         .copied()
         .chain(["task_open", "task_status", "task_checkpoint", "list_skills", "search_skills", "read_skill", "invoke_skill"])
+        .chain(["check_command", "tool_catalog_check", "read_files", "stat_path"])
         .collect::<std::collections::HashSet<_>>();
     assert_eq!(names, expected);
-    assert_eq!(names.len(), 33);
+    assert_eq!(names.len(), 37);
     assert!(names.contains("grep_text"));
     assert!(names.contains("history_session_bootstrap"));
     assert!(names.contains("history_session_checkpoint"));
@@ -308,7 +310,7 @@ fn nonzero_command_exit_keeps_transport_ok_but_sets_command_ok_false() {
     assert_eq!(payload["request_id"], "nonzero-durable-contract");
     assert_eq!(payload["ok"], true);
     assert_eq!(payload["transport_ok"], true);
-    assert_eq!(payload["command_ok"], false);
+    assert_eq!(payload["command_ok"], false, "{payload}");
     assert_eq!(payload["status"], "exited");
     assert_eq!(payload["exit_code"], 1);
 }

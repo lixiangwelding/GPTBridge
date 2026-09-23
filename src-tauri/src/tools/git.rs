@@ -112,6 +112,11 @@ fn resolve_status_path(ws: &Workspace, raw: &str) -> Result<crate::tools::worksp
 }
 
 pub fn git_diff(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> {
+    let repo_path = args.get("repo_path").and_then(Value::as_str).unwrap_or(".");
+    let repository = ws.resolve_existing(repo_path)?;
+    if !repository.path.is_dir() {
+        return Err(WorkspaceError::not_a_directory("repo_path must be a directory"));
+    }
     let staged = args.get("staged").and_then(Value::as_bool).unwrap_or(false);
     let unstaged = args.get("unstaged").and_then(Value::as_bool).unwrap_or(true);
     let context = args
@@ -138,7 +143,7 @@ pub fn git_diff(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> {
         ws.reject_unsafe_text(p)?;
     }
 
-    if !is_git_repo(ws.root()) {
+    if !is_git_repo(&repository.path) {
         return Ok(tool_ok(json!({
             "diff": "",
             "files": [],
@@ -149,10 +154,10 @@ pub fn git_diff(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> {
 
     let mut chunks = Vec::new();
     if unstaged {
-        chunks.push(run_git_diff(ws.root(), context, &path_filters, false)?);
+        chunks.push(run_git_diff(&repository.path, context, &path_filters, false)?);
     }
     if staged {
-        chunks.push(run_git_diff(ws.root(), context, &path_filters, true)?);
+        chunks.push(run_git_diff(&repository.path, context, &path_filters, true)?);
     }
     let mut combined = chunks.join("\n");
     if !combined.is_empty() && !combined.ends_with('\n') {
@@ -160,13 +165,16 @@ pub fn git_diff(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> {
     }
     let truncated = combined.len() > max_bytes;
     let diff_text = if truncated {
-        String::from_utf8_lossy(&combined.as_bytes()[..max_bytes]).into_owned()
+        let mut end = max_bytes;
+        while !combined.is_char_boundary(end) { end -= 1; }
+        combined[..end].to_owned()
     } else {
         combined
     };
     let files = parse_diff_files(&diff_text);
     Ok(tool_ok(json!({
         "diff": diff_text,
+        "repository": repository.display,
         "files": files,
         "truncated": truncated,
         "warnings": if truncated { vec!["diff truncated"] } else { vec![] }

@@ -13,16 +13,12 @@ use crate::tools::{exec, file, git, history, image_tool, patch, session};
 /// boundaries. Use the same cwd, policy and resolver as the eventual command.
 fn executable_permission_failure(ctx: &ToolContext, args: &Value) -> Option<Value> {
     if !ctx.policy.skip_permission_gates()
-        || args.get("tool_name").and_then(Value::as_str) != Some("exec_command")
-        || args.get("permission").and_then(Value::as_str) != Some("privileged_executable") {
+        || args.get("tool_name").and_then(Value::as_str) != Some("exec_command") {
         return None;
     }
     let requested = args.get("arguments").unwrap_or(&Value::Null);
-    let requested = apply_default_cwd(ctx, "exec_command", requested);
-    let failure = match validate_tool_arguments_for_workspace("exec_command", &requested, &ctx.policy, Some(&ctx.workspace)) {
-        Err(error) => Some(policy_tool_err(error)),
-        Ok(()) => exec::preflight_executable(ctx, &requested).err().map(tool_err),
-    };
+    let output = command_preflight(ctx, requested);
+    let failure = (output["ok"] == false).then_some(output);
     failure.map(|mut output| {
         output["status"] = json!("denied");
         output["grant_id"] = Value::Null;
@@ -31,6 +27,41 @@ fn executable_permission_failure(ctx: &ToolContext, args: &Value) -> Option<Valu
         output["command_executed"] = json!(false);
         output
     })
+}
+
+/// Shared, side-effect-free preflight for check_command and all exec permission
+/// requests. It deliberately cannot promise platform authorization or admission.
+pub(super) fn command_preflight(ctx: &ToolContext, args: &Value) -> Value {
+    let requested = apply_default_cwd(ctx, "exec_command", args);
+    let mut output = match validate_tool_arguments_for_workspace(
+        "exec_command", &requested, &ctx.policy, Some(&ctx.workspace),
+    ) {
+        Err(error) => policy_tool_err(error),
+        Ok(()) => match exec::preflight_executable(ctx, &requested) {
+            Err(error) => tool_err(error),
+            Ok(()) => tool_ok(json!({"status":"allowed_locally"})),
+        },
+    };
+    if output["ok"] == true && requested.get("task_id").is_some() {
+        if !requested.get("durable").and_then(Value::as_bool).unwrap_or(true)
+            || requested.get("tty").and_then(Value::as_bool).unwrap_or(false)
+            || requested.get("request_id").and_then(Value::as_str).is_none() {
+            output = tool_err(WorkspaceError::invalid_argument(
+                "task-bound commands require durable non-interactive execution and a stable request_id",
+            ));
+        }
+    }
+    output["status"] = json!(if output["ok"] == true {"allowed_locally"} else {"denied_locally"});
+    output["preflight_only"] = json!(true);
+    output["command_executed"] = json!(false);
+    output["grant_issued"] = json!(false);
+    output["permissions_changed"] = json!(false);
+    output["platform_authorization"] = json!("not_observable");
+    output["not_checked"] = json!([
+        "upstream client authorization", "worker availability", "task existence",
+        "job capacity and source/resource locks", "command exit status", "policy changes after this snapshot"
+    ]);
+    output
 }
 
 fn policy_tool_err(err: PolicyError) -> Value {
@@ -88,6 +119,12 @@ pub fn call_tool(ctx: &ToolContext, name: &str, args: &Value) -> Value {
         return policy_tool_err(e);
     }
 
+    if super::toolbox::TOOLS.contains(&name) {
+        return match super::toolbox::call(ctx, name, &effective_args) {
+            Ok(value) => value,
+            Err(error) => tool_err(error),
+        };
+    }
     if super::personal::TOOLS.contains(&name) {
         let mut output = match super::personal::call(ctx, name, &effective_args) { Ok(v) => v, Err(e) => tool_err(e) };
         super::skill_discovery::attach(ctx, name, &mut output);
@@ -401,7 +438,7 @@ fn apply_default_cwd(ctx: &ToolContext, name: &str, args: &Value) -> Value {
                 effective["path"] = Value::String(prefix_relative_path(&base, path));
             }
         }
-        "git_diff" => {
+        "git_diff" if effective.get("repo_path").is_none() => {
             if let Some(path) = effective.get("path").and_then(Value::as_str) {
                 effective["path"] = Value::String(prefix_relative_path(&base, path));
             }

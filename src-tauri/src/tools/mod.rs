@@ -9,6 +9,7 @@ mod auto_skill_tests;
 mod command_line;
 mod exec_paths;
 pub mod context;
+mod toolbox;
 pub mod dispatch;
 pub(crate) mod delivery;
 pub mod exec;

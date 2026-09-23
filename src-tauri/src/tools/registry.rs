@@ -460,6 +460,7 @@ pub const READ_ONLY_TOOLS: &[&str] = &[
 pub fn is_allowed_tool(name: &str) -> bool {
     ALLOWED_TOOLS.contains(&name) || super::personal::TOOLS.contains(&name)
         || super::skills::TOOLS.contains(&name)
+        || super::toolbox::TOOLS.contains(&name)
 }
 
 pub fn canonical_tool_name(name: &str) -> &str {
@@ -486,6 +487,7 @@ pub fn exposed_tool_names(tool_profile: &str) -> Vec<&'static str> {
     };
     if normalize_tool_profile(tool_profile) != "read-only" { names.extend_from_slice(super::personal::TOOLS); }
     names.extend_from_slice(super::skills::TOOLS);
+    names.extend_from_slice(super::toolbox::TOOLS);
     names
 }
 
@@ -497,6 +499,7 @@ pub fn list_tools_for_profile(tool_profile: &str) -> Vec<Value> {
     exposed_tool_names(tool_profile)
         .into_iter()
         .filter_map(|name| {
+            if super::toolbox::TOOLS.contains(&name) { return Some(super::toolbox::definition(name)); }
             if super::skills::TOOLS.contains(&name) { return Some(super::skills::definition(name)); }
             if super::personal::TOOLS.contains(&name) { return Some(super::personal_schema::definition(name)); }
             P0_TOOLS.iter().find(|(n, ..)| *n == name).map(|entry| {
@@ -521,6 +524,7 @@ pub fn list_tools_for_profile(tool_profile: &str) -> Vec<Value> {
 }
 
 pub fn input_schema(name: &str) -> Value {
+    if super::toolbox::TOOLS.contains(&name) { return super::toolbox::definition(name)["inputSchema"].clone(); }
     if super::skills::TOOLS.contains(&name) { return super::skills::definition(name)["inputSchema"].clone(); }
     if let Some(schema) = super::personal_schema::schema(name) { return schema; }
     let mut schema = base_input_schema(name);
@@ -821,6 +825,7 @@ fn base_input_schema(name: &str) -> Value {
         "git_diff" => json!({
             "type": "object",
             "properties": {
+                "repo_path": { "type": "string", "minLength": 1, "default": ".", "description": "Workspace-relative repository directory. paths are relative to this directory; omitted preserves the legacy workspace-root behavior." },
                 "paths": { "type": "array", "items": { "type": "string" }, "default": [] },
                 "staged": { "type": "boolean", "default": false },
                 "unstaged": { "type": "boolean", "default": true },
@@ -935,7 +940,7 @@ mod tests {
     use super::{input_schema, list_tools_for_profile};
 
     #[test]
-    fn core_catalog_exposes_33_chatgpt_compatible_tools() {
+    fn core_catalog_exposes_37_chatgpt_compatible_tools() {
         let tools = list_tools_for_profile("core");
         let names: Vec<_> = tools
             .iter()
@@ -943,7 +948,7 @@ mod tests {
             .collect();
         let unique: HashSet<_> = names.iter().copied().collect();
 
-        assert_eq!(tools.len(), 33);
+        assert_eq!(tools.len(), 37);
         assert_eq!(unique.len(), tools.len());
         assert!(names.contains(&"history_session_bootstrap"));
         assert!(names.contains(&"history_session_checkpoint"));
@@ -951,6 +956,7 @@ mod tests {
         assert!(names.contains(&"history_session_search"));
         assert!(names.contains(&"history_session_read"));
         assert!(names.contains(&"grep_text"));
+        for name in ["check_command", "tool_catalog_check", "read_files", "stat_path"] { assert!(names.contains(&name)); }
         assert!(!names.contains(&"grep"));
 
         for name in names {
