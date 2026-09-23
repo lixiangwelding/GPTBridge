@@ -37,6 +37,9 @@ jobs:
       - name: 检查前端
         run: npm run check
 
+      - name: 构建 Rust 测试所需的任务 Worker
+        run: cargo build --manifest-path personal-runtime/Cargo.toml --target-dir src-tauri/target --bin coding-tools-personal-worker
+
       - name: 运行 Rust 测试
         working-directory: src-tauri
         run: cargo test
@@ -74,6 +77,9 @@ jobs:
 
       - name: 检查前端
         run: npm run check
+
+      - name: 构建 Rust 测试所需的任务 Worker
+        run: cargo build --manifest-path personal-runtime/Cargo.toml --target-dir src-tauri/target --bin coding-tools-personal-worker
 
       - name: 运行 Rust 测试
         working-directory: src-tauri
