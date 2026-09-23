@@ -667,7 +667,13 @@ fn resolve_program(
                 })?;
         let base_name = candidate.file_name().and_then(|name| name.to_str()).unwrap_or("");
         let allowlisted = is_allowlisted_program(policy, base_name);
-        let is_path_entry = allowlisted && policy.allowed_commands.iter().any(|name| {
+        // Policy already accepts python3.<version>. A venv named "python" may
+        // point to that installed interpreter rather than PATH's default python3.
+        // Trust only an exact canonical PATH identity, never a basename alone.
+        let resolved_name = resolved.file_name().and_then(|name| name.to_str()).unwrap_or("");
+        let is_path_entry = allowlisted && policy.allowed_commands.iter().map(String::as_str)
+            .chain([base_name, resolved_name].into_iter()
+                .filter(|name| is_allowlisted_program(policy, name))).any(|name| {
             which::which(name).ok().and_then(|path| path.canonicalize().ok())
                 .is_some_and(|path| path == resolved)
         });

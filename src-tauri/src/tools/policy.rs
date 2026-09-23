@@ -17,7 +17,7 @@ static INTERPRETER_MUTATION_PATTERN: std::sync::OnceLock<regex::Regex> = std::sy
 const BASIC_READ_ONLY_COMMANDS: &[&str] = &[
     "pwd", "ls", "dir", "cat", "head", "tail", "grep", "find", "which", "echo",
     // Identity diagnostics; normal argument and workspace checks still apply.
-    "shasum", "sha256sum",
+    "shasum", "sha256sum", "lsof",
 ];
 
 const DEFAULT_ALLOWED_COMMANDS: &[&str] = &[
