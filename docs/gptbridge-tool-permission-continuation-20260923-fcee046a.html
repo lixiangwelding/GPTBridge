@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GPTBridge 工具与权限补齐 · 接续交接</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; color: #18212b; background: #f4f6f8; }
+    body { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; line-height: 1.65; }
+    main { background: white; border: 1px solid #dce2e7; border-radius: 12px; padding: 24px 32px; }
+    h1 { margin: 0 0 8px; font-size: 1.8rem; }
+    h2 { margin: 28px 0 10px; border-bottom: 1px solid #e5e9ed; padding-bottom: 6px; font-size: 1.16rem; }
+    p { margin: 8px 0 14px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid #e5e9ed; }
+    th { width: 220px; color: #526170; font-weight: 600; }
+    code { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .91em; }
+    .status { color: #156348; font-weight: 700; }
+    .note { background: #fff8e8; border-left: 4px solid #d99118; padding: 10px 14px; }
+    a { color: #095a9d; }
+    @media (max-width: 600px) { body { padding: 12px; } main { padding: 18px; } th { width: 32%; } }
+  </style>
+</head>
+<body><main>
+  <h1>GPTBridge 工具与权限补齐 · 接续交接</h1>
+  <p>同一任务 <code>fcee046a-9ffc-453c-b2f6-0c4a7a6a7174</code>，证据截止 2026-09-23 18:08 +0800。</p>
+  <p class="status">本轮可执行的源码收敛、隔离提交树回归、审查、精确提交、正常推送和远端回读已完成。</p>
+
+  <h2>交付身份</h2>
+  <table>
+    <tr><th>独立仓库</th><td><code>/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal</code>；<code>main</code></td></tr>
+    <tr><th>基线与回滚点</th><td><code>029ea777ad22fc5d8c3aaf4c4f6f8c685d35d905</code></td></tr>
+    <tr><th>本轮提交</th><td><code>a5d0d8be61f7b1153784641eee61b8b06f70ed9d</code>，12 个本任务文件；共享文件只提交本任务 hunk。</td></tr>
+    <tr><th>推送回执</th><td><code>029ea77..a5d0d8b main -&gt; main</code>；随后 <code>git ls-remote origin refs/heads/main</code> 返回完整提交 SHA <code>a5d0d8be61f7b1153784641eee61b8b06f70ed9d</code>。</td></tr>
+    <tr><th>外来改动</th><td>Skill 写根、TaskDock、品牌/UI、package/Cargo 版本等仍在工作区未暂存，未进入本轮提交；未执行整仓暂存、重置或强推。</td></tr>
+  </table>
+
+  <h2>实现与验证</h2>
+  <p>加入四个边界明确的工具：<code>check_command</code> 只做本地预检；<code>tool_catalog_check</code> 对比调用方提供的目录、字段和完整指纹；<code>read_files</code> 在工作区内限量批读；<code>stat_path</code> 只读元数据。八类 <code>request_permissions</code> 的 exec 请求统一走硬边界预检。<code>git_diff.repo_path</code> 支持嵌套独立仓库并按 UTF-8 边界截断。集成测试进程位于 <code>target/{profile}/deps</code> 时改用同级 worker，正式应用入口仍走原有路径。</p>
+  <table>
+    <tr><th>隔离树来源</th><td><code>git archive HEAD</code> 加精确暂存补丁；逐个暂存路径与 Git index 字节比对一致。代码验证时版本 0.4.0，core 37 工具；混合工作区的 0.4.1 / 39 工具包含其他任务改动。</td></tr>
+    <tr><th>专项测试</th><td><code>cargo test --locked --offline --lib toolbox</code>：14/14，通过。</td></tr>
+    <tr><th>契约测试</th><td><code>cargo test --locked --offline --test call_tool_contract</code>：22/22，通过。</td></tr>
+    <tr><th>完整测试</th><td>隔离树 <code>cargo test --locked --offline</code>：exit 0；334 个库测试、8 个 main 测试和全部集成测试通过。</td></tr>
+    <tr><th>审查</th><td>GitNexus 暂存范围检测：提交前 11 个代码/Goal 文件、16 个符号、8 条流程，high。<code>mcp-probe-kit code_review</code> 提供真实暂存 diff，人工审阅工具目录、分发、权限边界、路径与预算、MCP/Actions 接线，<code>issues=[]</code>。<code>git diff --cached --check</code> 通过。</td></tr>
+  </table>
+  <p class="note">GitNexus 索引刷新遇到 <code>ENOSPC</code> 并中止；上述影响检测使用已有索引。混合工作区的完整测试曾在其他会话的 <code>personal_patch.rs</code> 写根锁测试出现 <code>RESOURCE_BUSY</code>；隔离提交树的完整测试通过。</p>
+
+  <h2>尚未完成的层次</h2>
+  <ul>
+    <li>旧 <code>codex无限</code> 连接的 <code>server_info</code>、<code>task_open</code>、<code>task_status</code> 返回 JSON-RPC 32600 / <code>Session terminated</code>；提交后再次查询 <code>server_info</code> 仍如此。远程任务 revision 与 <code>task_checkpoint</code> 未能读写，不能声明远程任务 completed。</li>
+    <li>本轮 <code>deploymentCount=0</code>。未安装新制品、重启正在运行的服务或刷新真实客户端工具目录；运行版本与客户端 37 工具/参数均为 <code>NOT_VERIFIED</code>。服务端目录测试不代表桌面客户端已可调用。</li>
+  </ul>
+
+  <h2>继续入口</h2>
+  <p>可执行 Goal：<a href="goals/gptbridge-tool-permission-continuation-fcee046a-goal.md">Markdown</a> / <a href="goals/gptbridge-tool-permission-continuation-fcee046a-goal.html">HTML</a>。提交内审计：<a href="gptbridge-tool-permission-audit-20260923-fcee046a.md">历史与接续证据</a>。远程连接恢复后，先读同一任务最新 revision，再仅追加本阶段 checkpoint delta；若另行授权安装，分别验证实际进程和客户端 <code>tools/list</code>。</p>
+</main></body></html>
