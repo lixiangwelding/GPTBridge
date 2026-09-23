@@ -32,6 +32,13 @@ export interface RuntimeConfig {
   workspace_script_extensions?: string;
   upstream_mcps?: UpstreamMcpConfig[];
   gateway_workspace_ids?: string[];
+  skill_write_roots?: SkillWriteRootConfig[];
+}
+
+export interface SkillWriteRootConfig {
+  id: string;
+  name: string;
+  path: string;
 }
 
 export interface UpstreamMcpConfig {

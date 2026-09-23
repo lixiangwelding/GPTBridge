@@ -181,7 +181,7 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
 
     let mut builder = TrayIconBuilder::with_id("main-tray")
         .menu(&menu)
-        .tooltip("TaskDock · AI 任务工作台")
+        .tooltip("GPTBridge · AI 任务工作台")
         .on_menu_event(|app, event| match event.id.as_ref() {
             "show" => {
                 let _ = commands::window_chrome::show_main_window(app.clone());

@@ -11,7 +11,7 @@
   $effect(() => { void $workspaces; const token = ++generation; void getSnapshot(null, { query: "", filter: "all", cursor: null, limit: 1 }).then(result => {if(token===generation){snapshot=result;error="";}}).catch(e=>{if(token===generation)error=String(e);}); return () => { generation++; }; });
   async function open(path: string) { try {await openWorkspaceDirectory(path);}catch(e){showToast(String(e),{kind:"error"});} }
 </script>
-<svelte:head><title>项目 · TaskDock</title></svelte:head>
+<svelte:head><title>项目 · GPTBridge</title></svelte:head>
 <div class="td-page-head"><div><h1>项目</h1><p>目录记住一次。日常选名称，不必反复粘贴路径。</p></div><div class="td-actions"><button class="td-button" disabled={$projectLoading} onclick={() => refreshProjects()} aria-label="刷新项目"><RefreshCw size={14}/></button><button class="td-button primary" onclick={() => addProjectOpen.set(true)}><Plus size={14}/>添加项目</button></div></div>
 {#if $projectError || error}<div class="td-error" role="alert">{$projectError || error}</div>{/if}
 {#if snapshot?.partial}<div class="td-alert"><details><summary>部分项目无法读取，计数不完整</summary>{#each snapshot.warnings as warning}<p>{warning.name}：{warning.message}</p>{/each}</details></div>{/if}

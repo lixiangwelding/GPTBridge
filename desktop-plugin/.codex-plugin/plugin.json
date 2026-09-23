@@ -1,7 +1,7 @@
 {
-  "name": "codex-infinite",
-  "version": "0.3.8",
-  "description": "Coding Tools MCP Personal：持久任务、并发协作与本地文件交付。",
+  "name": "gptbridge-plugin",
+  "version": "0.4.1",
+  "description": "GPTBridgePlugin：连接 GPTBridge 的本地项目、工具与可接续任务。",
   "author": {
     "name": "lixiangwelding"
   },
@@ -9,9 +9,9 @@
   "apps": "./.app.json",
   "skills": "./skills/",
   "interface": {
-    "displayName": "codex无限",
-    "shortDescription": "个人 MCP · 本地文件 · 持久任务",
-    "longDescription": "连接已有 Coding Tools MCP Personal；任务和文档保存在本机工作区，返回绝对路径，保留并发任务和写入校验。",
+    "displayName": "GPTBridgePlugin",
+    "shortDescription": "本地项目 · 工具 · 持久任务",
+    "longDescription": "连接已安装的 GPTBridge；任务和文档保存在本机工作区，返回绝对路径，保留并发任务和写入校验。",
     "developerName": "lixiangwelding",
     "category": "Developer Tools",
     "capabilities": [
@@ -20,7 +20,7 @@
       "Write"
     ],
     "defaultPrompt": [
-      "使用 codex无限处理当前任务，文档直接写入本地并返回绝对路径。"
+      "使用 GPTBridgePlugin 处理当前任务，文档直接写入本地并返回绝对路径。"
     ]
   }
 }

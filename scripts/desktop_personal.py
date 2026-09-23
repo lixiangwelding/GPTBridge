@@ -13,9 +13,9 @@ import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = "codex-infinite"
-MARKET = "coding-tools-personal"
-APP = "Coding Tools MCP Personal.app"
+NAME = "gptbridge-plugin"
+MARKET = "gptbridge-plugin"
+APP = "GPTBridge.app"
 
 
 def digest(path: Path) -> str:
@@ -47,7 +47,7 @@ def plugin_files(profile: str, executable: Path, transport: str) -> dict[str, st
         manifest.pop("apps", None)
         files.pop(".app.json", None)
         manifest["mcpServers"] = "./.mcp.json"
-        files[".mcp.json"] = json.dumps({"mcpServers": {"coding-tools-personal": {
+        files[".mcp.json"] = json.dumps({"mcpServers": {"gptbridge": {
             "command": str(executable), "args": ["--personal-stdio", profile]}}}, indent=2) + "\n"
     files[".codex-plugin/plugin.json"] = json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
     return files
@@ -69,18 +69,20 @@ def prepare(home: Path, profile: str, transport: str) -> dict:
     data = json.loads(config.read_text())
     if len([p for p in data.get("profiles", []) if p.get("id") == profile]) != 1:
         raise ValueError("profile must identify exactly one saved workspace")
-    destination = home / "Library/Application Support/coding-tools-mcp-personal/desktop-marketplace" / (version + "-" + transport)
+    destination = home / "Library/Application Support/GPTBridge/desktop-marketplace" / (version + "-" + transport + "-" + NAME)
     files = plugin_files(profile, executable, transport)
+    if json.loads(files[".codex-plugin/plugin.json"]).get("version") != version:
+        raise ValueError("plugin manifest version does not match installed application")
     for relative, content in files.items():
         write_new(destination / "plugins" / NAME / relative, content)
-    marketplace = {"name": MARKET, "interface": {"displayName": "Coding Tools Personal"}, "plugins": [{
+    marketplace = {"name": MARKET, "interface": {"displayName": "GPTBridgePlugin"}, "plugins": [{
         "name": NAME, "source": {"source": "local", "path": "./plugins/" + NAME},
         "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"}, "category": "Developer Tools"}]}
     write_new(destination / ".agents/plugins/marketplace.json", json.dumps(marketplace, ensure_ascii=False, indent=2) + "\n")
     return {"version": version, "transport": transport, "marketplace": str(destination),
             "plugin": str(destination / "plugins" / NAME), "profile_id": profile,
             "executable": str(executable), "config_sha256": digest(config),
-            "display_name": "codex无限", "desktop_restarted": False}
+            "display_name": "GPTBridgePlugin", "desktop_restarted": False}
 
 
 def run_cli(command: list[str], receipt: Path, timeout: int = 75) -> dict:
@@ -111,7 +113,7 @@ def install(home: Path, profile: str, transport: str, cli: Path) -> dict:
     before_bytes = config.read_bytes()
     before = tomllib.loads(before_bytes.decode())
     result = prepare(home, profile, transport)
-    run = ROOT / ".artifacts/desktop036" / ("install-" + str(time.time_ns()))
+    run = home / "Library/Application Support/GPTBridge/install-receipts" / ("install-" + str(time.time_ns()))
     run.mkdir(parents=True, mode=0o700)
     write_new(run / "codex-config-before.toml", before_bytes.decode())
     result["configuration_backup"] = str(run / "codex-config-before.toml")

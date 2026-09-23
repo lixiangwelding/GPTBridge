@@ -46,7 +46,8 @@
       {/each}
       <div class="td-note">客户端握手状态：未核验。端口可达不等于已经完成登录或工具发现。启动会使用当前项目保存的认证、上游和隧道设置，不重启其他服务。</div>
       <p class="td-mono td-muted">检查时间 {timestamp(data.checked_at)}</p>
-      <details class="td-details"><summary>高级配置与兼容方式</summary><p>端口、认证、MCP/Actions 与隧道保留在原配置页；旧连接和任务数据继续兼容。</p><a href={`/workspace/${encodeURIComponent(selected.id)}`} class="td-button small" onclick={() => connectionProject.set(null)}>打开项目高级配置</a></details>
+      <div class="td-actions"><a href={`/workspace/${encodeURIComponent(selected.id)}`} class="td-button small primary" onclick={() => connectionProject.set(null)}>打开 MCP 连接配置</a></div>
+      <details class="td-details"><summary>连接说明</summary><p>原工作区页面可配置端口、认证、MCP/Actions 与隧道；旧连接和任务数据继续兼容。</p></details>
     {/if}
   {/if}
   {#snippet footer()}<button class="td-button" disabled={busy || !$connectionProject} onclick={() => refresh()}>重新检测</button><button class="td-button primary" onclick={() => connectionProject.set(null)}>完成</button>{/snippet}

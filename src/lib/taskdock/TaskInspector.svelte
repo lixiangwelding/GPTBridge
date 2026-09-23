@@ -10,7 +10,7 @@
   $effect(() => { void task?.task_id; expanded = false; copiedError = ""; });
   async function copy() {
     if (!detail) return;
-    try { await copyText(detail.handoff); showToast("接续指令已复制；粘贴到已连接 TaskDock 的 AI 客户端继续。"); }
+    try { await copyText(detail.handoff); showToast("接续指令已复制；粘贴到已连接 GPTBridge 的 AI 客户端继续。"); }
     catch (e) { copiedError = String(e); }
   }
 </script>

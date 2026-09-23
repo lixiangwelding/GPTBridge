@@ -31,7 +31,7 @@
   }
   const visibleTools=$derived(data?.tools.filter(t=>`${t.name} ${t.description}`.toLowerCase().includes(search.toLowerCase()))||[]);
 </script>
-<svelte:head><title>工具与技能 · TaskDock</title></svelte:head>
+<svelte:head><title>工具与技能 · GPTBridge</title></svelte:head>
 <div class="td-page-head"><div><h1>工具与技能</h1><p>默认按目标自动匹配。你能看见来源，也能随时收紧自动使用范围。</p></div><button class="td-button" disabled={busy||!projectId} onclick={()=>load()}><RefreshCw size={14}/>{busy?"扫描中…":"重新扫描"}</button></div>
 <div class="td-toolbar" style="padding:0 0 16px;border:0"><label><span class="td-sr-only">选择技能项目</span><select class="td-select" bind:value={projectId}><option value="" disabled>选择项目</option>{#each $workspaces as p}<option value={p.id}>{p.name}</option>{/each}</select></label><label class="td-search"><Search size={13}/><span class="td-sr-only">搜索工具或技能</span><input type="search" bind:value={search} placeholder="搜索名称 / 功能" maxlength={100}/></label></div>
 {#if error}<div class="td-error" role="alert"><p>{error}</p><button class="td-button small" onclick={()=>load()}>刷新目录后重试</button></div>{/if}

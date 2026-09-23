@@ -4,7 +4,7 @@ import type { AppInfo, Connections, JobOutput, SkillContent, SkillPage, Snapshot
 
 export const nativeAvailable = (): boolean => typeof window !== "undefined" && isTauri();
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
-  if (!nativeAvailable()) throw new Error("原生服务未连接。请在 TaskDock 桌面应用中打开；浏览器预览不会替换为演示数据。");
+  if (!nativeAvailable()) throw new Error("原生服务未连接。请在 GPTBridge 桌面应用中打开；浏览器预览不会替换为演示数据。");
   return invoke<T>(command, args);
 }
 export const getAppInfo = () => call<AppInfo>("taskdock_app_info");

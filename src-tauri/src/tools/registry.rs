@@ -416,6 +416,7 @@ pub const MUTATING_TOOLS: &[&str] = &[
     "history_session_checkpoint",
     "history_session_validate",
     "apply_patch",
+    "apply_skill_patch",
     "exec_command",
     "write_stdin",
     "kill_session",
@@ -460,6 +461,7 @@ pub const READ_ONLY_TOOLS: &[&str] = &[
 pub fn is_allowed_tool(name: &str) -> bool {
     ALLOWED_TOOLS.contains(&name) || super::personal::TOOLS.contains(&name)
         || super::skills::TOOLS.contains(&name)
+        || super::skill_write::READ_TOOLS.contains(&name)
         || super::toolbox::TOOLS.contains(&name)
 }
 
@@ -485,8 +487,12 @@ pub fn exposed_tool_names(tool_profile: &str) -> Vec<&'static str> {
         "advanced" | "compat-readonly-all" => P0_TOOLS.iter().map(|(name, ..)| *name).collect(),
         _ => CORE_TOOLS.to_vec(),
     };
-    if normalize_tool_profile(tool_profile) != "read-only" { names.extend_from_slice(super::personal::TOOLS); }
+    if normalize_tool_profile(tool_profile) != "read-only" {
+        names.extend_from_slice(super::personal::TOOLS);
+        names.extend_from_slice(super::skill_write::WRITE_TOOLS);
+    }
     names.extend_from_slice(super::skills::TOOLS);
+    names.extend_from_slice(super::skill_write::READ_TOOLS);
     names.extend_from_slice(super::toolbox::TOOLS);
     names
 }
@@ -500,6 +506,7 @@ pub fn list_tools_for_profile(tool_profile: &str) -> Vec<Value> {
         .into_iter()
         .filter_map(|name| {
             if super::toolbox::TOOLS.contains(&name) { return Some(super::toolbox::definition(name)); }
+            if super::skill_write::contains(name) { return Some(super::skill_write::definition(name)); }
             if super::skills::TOOLS.contains(&name) { return Some(super::skills::definition(name)); }
             if super::personal::TOOLS.contains(&name) { return Some(super::personal_schema::definition(name)); }
             P0_TOOLS.iter().find(|(n, ..)| *n == name).map(|entry| {
@@ -525,6 +532,7 @@ pub fn list_tools_for_profile(tool_profile: &str) -> Vec<Value> {
 
 pub fn input_schema(name: &str) -> Value {
     if super::toolbox::TOOLS.contains(&name) { return super::toolbox::definition(name)["inputSchema"].clone(); }
+    if super::skill_write::contains(name) { return super::skill_write::definition(name)["inputSchema"].clone(); }
     if super::skills::TOOLS.contains(&name) { return super::skills::definition(name)["inputSchema"].clone(); }
     if let Some(schema) = super::personal_schema::schema(name) { return schema; }
     let mut schema = base_input_schema(name);
@@ -940,7 +948,7 @@ mod tests {
     use super::{input_schema, list_tools_for_profile};
 
     #[test]
-    fn core_catalog_exposes_37_chatgpt_compatible_tools() {
+    fn core_catalog_exposes_39_chatgpt_compatible_tools() {
         let tools = list_tools_for_profile("core");
         let names: Vec<_> = tools
             .iter()
@@ -948,7 +956,7 @@ mod tests {
             .collect();
         let unique: HashSet<_> = names.iter().copied().collect();
 
-        assert_eq!(tools.len(), 37);
+        assert_eq!(tools.len(), 39);
         assert_eq!(unique.len(), tools.len());
         assert!(names.contains(&"history_session_bootstrap"));
         assert!(names.contains(&"history_session_checkpoint"));
@@ -956,7 +964,11 @@ mod tests {
         assert!(names.contains(&"history_session_search"));
         assert!(names.contains(&"history_session_read"));
         assert!(names.contains(&"grep_text"));
-        for name in ["check_command", "tool_catalog_check", "read_files", "stat_path"] { assert!(names.contains(&name)); }
+        assert!(names.contains(&"list_skill_write_roots"));
+        assert!(names.contains(&"apply_skill_patch"));
+        for name in ["check_command", "tool_catalog_check", "read_files", "stat_path"] {
+            assert!(names.contains(&name), "merged core catalog must retain {name}");
+        }
         assert!(!names.contains(&"grep"));
 
         for name in names {

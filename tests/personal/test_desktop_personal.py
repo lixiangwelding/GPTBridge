@@ -12,14 +12,17 @@ spec.loader.exec_module(desktop)
 class DesktopPluginTests(unittest.TestCase):
     def test_registered_plugin_preserves_existing_app_identity(self):
         files=desktop.plugin_files("profile-fixture",Path("/tmp/personal-app"),"registered")
-        self.assertEqual(json.loads(files[".app.json"])["apps"]["codex-infinite"]["id"],"asdk_app_6a848a4ede608191af51370794d3091d")
+        self.assertEqual(json.loads(files[".app.json"])["apps"]["gptbridge"]["id"],"asdk_app_6a848a4ede608191af51370794d3091d")
         self.assertNotIn(".mcp.json",files)
-        self.assertEqual(json.loads(files[".codex-plugin/plugin.json"])["interface"]["displayName"],"codex无限")
+        manifest=json.loads(files[".codex-plugin/plugin.json"])
+        self.assertEqual(manifest["name"],"gptbridge-plugin")
+        self.assertEqual(manifest["interface"]["displayName"],"GPTBridgePlugin")
+        self.assertIn("skills/gptbridge-plugin/SKILL.md",files)
     def test_stdio_is_explicit_and_does_not_duplicate_remote_tools(self):
         files=desktop.plugin_files("profile-fixture",Path("/tmp/personal-app"),"stdio")
         self.assertNotIn(".app.json",files)
         self.assertNotIn("apps",json.loads(files[".codex-plugin/plugin.json"]))
-        self.assertEqual(json.loads(files[".mcp.json"])["mcpServers"]["coding-tools-personal"]["args"],["--personal-stdio","profile-fixture"])
+        self.assertEqual(json.loads(files[".mcp.json"])["mcpServers"]["gptbridge"]["args"],["--personal-stdio","profile-fixture"])
     def test_generated_files_are_idempotent_but_do_not_clobber_edits(self):
         with tempfile.TemporaryDirectory() as root:
             path=Path(root)/"one/two.json";desktop.write_new(path,"one");desktop.write_new(path,"one")

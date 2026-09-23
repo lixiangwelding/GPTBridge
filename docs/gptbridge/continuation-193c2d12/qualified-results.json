@@ -1,0 +1,101 @@
+{
+  "created_at": "2026-09-23T14:10:47.995103+00:00",
+  "baseline_head": "ecc4452a1bb4a91497f8f24e9baeda3831b683e2",
+  "source_count": 284,
+  "source_drift": [],
+  "commands": [
+    {
+      "name": "worker",
+      "exit_code": 0,
+      "status": "PASS",
+      "receipt": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/checks/exec34-193c-final-worker-1790172575187161000/result.json",
+      "rust_test_summaries": [],
+      "python_test_summaries": [],
+      "node_test_summaries": [],
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "f0788aa36d1c86b6ccdfb7f4042a5574102d82061c046422a2d42e008a1e4710"
+    },
+    {
+      "name": "rust-full",
+      "exit_code": 0,
+      "status": "PASS",
+      "receipt": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/checks/exec34-193c-final-rust-full-1790172575584175000/result.json",
+      "rust_test_summaries": [
+        "test result: ok. 346 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.91s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.71s",
+        "test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s",
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s",
+        "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s",
+        "test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.22s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "python_test_summaries": [],
+      "node_test_summaries": [],
+      "stdout_sha256": "a2cf6fb6cc3b06544cdcfedff95a4d664ffacd400a3de8800031f0179dd9a96f",
+      "stderr_sha256": "c44bde03e7284f07a824afb7de90eb75d4d788dc70568273ee2fbadf5824934a"
+    },
+    {
+      "name": "python-personal",
+      "exit_code": 0,
+      "status": "PASS",
+      "receipt": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/checks/exec34-193c-final-python-personal-1790172620172133000/result.json",
+      "rust_test_summaries": [],
+      "python_test_summaries": [
+        "Ran 67 tests in 1.216s",
+        "OK"
+      ],
+      "node_test_summaries": [],
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "698f7b6edf43d9a4841ad377bcebc6eb17fb6aac90ad38afe7226904f2b71ef8"
+    },
+    {
+      "name": "ui-contracts",
+      "exit_code": 0,
+      "status": "PASS",
+      "receipt": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/checks/exec34-193c-final-ui-contracts-1790172621674983000/result.json",
+      "rust_test_summaries": [],
+      "python_test_summaries": [],
+      "node_test_summaries": [
+        "ℹ tests 10",
+        "ℹ pass 10",
+        "ℹ fail 0",
+        "ℹ skipped 0"
+      ],
+      "stdout_sha256": "740335241941754761724ab85ba8e12aa423abdf83c5b16a5377ee37416a976b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "svelte-check",
+      "exit_code": 0,
+      "status": "PASS",
+      "receipt": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/checks/exec34-193c-final-svelte-check-1790172622123835000/result.json",
+      "rust_test_summaries": [],
+      "python_test_summaries": [],
+      "node_test_summaries": [],
+      "stdout_sha256": "dea2784ac09d8273759237703a9cd4e9b32d77a701de234c858d9f41e59b3461",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "vite-build",
+      "exit_code": 0,
+      "status": "PASS",
+      "receipt": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/checks/exec34-193c-final-vite-build-1790172625930490000/result.json",
+      "rust_test_summaries": [],
+      "python_test_summaries": [],
+      "node_test_summaries": [],
+      "stdout_sha256": "732b7b242b6e83fecacc5379ad5476329ddd663a2dcc3033f3e6deda6feb0054",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "business_acceptance": false,
+  "runtime_installation": false,
+  "passed": true
+}

@@ -1,4 +1,4 @@
-/* TaskDock: approved dense workbench. Tokens also apply to native modal portals. */
+/* GPTBridge: approved dense workbench. Internal selectors remain compatible. */
 :root {
   --td-bg:#f5f7f2; --td-panel:#fff; --td-ink:#24352d; --td-muted:#65756a;
   --td-line:#dde5d8; --td-green:#246247; --td-soft:#eef4e8; --td-side:#20312b;
