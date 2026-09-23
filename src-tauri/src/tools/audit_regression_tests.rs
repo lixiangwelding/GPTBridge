@@ -4,13 +4,18 @@ use serde_json::json;
 use std::fs;
 
 #[test]
-fn audit_all_exposed_tools_are_allowed_by_actions() {
+fn audit_only_the_mcp_skill_writer_is_excluded_from_actions() {
     for profile in ["core", "read-only", "advanced"] {
         for tool in registry::list_tools_for_profile(profile) {
             let name = tool["name"].as_str().unwrap();
-            assert!(registry::is_allowed_tool(name), "{profile}: {name} omitted by Actions");
+            assert_eq!(
+                registry::is_allowed_tool(name),
+                name != "apply_skill_patch",
+                "{profile}: unexpected Actions exposure for {name}"
+            );
         }
     }
+    assert!(!registry::is_allowed_tool("apply_skill_patch"));
     assert!(!registry::is_allowed_tool("arbitrary-command"));
 }
 
@@ -25,6 +30,12 @@ fn audit_patch_and_exec_contracts_keep_concurrency_guards() {
     for key in ["request_id", "task_id", "mode", "durable", "resources"] {
         assert!(exec["properties"][key].is_object(), "{key}");
     }
+    let skill_patch = registry::input_schema("apply_skill_patch");
+    for key in ["root_id", "patch", "request_id", "expected_hashes", "task_id"] {
+        assert!(skill_patch["properties"][key].is_object(), "{key}");
+    }
+    let readonly = registry::list_tools_for_profile("read-only");
+    assert!(!readonly.iter().any(|tool| tool["name"] == "apply_skill_patch"));
 }
 
 fn workspace() -> (tempfile::TempDir, Workspace) {

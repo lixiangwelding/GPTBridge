@@ -14,6 +14,7 @@
   import UpstreamMcpForm from "$lib/components/UpstreamMcpForm.svelte";
   import ChatGptSessionPrompt from "$lib/components/ChatGptSessionPrompt.svelte";
   import SharedWorkspaceForm from "$lib/components/SharedWorkspaceForm.svelte";
+  import SkillWriteRootsForm from "$lib/components/SkillWriteRootsForm.svelte";
   import ServicePanel from "$lib/components/ServicePanel.svelte";
   import GptQuickCopy from "$lib/components/GptQuickCopy.svelte";
   import StatusOrb from "$lib/components/StatusOrb.svelte";
@@ -55,6 +56,7 @@
     type AuthConfig,
     type ActionsAuthDraft,
     type RuntimeState,
+    type SkillWriteRootConfig,
     type UpstreamMcpConfig,
     type WorkspaceProfile,
   } from "$lib/types";
@@ -441,6 +443,19 @@
     showToast("共享入口已保存；下次手动启动个人版 MCP 时生效，未启动或重启任何服务。", { kind: "success" });
   }
 
+  async function saveSkillWriteRoots(roots: SkillWriteRootConfig[]) {
+    if (!profile) return;
+    const target = profile.id;
+    const next: WorkspaceProfile = {
+      ...profile,
+      runtime: { ...profile.runtime, skill_write_roots: roots },
+    };
+    await updateWorkspace(next);
+    if (workspaceId !== target) return;
+    await load();
+    showToast("Skill 写入目录授权已保存；未启动或重启任何服务。", { kind: "success" });
+  }
+
   async function saveUpstreamMcps(configs: UpstreamMcpConfig[]) {
     if (!profile) return;
     const next: WorkspaceProfile = {
@@ -695,6 +710,13 @@
               <SharedWorkspaceForm profiles={$workspaces} hostId={profile.id}
                 selectedIds={profile.runtime.gateway_workspace_ids ?? []}
                 running={mcpStatus === "running"} onSave={saveSharedWorkspaces} />
+            </div>
+            <div>
+              <SkillWriteRootsForm
+                roots={profile.runtime.skill_write_roots ?? []}
+                running={mcpStatus === "running"}
+                onSave={saveSkillWriteRoots}
+              />
             </div>
             <div>
               <p class="tx-section-label">本地 MCP</p>

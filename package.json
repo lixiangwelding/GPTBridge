@@ -1,7 +1,7 @@
 {
-  "name": "taskdock",
-  "version": "0.4.0",
-  "description": "TaskDock - local AI task workbench with compatible MCP services",
+  "name": "gptbridge",
+  "version": "0.4.1",
+  "description": "GPTBridge - connect ChatGPT to local projects, tools and resumable tasks",
   "type": "module",
   "scripts": {
     "dev": "vite dev",

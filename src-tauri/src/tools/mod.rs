@@ -1,6 +1,7 @@
 pub(crate) mod skills;
 pub(crate) mod skill_catalog;
 pub(crate) mod skill_discovery;
+pub(crate) mod skill_write;
 mod skill_io;
 #[cfg(test)]
 mod skill_tests;

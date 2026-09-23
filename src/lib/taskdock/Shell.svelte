@@ -27,14 +27,14 @@
 <div class="td-app" class:td-dense={$compact}>
   {#if menuOpen}<button type="button" class="td-menu-dismiss" aria-label="收起导航" onclick={() => menuOpen = false}></button>{/if}
   <aside class="td-side" class:open={menuOpen} id="taskdock-navigation" aria-label="主导航" bind:this={side}>
-    <div class="td-brand"><div class="td-brand-mark">td<span>_</span></div><div><strong>TaskDock</strong><small>AI WORKSPACE</small></div><button class="td-icon-button td-mobile-only" aria-label="关闭导航" onclick={() => menuOpen = false}><X size={17}/></button></div>
+    <div class="td-brand"><div class="td-brand-mark">gb<span>_</span></div><div><strong>GPTBridge</strong><small>AI WORKSPACE</small></div><button class="td-icon-button td-mobile-only" aria-label="关闭导航" onclick={() => menuOpen = false}><X size={17}/></button></div>
     <nav class="td-nav">{#each entries as item}<a href={item.path} class:active={active(item.path)} aria-current={active(item.path) ? "page" : undefined}><item.icon size={16}/>{item.title}</a>{/each}</nav>
     <div class="td-side-label"><span>项目快捷切换</span><button aria-label="添加项目" onclick={() => addProjectOpen.set(true)}><Plus size={15}/></button></div>
     <div class="td-project-links"><a href="/" class:active={!scope && $page.url.pathname === "/"}><i></i>全部项目</a>{#each $workspaces as project (project.id)}<a href={`/?workspace=${encodeURIComponent(project.id)}`} class:active={scope === project.id} title={project.name}><i></i><span>{project.name}</span></a>{/each}</div>
-    <div class="td-side-bottom"><div><span class="td-eyebrow">LESS SETUP. MORE DONE.</span><strong>配置一次，专注任务。</strong><p>不翻参数、不重复制起手。<br>需要你的时候，再处理。</p></div><div class="td-profile"><span>个人工作空间</span><span>LOCAL</span></div></div>
+    <div class="td-side-bottom"><div><span class="td-eyebrow">CHAT TO WORK.</span><strong>把对话，接到工作现场。</strong><p>连接项目、工具与技能。<br>任务进展，一处看清。</p></div><div class="td-profile"><span>个人工作空间</span><span>LOCAL</span></div></div>
   </aside>
   <div class="td-body" inert={menuOpen}>
     <header class="td-topbar"><div class="td-breadcrumb"><button class="td-icon-button td-mobile-only" aria-label="打开导航" aria-expanded={menuOpen} aria-controls="taskdock-navigation" onclick={() => menuOpen = true}><Menu size={18}/></button><span class="td-muted td-desktop-label">个人空间</span><span class="slash td-desktop-label">/</span><span>{title}</span></div><div class="td-top-actions"><span class="td-status-small" class:unknown={!$appInfo}><i></i>{$appInfo ? `本地工作台 · v${$appInfo.version}` : "原生服务未连接"}</span><button class="td-button" onclick={() => connectionProject.set(scope || $workspaces[0]?.id || "")}><Plug size={14}/>管理连接</button></div></header>
-    <main class="td-main">{@render children()}<footer class="td-footer"><span>TaskDock · 任务记录保存在本地，执行仍遵循项目权限。</span><span class="td-mono">{$appInfo ? `DESKTOP ${$appInfo.version}` : "BACKEND UNAVAILABLE"}</span></footer></main>
+    <main class="td-main">{@render children()}<footer class="td-footer"><span>GPTBridge · 任务记录保存在本地，执行仍遵循项目权限。</span><span class="td-mono">{$appInfo ? `DESKTOP ${$appInfo.version}` : "BACKEND UNAVAILABLE"}</span></footer></main>
   </div>
 </div>

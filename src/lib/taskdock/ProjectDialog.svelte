@@ -8,7 +8,7 @@
   let name = $state(""), path = $state(""), error = $state(""), busy = $state(false);
   async function choose() {
     try {
-      if (!nativeAvailable()) throw new Error("目录选择需要 TaskDock 桌面应用。");
+      if (!nativeAvailable()) throw new Error("目录选择需要 GPTBridge 桌面应用。");
       const selected = await chooseDirectory({ directory: true, multiple: false, title: "选择项目目录" });
       if (typeof selected === "string") { path = selected; error = ""; }
     } catch (e) { error = String(e); }

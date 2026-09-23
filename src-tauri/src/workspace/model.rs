@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -79,6 +80,94 @@ pub struct RuntimeConfig {
     /// Empty preserves the original single-workspace endpoint and schema.
     #[serde(default)]
     pub gateway_workspace_ids: Vec<String>,
+    /// Local-owner-approved directories that may be changed only through the
+    /// dedicated Skill patch tool. Discovery roots never populate this list.
+    #[serde(default)]
+    pub skill_write_roots: Vec<SkillWriteRootConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SkillWriteRootConfig {
+    pub id: String,
+    pub name: String,
+    pub path: String,
+}
+
+const MAX_SKILL_WRITE_ROOTS: usize = 16;
+
+/// Normalize a locally supplied authorization before persistence. Remote MCP
+/// calls never reach this function and therefore cannot add or widen a root.
+pub fn normalize_skill_write_roots(configs: &mut [SkillWriteRootConfig]) -> Result<(), String> {
+    if configs.len() > MAX_SKILL_WRITE_ROOTS {
+        return Err(format!(
+            "最多只能授权 {MAX_SKILL_WRITE_ROOTS} 个 Skill 写入目录"
+        ));
+    }
+
+    let home = dirs::home_dir().and_then(|path| path.canonicalize().ok());
+    let mut ids = HashSet::new();
+    let mut paths = HashSet::<PathBuf>::new();
+    for config in configs {
+        config.id = config.id.trim().to_string();
+        if config.id.is_empty()
+            || config.id.len() > 64
+            || !config
+                .id
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+        {
+            return Err("Skill 写入目录 ID 只能包含字母、数字、连字符和下划线，且不超过 64 字节".into());
+        }
+        if !ids.insert(config.id.clone()) {
+            return Err(format!("Skill 写入目录 ID 重复: {}", config.id));
+        }
+
+        config.name = config.name.trim().to_string();
+        if config.name.is_empty() || config.name.len() > 80 {
+            return Err("Skill 写入目录名称不能为空且不能超过 80 字节".into());
+        }
+
+        let supplied = Path::new(config.path.trim());
+        if !supplied.is_absolute() {
+            return Err(format!("Skill 写入目录必须是绝对路径: {}", config.path));
+        }
+        let canonical = supplied
+            .canonicalize()
+            .map_err(|_| format!("Skill 写入目录不存在: {}", config.path))?;
+        if !canonical.is_dir() {
+            return Err(format!("Skill 写入目录不是文件夹: {}", config.path));
+        }
+        if canonical.parent().is_none() || home.as_ref() == Some(&canonical) {
+            return Err("不能把文件系统根目录或用户主目录授权为 Skill 写入目录".into());
+        }
+        if !paths.insert(canonical.clone()) {
+            return Err(format!(
+                "同一个真实 Skill 目录不能重复授权: {}",
+                canonical.display()
+            ));
+        }
+        config.path = canonical
+            .into_os_string()
+            .into_string()
+            .map_err(|_| "Skill 写入目录必须是有效 UTF-8 路径".to_string())?;
+    }
+    Ok(())
+}
+
+pub fn validate_skill_write_roots(configs: &[SkillWriteRootConfig]) -> Result<(), String> {
+    let mut copy = configs.to_vec();
+    normalize_skill_write_roots(&mut copy)
+}
+
+pub fn validate_skill_write_roots_update(
+    current: &[SkillWriteRootConfig],
+    next: &[SkillWriteRootConfig],
+    mcp_running: bool,
+) -> Result<(), String> {
+    if mcp_running && current != next {
+        return Err("MCP 入口正在运行；请先停止入口再修改 Skill 写入目录授权".into());
+    }
+    Ok(())
 }
 
 fn nullable_upstreams<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<UpstreamMcpConfig>, D::Error> {
@@ -298,6 +387,7 @@ impl Default for RuntimeConfig {
             workspace_script_extensions: default_workspace_script_extensions(),
             upstream_mcps: Vec::new(),
             gateway_workspace_ids: Vec::new(),
+            skill_write_roots: Vec::new(),
         }
     }
 }
@@ -556,7 +646,10 @@ impl WorkspaceProfile {
 
 #[cfg(test)]
 mod tests {
-    use super::{validate_upstream_mcps, UpstreamMcpConfig};
+    use super::{
+        normalize_skill_write_roots, validate_skill_write_roots_update, validate_upstream_mcps,
+        RuntimeConfig, SkillWriteRootConfig, UpstreamMcpConfig,
+    };
 
     fn example_upstream() -> UpstreamMcpConfig {
         UpstreamMcpConfig {
@@ -641,6 +734,71 @@ mod tests {
         let config = example_upstream();
         assert!(config.exposes_tool("status"));
         assert!(!config.exposes_tool("build"));
+    }
+
+    #[test]
+    fn legacy_runtime_configuration_defaults_to_no_skill_write_roots() {
+        let config: RuntimeConfig = serde_json::from_value(serde_json::json!({})).unwrap();
+        assert!(config.skill_write_roots.is_empty());
+    }
+
+    #[test]
+    fn skill_write_roots_are_trimmed_and_persisted_as_canonical_paths() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("skills");
+        std::fs::create_dir(&root).unwrap();
+        let mut configs = vec![SkillWriteRootConfig {
+            id: " global-skills ".into(),
+            name: " Global Skills ".into(),
+            path: root.join(".").to_string_lossy().into_owned(),
+        }];
+
+        normalize_skill_write_roots(&mut configs).unwrap();
+
+        assert_eq!(configs[0].id, "global-skills");
+        assert_eq!(configs[0].name, "Global Skills");
+        assert_eq!(configs[0].path, root.canonicalize().unwrap().to_string_lossy());
+    }
+
+    #[test]
+    fn skill_write_roots_reject_relative_missing_and_duplicate_real_paths() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("skills");
+        std::fs::create_dir(&root).unwrap();
+        let config = |id: &str, path: String| SkillWriteRootConfig {
+            id: id.into(),
+            name: id.into(),
+            path,
+        };
+
+        assert!(normalize_skill_write_roots(&mut [config("relative", "skills".into())]).is_err());
+        assert!(normalize_skill_write_roots(&mut [config(
+            "missing",
+            temp.path().join("missing").to_string_lossy().into_owned(),
+        )])
+        .is_err());
+        assert!(normalize_skill_write_roots(&mut [
+            config("one", root.to_string_lossy().into_owned()),
+            config("two", root.join(".").to_string_lossy().into_owned()),
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn running_mcp_cannot_change_skill_write_authorization() {
+        let existing = SkillWriteRootConfig {
+            id: "one".into(),
+            name: "One".into(),
+            path: "/tmp/one".into(),
+        };
+        assert!(validate_skill_write_roots_update(
+            std::slice::from_ref(&existing),
+            std::slice::from_ref(&existing),
+            true,
+        )
+        .is_ok());
+        assert!(validate_skill_write_roots_update(&[existing], &[], true).is_err());
+        assert!(validate_skill_write_roots_update(&[], &[], false).is_ok());
     }
 }
 

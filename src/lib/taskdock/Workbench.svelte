@@ -90,7 +90,7 @@
     return () => { disposed = true; detailToken++; clearTimeout(timer); media.removeEventListener("change", resize); document.removeEventListener("visibilitychange", visible); unsubscribe(); };
   });
 </script>
-<svelte:head><title>工作台 · TaskDock</title><meta name="description" content="TaskDock 本地 AI 任务工作台"/></svelte:head>
+<svelte:head><title>工作台 · GPTBridge</title><meta name="description" content="GPTBridge：把对话，接到你的工作现场。连接本地项目、工具与技能，集中查看任务进展。"/></svelte:head>
 <svelte:window onkeydown={keydown}/>
 <div class="td-page-head"><div><h1>工作台</h1><p>任务在推进。只把需要你的事放到眼前。</p></div><div class="td-actions"><button class="td-button td-search-trigger" onclick={() => searchInput?.focus()}><Search size={14}/>查找 <span class="td-kbd">⌘ K</span></button><button class="td-button primary" onclick={() => newTaskOpen.set(true)}><Plus size={15}/>新建任务</button></div></div>
 <div class="td-stats">

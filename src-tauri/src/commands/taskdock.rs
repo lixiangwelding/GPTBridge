@@ -10,7 +10,7 @@ pub(super) fn failure(e:impl std::fmt::Display)->AppError {AppError::Message(e.t
 
 #[tauri::command]
 pub fn taskdock_app_info()->Value {
-    json!({"name":"TaskDock","subtitle":"AI 任务工作台","version":env!("CARGO_PKG_VERSION"),
+    json!({"name":"GPTBridge","subtitle":"AI 任务工作台","version":env!("CARGO_PKG_VERSION"),
         "legacy_identifier":"com.lixiangwelding.codingtools.personal","protocol_compatible":true,
         "configuration_migrated":false,"backend":"tauri-native"})
 }
@@ -65,7 +65,7 @@ pub async fn taskdock_task(state:State<'_,AppState>,workspace_id:String,task_id:
         let mut detail=crate::tools::personal::task_view(&s,&task_id,&json!({"limit":20,"include_passed":true})).map_err(failure)?;
         detail["workspace_id"]=json!(p.id);detail["workspace_name"]=json!(p.name);
         detail["workspace_path"]=json!(s.workspace);
-        detail["handoff"]=json!(format!("使用 TaskDock 工具继续任务。工作区：{}；task_id：{}。先调用 task_open(task_id)，读取最新任务状态和当前文件，再继续；不要重建任务或恢复旧快照。",s.workspace.display(),task_id));
+        detail["handoff"]=json!(format!("使用 GPTBridge 工具继续任务。工作区：{}；task_id：{}。先调用 task_open(task_id)，读取最新任务状态和当前文件，再继续；不要重建任务或恢复旧快照。",s.workspace.display(),task_id));
         Ok(detail)
     }).await.map_err(failure)?
 }

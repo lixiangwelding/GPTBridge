@@ -133,6 +133,12 @@ pub fn call_tool(ctx: &ToolContext, name: &str, args: &Value) -> Value {
     if super::skills::TOOLS.contains(&name) {
         return match super::skills::call(ctx, name, &effective_args) { Ok(v) => v, Err(e) => tool_err(e) };
     }
+    if super::skill_write::contains(name) {
+        return match super::skill_write::call(ctx, name, &effective_args) {
+            Ok(value) => value,
+            Err(error) => tool_err(error),
+        };
+    }
     let durable_session = effective_args.get("session_id").and_then(Value::as_str).is_some_and(|s|s.starts_with("job-"));
     let durable_output = effective_args.get("output_ref").and_then(Value::as_str).is_some_and(|s|s.starts_with("job:"));
     if matches!(name, "apply_patch" | "patch_check" | "exec_command")

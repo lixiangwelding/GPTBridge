@@ -9,7 +9,10 @@ use crate::tools::context::ToolContext;
 use crate::tools::workspace::{tool_ok, Workspace, WorkspaceError};
 
 pub fn apply_patch(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
-    let ws = &ctx.workspace;
+    apply_patch_in(&ctx.workspace, args)
+}
+
+pub(crate) fn apply_patch_in(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> {
     let patch = args
         .get("patch")
         .and_then(Value::as_str)
@@ -127,9 +130,16 @@ pub(crate) fn touched_paths(text: &str) -> Result<Vec<String>, WorkspaceError> {
 }
 
 pub fn patch_check(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
+    patch_check_in(&ctx.workspace, args)
+}
+
+pub(crate) fn patch_check_in(
+    workspace: &Workspace,
+    args: &Value,
+) -> Result<Value, WorkspaceError> {
     let mut check_args = args.clone();
     check_args["dry_run"] = Value::Bool(true);
-    let mut result = apply_patch(ctx, &check_args)?;
+    let mut result = apply_patch_in(workspace, &check_args)?;
     if let Some(object) = result.as_object_mut() {
         object.insert("preflight".into(), Value::Bool(true));
     }

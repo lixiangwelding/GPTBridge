@@ -1,10 +1,20 @@
 //! Short, process-shared patch critical section with full-file optimistic preconditions.
-use std::{collections::BTreeMap, fs, time::Duration};
+use std::{collections::BTreeMap, fs, path::PathBuf, time::Duration};
 use coding_tools_personal_runtime::{digest, locks, Error};
 use serde_json::{json, Value};
-use super::{context::ToolContext, patch, personal::error, workspace::{tool_err, tool_ok, WorkspaceError}};
+use super::{context::ToolContext, patch, personal::error, workspace::{tool_err, tool_ok, Workspace, WorkspaceError}};
 
 pub fn apply(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
+    apply_to(ctx, &ctx.workspace, "patch", "source", args)
+}
+
+pub(crate) fn apply_to(
+    ctx: &ToolContext,
+    workspace: &Workspace,
+    scope_namespace: &str,
+    local_resource: &str,
+    args: &Value,
+) -> Result<Value, WorkspaceError> {
     let text = args.get("patch").and_then(Value::as_str).ok_or_else(|| WorkspaceError::invalid_argument("patch is required"))?;
     let paths = patch::touched_paths(text)?;
     if paths.is_empty() { return Err(WorkspaceError::invalid_argument("patch has no files")); }
@@ -14,14 +24,14 @@ pub fn apply(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
     // Preserve path-denial precedence even for incomplete client arguments.
     // Repeat these guards under the source lock before any new write (TOCTOU).
     for path in &paths {
-        ctx.workspace.reject_protected_write_path(path)?;
-        ctx.workspace.reject_write_symlink(path)?;
-        ctx.workspace.resolve_for_write(path)?;
+        workspace.reject_protected_write_path(path)?;
+        workspace.reject_write_symlink(path)?;
+        workspace.resolve_for_write(path)?;
     }
     let mut input = args.clone();
     if let Some(object) = input.as_object_mut() { object.remove("reason"); object.remove("_host_session_key"); }
     let input_hash = digest(input.to_string());
-    let scope = format!("patch:{}", task.unwrap_or("workspace"));
+    let scope = format!("{scope_namespace}:{}", task.unwrap_or("workspace"));
     let request = if dry { None } else {
         Some(args.get("request_id").and_then(Value::as_str)
             .filter(|v| !v.is_empty() && v.len() <= 160)
@@ -33,13 +43,25 @@ pub fn apply(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
             return Ok(prior);
         }
     }
-    // Preflight can overlap builds; actual writes retain the exclusive gate.
-    let _gate = locks::gate(&ctx.personal.dir, "source", !dry, Duration::from_secs(5))
+    // The canonical-root gate is shared by every workspace state directory.
+    // A project-level Skill tool and a direct global-Skill workspace therefore
+    // cannot patch the same real directory concurrently.
+    let shared_lock_root = shared_lock_root(ctx)?;
+    let canonical_resource = canonical_lock_resource(workspace);
+    let _root_gate = locks::gate(
+        &shared_lock_root,
+        &canonical_resource,
+        !dry,
+        lock_timeout(),
+    )
+    .map_err(|e| busy_error(e, "canonical-root", request, task, dry, workspace))?;
+    // Preflight can overlap builds; actual writes retain the workspace-local gate.
+    let _gate = locks::gate(&ctx.personal.dir, local_resource, !dry, lock_timeout())
         .map_err(|e| if e.code() == "RESOURCE_BUSY" {
             WorkspaceError::ToolDetails {
                 code: "RESOURCE_BUSY", category: "conflict", retryable: true,
-                message: "source lock is busy; no patch was applied or receipt started".into(),
-                details: json!({"resource":"source","requested_mode":if dry {"shared"} else {"exclusive"},
+                message: format!("{local_resource} lock is busy; no patch was applied or receipt started"),
+                details: json!({"resource":local_resource,"requested_mode":if dry {"shared"} else {"exclusive"},
                     "waited_ms":5000,"patch_applied":false,"receipt_persisted":false,
                     "request_id":request,"task_id":task,
                     "next_action":"wait for the owning operation to finish, then retry the same unchanged request; do not force-unlock or replay unknown jobs"}),
@@ -47,15 +69,16 @@ pub fn apply(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
         } else { error(e) })?;
     let mut current = BTreeMap::new();
     for path in &paths {
-        ctx.workspace.reject_protected_write_path(path)?;
-        ctx.workspace.reject_write_symlink(path)?;
-        let resolved = ctx.workspace.resolve_for_write(path)?;
+        workspace.reject_protected_write_path(path)?;
+        workspace.reject_write_symlink(path)?;
+        let resolved = workspace.resolve_for_write(path)?;
         current.insert(resolved.display, fingerprint(&resolved.path)?);
     }
     if dry {
-        let mut result = patch::patch_check(ctx, args)?;
+        let mut result = patch::patch_check_in(workspace, args)?;
         result["expected_hashes"] = json!(current);
-        result["cooperative_lock"] = json!("source");
+        result["cooperative_lock"] = json!(local_resource);
+        result["canonical_root_lock"] = json!(workspace.root_display());
         return Ok(result);
     }
     let request = request.expect("non-dry patch has validated request_id");
@@ -72,7 +95,7 @@ pub fn apply(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
             .ok_or_else(|| error(Error::contract("PRECONDITION_REQUIRED", "pass hashes from read_file or patch_check for every touched file")))?;
         let mut normalized = BTreeMap::new();
         for (path, hash) in expected {
-            let resolved = ctx.workspace.resolve_for_write(path)?;
+            let resolved = workspace.resolve_for_write(path)?;
             if normalized.insert(resolved.display, hash.clone()).is_some() {
                 return Err(error(Error::contract("DUPLICATE_PATH", "expected_hashes contains aliases for the same file")));
             }
@@ -83,17 +106,18 @@ pub fn apply(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
                     details:json!({"path":path,"expected":normalized.get(path),"current":hash,"patch_applied":false,"next_action":"read the current file, preserve others' changes, and submit a revised patch with a new request_id"}) });
             }
         }
-        let mut result = patch::apply_patch(ctx, args)?;
+        let mut result = patch::apply_patch_in(workspace, args)?;
         let mut after = BTreeMap::new();
         for path in current.keys() {
-            let resolved = ctx.workspace.resolve_for_write(path)?;
+            let resolved = workspace.resolve_for_write(path)?;
             after.insert(path.clone(), fingerprint(&resolved.path)?);
         }
         result["before_hashes"] = json!(current);
         result["after_hashes"] = json!(after);
         result["request_id"] = json!(request);
         result["task_id"] = json!(task);
-        result["cooperative_lock"] = json!("source");
+        result["cooperative_lock"] = json!(local_resource);
+        result["canonical_root_lock"] = json!(workspace.root_display());
         result["recovery"] = json!("receipt-and-current-files; never restore the whole workspace");
         Ok(result)
     })();
@@ -107,6 +131,79 @@ pub fn apply(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
         let _ = ctx.personal.event(task, "patch_finished", &json!({"request_id":request,"ok":output["ok"],"before_hashes":output["before_hashes"],"after_hashes":output["after_hashes"]}));
     }
     Ok(tool_ok(output))
+}
+
+fn shared_lock_root(ctx: &ToolContext) -> Result<PathBuf, WorkspaceError> {
+    let parent = ctx.personal.dir.parent().unwrap_or(&ctx.personal.dir);
+    let root = parent.join("shared-write-roots");
+    ensure_private_lock_dir(&root)?;
+    ensure_private_lock_dir(&root.join("locks"))?;
+    Ok(root)
+}
+
+fn ensure_private_lock_dir(path: &std::path::Path) -> Result<(), WorkspaceError> {
+    if fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink()) {
+        return Err(WorkspaceError::ToolDetails {
+            code: "UNSAFE_STATE_PATH",
+            message: "shared write-lock directory must not be a symlink".into(),
+            category: "permission",
+            retryable: false,
+            details: json!({"path":path}),
+        });
+    }
+    fs::create_dir_all(path).map_err(|error_value| {
+        WorkspaceError::invalid_argument(format!("cannot create shared write-lock directory: {error_value}"))
+    })?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700)).map_err(|error_value| {
+            WorkspaceError::invalid_argument(format!("cannot protect shared write-lock directory: {error_value}"))
+        })?;
+    }
+    Ok(())
+}
+
+fn canonical_lock_resource(workspace: &Workspace) -> String {
+    format!("write-root:{}", workspace.root().display())
+}
+
+fn lock_timeout() -> Duration {
+    if cfg!(test) {
+        Duration::from_millis(100)
+    } else {
+        Duration::from_secs(5)
+    }
+}
+
+fn busy_error(
+    error_value: Error,
+    resource: &str,
+    request: Option<&str>,
+    task: Option<&str>,
+    dry: bool,
+    workspace: &Workspace,
+) -> WorkspaceError {
+    if error_value.code() != "RESOURCE_BUSY" {
+        return error(error_value);
+    }
+    WorkspaceError::ToolDetails {
+        code: "RESOURCE_BUSY",
+        category: "conflict",
+        retryable: true,
+        message: "canonical target root is busy; no patch was applied or receipt started".into(),
+        details: json!({
+            "resource":resource,
+            "target_root":workspace.root_display(),
+            "requested_mode":if dry {"shared"} else {"exclusive"},
+            "waited_ms":5000,
+            "patch_applied":false,
+            "receipt_persisted":false,
+            "request_id":request,
+            "task_id":task,
+            "next_action":"wait for the owning operation to finish, then retry the same unchanged request; do not force-unlock or replay unknown jobs"
+        }),
+    }
 }
 
 fn fingerprint(path: &std::path::Path) -> Result<Value, WorkspaceError> {
@@ -181,5 +278,42 @@ mod lock_replay_tests {
         ctx.personal.begin_receipt("patch:workspace","patch-once",&digest(input.to_string())).unwrap();
         assert!(apply(&ctx,&input).unwrap_err().to_string().contains("OPERATION_INDETERMINATE"));
         assert!(!ctx.workspace.root().join("owned.txt").exists());
+    }
+
+    #[test]
+    fn canonical_root_lock_is_shared_across_distinct_workspace_states() {
+        let temp = tempfile::tempdir().unwrap();
+        let project = temp.path().join("project");
+        let skill_root = temp.path().join("skills");
+        fs::create_dir(&project).unwrap();
+        fs::create_dir(&skill_root).unwrap();
+        let state = temp.path().join("state");
+        let project_ctx = ToolContext::for_test(project, state.clone()).unwrap();
+        let direct_ctx = ToolContext::for_test(skill_root.clone(), state).unwrap();
+        assert_ne!(project_ctx.personal.dir, direct_ctx.personal.dir);
+
+        let skill_workspace = Workspace::new(skill_root).unwrap();
+        let shared = shared_lock_root(&project_ctx).unwrap();
+        let resource = canonical_lock_resource(&skill_workspace);
+        let guard = locks::try_gate(&shared, &resource, true).unwrap().unwrap();
+        let err = apply_to(
+            &project_ctx,
+            &skill_workspace,
+            "skill-patch:global:test",
+            "skill-root:test",
+            &args(),
+        )
+        .unwrap_err();
+        assert_eq!(err.to_error_value()["code"], "RESOURCE_BUSY");
+        let direct_err = apply(&direct_ctx, &args()).unwrap_err();
+        assert_eq!(direct_err.to_error_value()["code"], "RESOURCE_BUSY");
+        assert!(!skill_workspace.root().join("owned.txt").exists());
+
+        drop(guard);
+        assert_eq!(apply(&direct_ctx, &args()).unwrap()["ok"], true);
+        assert_eq!(
+            fs::read_to_string(direct_ctx.workspace.root().join("owned.txt")).unwrap(),
+            "once\n"
+        );
     }
 }

@@ -4,7 +4,7 @@ use std::path::{Component, Path};
 use serde_json::Value;
 
 use crate::tools::workspace::Workspace;
-use crate::workspace::ActionsConfig;
+use crate::workspace::{ActionsConfig, SkillWriteRootConfig};
 
 use super::registry::is_allowed_tool;
 use super::command_line::split_command;
@@ -64,6 +64,7 @@ pub struct PolicySettings {
     pub workspace_script_extensions: HashSet<String>,
     pub max_patch_bytes: usize,
     pub permission_mode: String,
+    pub skill_write_roots: Vec<SkillWriteRootConfig>,
 }
 
 impl Default for PolicySettings {
@@ -74,6 +75,7 @@ impl Default for PolicySettings {
             workspace_script_extensions: default_workspace_script_extension_set(),
             max_patch_bytes: 200_000,
             permission_mode: "trusted".into(),
+            skill_write_roots: Vec::new(),
         }
     }
 }
@@ -88,6 +90,7 @@ impl PolicySettings {
             ),
             max_patch_bytes: 200_000,
             permission_mode: runtime.permission_mode.clone(),
+            skill_write_roots: runtime.skill_write_roots.clone(),
         }
     }
 
@@ -98,6 +101,7 @@ impl PolicySettings {
             workspace_script_extensions: default_workspace_script_extension_set(),
             max_patch_bytes: actions.max_patch_bytes as usize,
             permission_mode: actions.permission_mode.clone(),
+            skill_write_roots: Vec::new(),
         }
     }
 
@@ -186,7 +190,7 @@ pub fn validate_tool_arguments_for_workspace(
 ) -> Result<(), PolicyError> {
     match tool_name {
         "exec_command" => validate_command_for_workspace(arguments, policy, workspace),
-        "apply_patch" | "patch_check" => validate_patch(arguments, policy),
+        "apply_patch" | "patch_check" | "apply_skill_patch" => validate_patch(arguments, policy),
         _ => Ok(()),
     }
 }

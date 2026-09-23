@@ -12,7 +12,10 @@ use crate::tunnel::drop_workspace as drop_tunnel_workspace;
 use crate::workspace::resources::{
     assign_free_workspace_ports, validate_workspace_resources_update,
 };
-use crate::workspace::{validate_upstream_mcps, UpstreamMcpConfig, WorkspaceProfile};
+use crate::workspace::{
+    normalize_skill_write_roots, validate_skill_write_roots_update, validate_upstream_mcps,
+    UpstreamMcpConfig, WorkspaceProfile,
+};
 
 #[tauri::command]
 pub fn list_workspaces(state: State<'_, AppState>) -> AppResult<Vec<WorkspaceProfile>> {
@@ -37,7 +40,12 @@ pub fn create_workspace(
 }
 
 #[tauri::command]
-pub async fn update_workspace(state: State<'_, AppState>, profile: WorkspaceProfile) -> AppResult<()> {
+pub async fn update_workspace(
+    state: State<'_, AppState>,
+    mut profile: WorkspaceProfile,
+) -> AppResult<()> {
+    normalize_skill_write_roots(&mut profile.runtime.skill_write_roots)
+        .map_err(AppError::Message)?;
     validate_upstream_mcps(&profile.runtime.upstream_mcps).map_err(AppError::Message)?;
     let ids=state.with_workspaces(|store|Ok(store.list().iter().map(|p|p.id.clone()).collect::<Vec<_>>()))?;
     let running=state.with_runtime(|runtime|Ok(ids.into_iter().filter(|id|runtime.is_running(id,ServiceKind::Mcp)).collect::<std::collections::BTreeSet<_>>()))?;
@@ -46,6 +54,12 @@ pub async fn update_workspace(state: State<'_, AppState>, profile: WorkspaceProf
             .get(&profile.id)
             .cloned()
             .ok_or_else(|| AppError::Message(format!("workspace not found: {}", profile.id)))?;
+        validate_skill_write_roots_update(
+            &current.runtime.skill_write_roots,
+            &profile.runtime.skill_write_roots,
+            running.contains(&profile.id),
+        )
+        .map_err(AppError::Message)?;
         validate_workspace_resources_update(store.list(), &current, &profile)?;
         crate::mcp::gateway::validate_update(&current,&profile,store.list(),&running).map_err(AppError::Message)?;
         store.update(profile.clone())?;

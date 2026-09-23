@@ -1,4 +1,47 @@
-# Coding Tools MCP Personal 0.3.3
+# GPTBridge
+
+### Bring the conversation to your workspace.
+
+**An AI task workbench connecting ChatGPT to local projects, tools and skills.** Keep progress, resumable context and execution records in one place, without turning the home screen into a configuration manual.
+
+[English](README.en.md) · [中文](README.md) · [Usage and compatibility](PERSONAL.md) · [Brand and version boundaries](docs/gptbridge/BRANDING.md)
+
+## Four focused areas
+
+| Area | Purpose |
+| --- | --- |
+| Workbench | Search and filter real task records, inspect checkpoints, job status and bounded logs |
+| Projects | Select a local directory, switch context, manage connections and advanced settings |
+| Tools and skills | Discover local skills, inspect their sources and tool contracts, control project-level automatic matching |
+| Settings | Keep common preferences visible and advanced configuration out of the daily workflow |
+
+## Start once, continue with context
+
+![GPTBridge 0.4.1 workbench: browser preview of the actual frontend build](docs/gptbridge/screenshots/browser-preview-0.4.1/workbench-desktop.png)
+
+**Environment: a browser preview of the actual 0.4.1 frontend build, without Tauri IPC or injected demo tasks.** The disconnected state is intentional evidence, not native-backend acceptance. See [all eight desktop and narrow-viewport screenshots](docs/gptbridge/SCREENSHOTS.md) and the [validation record](docs/gptbridge/VALIDATION.md).
+
+Select a project, configure the client connection, describe a goal, inspect progress and continue in your connected AI client. **Saving a goal does not start an agent.** Tasks without running jobs remain ready for client handoff. A reachable port is not proof of a client handshake.
+
+## Version 0.4.1
+
+The public product name is now **GPTBridge**, following the TaskDock workbench redesign. The application identifier, configuration paths, task database, IPC command names and MCP endpoints retain compatibility. Svelte 5 / SvelteKit and Tauri 2 / Rust remain the implementation stack.
+
+This is a source update, not a claim that a signed installer, native desktop acceptance or a live service replacement has shipped. Screenshots must identify their environment; browser previews are not native-backend acceptance and do not substitute mock records for missing task data.
+
+```sh
+npm ci
+npm run check
+npm run build
+# Native desktop development: npm run desktop
+```
+
+GPTBridge is an independent project maintained by `lixiangwelding`, derived from the Rust/Tauri `mybolide/coding-tools-mcp` implementation. Upstream attribution and licenses are retained. It is not an official OpenAI product and does not imply endorsement.
+
+<details>
+<summary>Historical reference: earlier personal and upstream versions</summary>
+
+The following screenshots, download links, menu locations and release claims describe historical versions, not GPTBridge 0.4.1.
 
 0.3.3 fixes the `/mcp` event-stream GET response: requests accepting `text/event-stream` now receive `405`, while ordinary health checks can still read the JSON version payload.
 
@@ -339,3 +382,5 @@ On Windows, you can also run `dev-desktop.cmd`. Do not use `npm run dev` alone t
 ## License
 
 [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)
+
+</details>

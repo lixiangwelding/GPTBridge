@@ -183,7 +183,16 @@ fn advanced_profile_exposes_every_declared_tool() {
     let declared = coding_tools_mcp_desktop_lib::tools::registry::P0_TOOLS
         .iter()
         .map(|(name, ..)| *name)
-        .chain(["task_open", "task_status", "task_checkpoint", "list_skills", "search_skills", "read_skill", "invoke_skill"])
+        .chain([
+            "task_open",
+            "task_status",
+            "task_checkpoint",
+            "list_skills",
+            "search_skills",
+            "read_skill",
+            "invoke_skill",
+        ])
+        .chain(["list_skill_write_roots", "apply_skill_patch"])
         .chain(["check_command", "tool_catalog_check", "read_files", "stat_path"])
         .collect::<std::collections::HashSet<_>>();
     let tool_values = coding_tools_mcp_desktop_lib::tools::list_tools_for_profile("advanced");
@@ -195,7 +204,11 @@ fn advanced_profile_exposes_every_declared_tool() {
     assert_eq!(declared, exposed);
     assert!(declared
         .iter()
+        .filter(|name| **name != "apply_skill_patch")
         .all(|name| coding_tools_mcp_desktop_lib::tools::is_allowed_tool(name)));
+    assert!(!coding_tools_mcp_desktop_lib::tools::is_allowed_tool(
+        "apply_skill_patch"
+    ));
 }
 
 #[test]
@@ -208,17 +221,28 @@ fn core_profile_keeps_the_default_capabilities_and_adds_history_tools() {
     let expected = coding_tools_mcp_desktop_lib::tools::registry::CORE_TOOLS
         .iter()
         .copied()
-        .chain(["task_open", "task_status", "task_checkpoint", "list_skills", "search_skills", "read_skill", "invoke_skill"])
+        .chain([
+            "task_open",
+            "task_status",
+            "task_checkpoint",
+            "list_skills",
+            "search_skills",
+            "read_skill",
+            "invoke_skill",
+        ])
+        .chain(["list_skill_write_roots", "apply_skill_patch"])
         .chain(["check_command", "tool_catalog_check", "read_files", "stat_path"])
         .collect::<std::collections::HashSet<_>>();
     assert_eq!(names, expected);
-    assert_eq!(names.len(), 37);
+    assert_eq!(names.len(), 39);
     assert!(names.contains("grep_text"));
     assert!(names.contains("history_session_bootstrap"));
     assert!(names.contains("history_session_checkpoint"));
     assert!(names.contains("history_session_validate"));
     assert!(names.contains("history_session_search"));
     assert!(names.contains("history_session_read"));
+    assert!(names.contains("list_skill_write_roots"));
+    assert!(names.contains("apply_skill_patch"));
     assert!(!names.contains("harness_status"));
     assert!(!names.contains("start_task"));
 }

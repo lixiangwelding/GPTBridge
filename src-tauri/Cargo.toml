@@ -1,7 +1,7 @@
 [package]
 name = "coding-tools-mcp-personal"
-version = "0.4.0"
-description = "TaskDock - local AI task workbench"
+version = "0.4.1"
+description = "GPTBridge - connect ChatGPT to local projects, tools and resumable tasks"
 authors = ["Coding Tools MCP Contributors"]
 edition = "2021"
 
