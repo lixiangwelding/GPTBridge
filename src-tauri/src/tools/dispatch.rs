@@ -550,10 +550,12 @@ pub fn server_info(ctx: &ToolContext) -> Result<Value, WorkspaceError> {
         "tools": tools,
         "tool_count": tools.len(),
         "tool_contract": super::registry::catalog_contract(&ctx.tool_profile),
+        "runtime_pressure": ctx.personal.runtime_pressure().unwrap_or_else(|error|json!({"available":false,"error_code":error.code()})),
         "skill_bridge": {"enabled":ctx.skills.enabled,"tools":super::skills::TOOLS,"local_files":true,
             "textual_dollar_alias":true,"native_dollar_picker":false,"executes_scripts":false},
         "personal_runtime": {"enabled":true,"task_scope":"explicit_task_id","durable_jobs":true,"same_directory":true,"worktree_required":false,
-            "limits":{"running":8,"heavy":2,"queued_and_running":32},"config_isolated":true,"raw_transcript_capture":"only_explicitly_supplied_text"}
+            "limits":{"running":8,"heavy":2,"queued_and_running":32},"config_isolated":true,"raw_transcript_capture":"only_explicitly_supplied_text",
+            "saturated_queue_reconciliation":true,"completed_task_receipt_recovery":true,"queue_wait_diagnostics":true}
     })))
 }
 

@@ -36,20 +36,46 @@ impl Store {
     pub fn launch_job(&self,worker:&Path,spec:&JobSpec,task:Option<&str>,request:&str)->Result<Value> {
         spec.validate(&self.workspace)?;
         if request.is_empty()||request.len()>160 {return Err(Error::contract("REQUEST_ID_REQUIRED","durable commands need a stable request_id per logical step"))}
-        if let Some(t)=task {if self.task_status(t)?["state"] == "completed" {return Err(Error::contract("TASK_COMPLETED","open a follow-up task before launching new work"))}}
+        if let Some(t)=task {id(t)?;}
         let hash=digest(serde_json::to_vec(spec)?); let scope=task.unwrap_or("workspace");
-        let mut c=self.conn()?; let tx=c.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        let mut c=self.conn()?;
+        let mut reconciled=0usize;
+        let mut retried_admission=false;
+        let job=loop {
+        let tx=c.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         let old:Option<(String,String)>=tx.query_row("SELECT id,input_hash FROM jobs WHERE scope=?1 AND request_id=?2",(scope,request),|r|Ok((r.get(0)?,r.get(1)?))).optional()?;
         if let Some((id,old_hash))=old {
             if hash!=old_hash {return Err(Error::contract("IDEMPOTENCY_CONFLICT","command request_id already has different input"))}
             drop(tx); let mut value=self.job_status(&id,4096)?;value["deduplicated"]=json!(true);return Ok(value)
         }
+        // Receipt recovery is not new work. Check completion only after dedup,
+        // in the same transaction as admission so completion cannot race an insert.
+        if let Some(t)=task {
+            let state:Option<String>=tx.query_row("SELECT state FROM tasks WHERE id=?1",[t],|r|r.get(0)).optional()?;
+            let state=state.ok_or_else(||Error::contract("TASK_NOT_FOUND","unknown task in this workspace"))?;
+            if state=="completed" {return Err(Error::contract("TASK_COMPLETED","open a follow-up task before launching new work"))}
+        }
         let count:i64=tx.query_row("SELECT count(*) FROM jobs WHERE state IN ('queued','running')",[],|r|r.get(0))?;
-        if count>=MAX_QUEUED as i64 {return Err(Error::contract("QUEUE_FULL","bounded worker queue is full; query existing jobs before submitting more"))}
+        if count>=MAX_QUEUED as i64 {
+            drop(tx);
+            if retried_admission {return Err(Error::contract("QUEUE_FULL","bounded worker queue is full; query existing jobs before submitting more"))}
+            // Bounded recovery, outside the write transaction. Alive locks and
+            // startup grace remain authoritative; stale intents become unknown,
+            // never successful or replayable, and no command is relaunched.
+            reconciled=self.reconcile_active_jobs_on(&c)?;
+            retried_admission=true;
+            continue;
+        }
         let job=uuid::Uuid::new_v4().to_string();let now=now_ms();
         tx.execute("INSERT INTO jobs(id,task_id,scope,request_id,input_hash,spec,state,created,updated) VALUES(?1,?2,?3,?4,?5,?6,'queued',?7,?7)",(&job,task,scope,request,hash,serde_json::to_string(spec)?,now))?;
         tx.commit()?;
-        private_dir(&self.dir.join("jobs").join(&job))?;
+        break job;
+        };
+        drop(c);
+        if let Err(error)=private_dir(&self.dir.join("jobs").join(&job)) {
+            self.finish_job(&job,"spawn_failed",None,&format!("worker preparation failed: {}; command not launched",error.code()))?;
+            return self.job_status(&job,4096);
+        }
         let mut cmd=Command::new(worker);
         cmd.args(["--personal-job-worker",self.dir.to_str().ok_or_else(||Error::contract("PATH_ENCODING","state path must be UTF-8"))?,&job]);
         cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
@@ -58,12 +84,50 @@ impl Store {
             Ok(mut child)=>{std::thread::spawn(move||{let _=child.wait();});},
             Err(e)=>{self.finish_job(&job,"spawn_failed",None,&format!("worker launch failed: {}",e.kind()))?;}
         }
-        self.job_status(&job,4096)
+        let mut value=self.job_status(&job,4096)?;
+        value["admission_reconciled"]=json!(reconciled);
+        Ok(value)
+    }
+    fn reconcile_active_jobs_on(&self,c:&Connection)->Result<usize> {
+        let ids={
+            let mut q=c.prepare_cached("SELECT id FROM jobs WHERE state IN ('queued','running') ORDER BY updated,id LIMIT ?1")?;
+            let rows=q.query_map([MAX_QUEUED as i64],|r|r.get::<_,String>(0))?;
+            rows.collect::<std::result::Result<Vec<_>,_>>()?
+        };
+        let mut reconciled=0;
+        for job in ids {
+            if self.job_status_on(c,&job,None)?["status"]=="unknown" {reconciled+=1;}
+        }
+        Ok(reconciled)
     }
     pub fn job_spec(&self,job:&str)->Result<JobSpec> {
         id(job)?;
         let raw:Option<String>=self.conn()?.query_row("SELECT spec FROM jobs WHERE id=?1",[job],|r|r.get(0)).optional()?;
         Ok(serde_json::from_str(&raw.ok_or_else(||Error::contract("JOB_NOT_FOUND","unknown job in this workspace"))?)?)
+    }
+    /// Read-only active-queue snapshot; excludes commands, stdin and output.
+    pub fn runtime_pressure(&self)->Result<Value> {
+        let observed=now_ms();
+        let c=self.conn()?;
+        let mut q=c.prepare_cached("SELECT id,task_id,state,created,updated,json_extract(spec,'$.mode'),detail FROM jobs WHERE state IN ('queued','running') ORDER BY created,id LIMIT ?1")?;
+        let rows=q.query_map([(MAX_QUEUED+1) as i64],|r|Ok((r.get::<_,String>(0)?,r.get::<_,Option<String>>(1)?,r.get::<_,String>(2)?,r.get::<_,i64>(3)?,r.get::<_,i64>(4)?,r.get::<_,Option<String>>(5)?,r.get::<_,String>(6)?)))?
+            .collect::<std::result::Result<Vec<_>,_>>()?;
+        let (mut queued,mut running,mut heavy)=(0usize,0usize,0usize);
+        let mut sample=Vec::new();
+        for (job,task,state,created,updated,mode,detail) in rows.iter().take(MAX_QUEUED) {
+            if state=="queued" {queued+=1;} else {running+=1;if mode.as_deref()==Some("build") {heavy+=1;}}
+            if sample.len()<8 {
+                sample.push(json!({"job_id":job,"task_id":task,"state":state,"mode":mode,
+                    "age_ms":observed.saturating_sub(*created).max(0),"heartbeat_age_ms":observed.saturating_sub(*updated).max(0),
+                    "waiting_for":if state=="queued" {waiting_reason(detail)} else {None}}));
+            }
+        }
+        Ok(json!({"available":true,"scope":"workspace","observed_at_ms":observed,"queued":queued,"running":running,"running_builds":heavy,
+            "active":queued+running,"admission_remaining":MAX_QUEUED.saturating_sub(queued+running),
+            "counts_are_lower_bounds":rows.len()>MAX_QUEUED,"sample":sample,"sample_truncated":rows.len()>8,
+            "limits":{"running":MAX_RUNNING,"heavy":MAX_HEAVY,"queued_and_running":MAX_QUEUED},
+            "state_modified":false,"includes_commands":false,
+            "interpretation":"database snapshot, not held-permit measurement; old heartbeat alone does not prove worker loss"}))
     }
     pub fn finish_job(&self,job:&str,state:&str,exit:Option<i32>,detail:&str)->Result<()> {
         id(job)?;
@@ -109,6 +173,10 @@ impl Store {
         let (task,request,state,exit,created,updated,cancel,detail)=row;
         let command_ok=match state.as_str(){"exited"=>Some(exit==Some(0)),"queued"|"running"|"unknown"|"resolved"=>None,_=>Some(false)};
         let mut value=json!({"job_id":job,"session_id":format!("job-{job}"),"task_id":task,"request_id":request,"status":state,"termination_reason":state,"exit_code":exit,"command_ok":command_ok,"created":created,"updated":updated,"cancel_requested":cancel!=0,"detail":detail,"output_loaded":false,"stdout_truncated":null,"stderr_truncated":null,"output_refs":{"stdout":format!("job:{job}:stdout"),"stderr":format!("job:{job}:stderr")},"durable":true,"safe_to_replay":false,"limits":{"running":MAX_RUNNING,"heavy":MAX_HEAVY,"queued_and_running":MAX_QUEUED,"stream_bytes":MAX_STREAM_BYTES}});
+        let observed=now_ms();
+        value["waiting_for"]=json!(if state=="queued" {waiting_reason(&detail)} else {None});
+        value["queued_for_ms"]=json!(if state=="queued" {Some(observed.saturating_sub(created).max(0))} else {None});
+        value["heartbeat_age_ms"]=json!(if matches!(state.as_str(),"queued"|"running") {Some(observed.saturating_sub(updated).max(0))} else {None});
         if let Some(max)=max_output {attach_output(&mut value,&self.dir.join("jobs").join(job),max);}
         Ok(value)
     }
@@ -212,18 +280,38 @@ impl Store {
             "offset_encoding":"bytes; use returned offsets; a tiny limit may expand by up to 3 bytes for one UTF-8 codepoint"}))
     }
 }
+fn waiting_reason(detail:&str)->Option<&str> {
+    detail.strip_prefix("waiting:").filter(|reason|matches!(*reason,"source"|"resource"|"heavy_capacity"|"command_capacity"))
+}
 type JobRow=(Option<String>,String,String,Option<i32>,i64,i64,i64,String);
 fn read_job_row(c:&Connection,job:&str)->Result<JobRow> {
     c.prepare_cached("SELECT task_id,request_id,state,exit_code,created,updated,cancel,detail FROM jobs WHERE id=?1")?
         .query_row([job],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?,r.get(7)?)))
         .optional()?.ok_or_else(||Error::contract("JOB_NOT_FOUND","unknown job in this workspace"))
 }
+fn bounded_metadata(path:&Path)->Option<Value> {
+    let file=fs::File::open(path).ok()?;
+    let mut bytes=Vec::new();
+    file.take(16_385).read_to_end(&mut bytes).ok()?;
+    if bytes.len()>16_384 {return None;}
+    serde_json::from_slice(&bytes).ok()
+}
 fn attach_output(value:&mut Value,dir:&Path,max:usize) {
-    let (stdout,out_truncated)=capture_view(dir,"stdout",max);
-    let (stderr,err_truncated)=capture_view(dir,"stderr",max);
+    // Share a bounded metadata read across streams; polling loops still skip output.
+    let totals=bounded_metadata(&dir.join("output.json"));
+    let (stdout,out_truncated)=capture_view_with_totals(dir,"stdout",max,totals.as_ref());
+    let (stderr,err_truncated)=capture_view_with_totals(dir,"stderr",max,totals.as_ref());
     value["stdout"]=json!(stdout);value["stderr"]=json!(stderr);
     value["stdout_truncated"]=json!(out_truncated);value["stderr_truncated"]=json!(err_truncated);
     value["output_loaded"]=json!(true);
+    let child=bounded_metadata(&dir.join("child.json"));
+    let started=child.as_ref().and_then(|v|v["started"].as_i64());
+    let created=value["created"].as_i64();
+    value["timing"]=json!({
+        "queue_wait_ms":started.zip(created).filter(|(start,created)|start>=created).map(|(start,created)|start-created),
+        "worker_duration_ms":totals.as_ref().and_then(|v|v["duration_ms"].as_u64()),
+        "running_for_ms":if value["status"]=="running" {started.map(|start|now_ms().saturating_sub(start).max(0))} else {None},
+        "missing_values_are_unknown":true});
 }
 fn tail_file(path: &Path, limit: usize) -> Result<String> {
     let mut file = fs::File::open(path)?;
@@ -257,13 +345,16 @@ fn tail_file(path: &Path, limit: usize) -> Result<String> {
 }
 
 /// Preserve the legacy execution contract without hiding lost or truncated errors.
+#[cfg(test)]
 fn capture_view(dir:&Path,stream:&str,limit:usize)->(String,bool){
+    capture_view_with_totals(dir,stream,limit,bounded_metadata(&dir.join("output.json")).as_ref())
+}
+fn capture_view_with_totals(dir:&Path,stream:&str,limit:usize,totals:Option<&Value>)->(String,bool){
     let log=dir.join(format!("{stream}.log"));
     let text=tail_file(&dir.join(format!("{stream}.tail")),limit).or_else(|_|tail_file(&log,limit));
     let Ok(text)=text else {return (String::new(),true)};
     let retained=fs::metadata(&log).map(|m|m.len()).unwrap_or(0);
-    let totals=fs::read(dir.join("output.json")).ok().and_then(|bytes|serde_json::from_slice::<Value>(&bytes).ok());
-    let total=totals.as_ref().and_then(|v|v[stream]["total_bytes"].as_u64());
+    let total=totals.and_then(|v|v[stream]["total_bytes"].as_u64());
     let truncated=total.unwrap_or(retained)>text.len() as u64
         || (total.is_none() && retained>=MAX_STREAM_BYTES as u64);
     (text,truncated)

@@ -37,7 +37,13 @@ fn open(ctx: &ToolContext, args: &Value) -> coding_tools_personal_runtime::Resul
 
 fn status(ctx: &ToolContext, args: &Value) -> coding_tools_personal_runtime::Result<Value> {
     if let Some(job) = args.get("job_id").and_then(Value::as_str) {
-        return ctx.personal.job_status(job, 4096);
+        let view=ctx.personal.job_status(job, 4096)?;
+        if let Some(task)=args.get("task_id").and_then(Value::as_str) {
+            if view["task_id"].as_str()!=Some(task) {
+                return Err(Error::contract("JOB_TASK_MISMATCH","job does not belong to the explicitly requested task; inspect the original receipt"));
+            }
+        }
+        return Ok(view);
     }
     let bound = args.get("_host_session_key").and_then(Value::as_str)
         .map(|owner| ctx.personal.bound_task(owner)).transpose()?.flatten();
@@ -46,7 +52,7 @@ fn status(ctx: &ToolContext, args: &Value) -> coding_tools_personal_runtime::Res
         return ctx.personal.task_list(args.get("cursor").and_then(Value::as_str), limit(args, 20));
     };
     if let Some(after) = args.get("events_after").and_then(Value::as_i64) {
-        return ctx.personal.events(task, after.max(0), limit(args, 2).min(3));
+        return ctx.personal.events(task, after.max(0), limit(args, 2));
     }
     task_view(&ctx.personal, task, args)
 }
@@ -140,6 +146,53 @@ pub fn job_output(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceErr
         .map(tool_ok).map_err(error)
 }
 
+
+#[cfg(test)]
+mod status_contract_regressions {
+    use super::*;
+
+    fn fixture() -> (tempfile::TempDir, ToolContext, String) {
+        let dir=tempfile::tempdir().unwrap();
+        let workspace=dir.path().join("workspace");
+        std::fs::create_dir(&workspace).unwrap();
+        let ctx=ToolContext::for_test(workspace,dir.path().join("harness")).unwrap();
+        let task=ctx.personal.open_task_request(&json!({"goal":"status contract fixture","request_id":"open"})).unwrap()["task_id"].as_str().unwrap().to_string();
+        (dir,ctx,task)
+    }
+
+    #[test]
+    fn explicit_event_page_size_is_honored_without_changing_default() {
+        let (_dir,ctx,task)=fixture();
+        for n in 0..12 {ctx.personal.event(&task,"fixture",&json!({"number":n})).unwrap();}
+        let first=status(&ctx,&json!({"task_id":task,"events_after":0,"limit":10})).unwrap();
+        assert_eq!(first["events"].as_array().unwrap().len(),10);
+        assert!(first["next_cursor"].is_number());
+        let next=status(&ctx,&json!({"task_id":task,"events_after":first["next_cursor"],"limit":10})).unwrap();
+        assert!(!next["events"].as_array().unwrap().is_empty());
+        let default=status(&ctx,&json!({"task_id":task,"events_after":0})).unwrap();
+        assert_eq!(default["events"].as_array().unwrap().len(),2);
+    }
+
+    #[test]
+    fn contradictory_explicit_task_and_job_ids_are_rejected() {
+        let (_dir,ctx,task)=fixture();
+        let other=ctx.personal.open_task_request(&json!({"goal":"other fixture","request_id":"other"})).unwrap()["task_id"].as_str().unwrap().to_string();
+        let job=uuid::Uuid::new_v4().to_string();
+        ctx.personal.conn().unwrap().execute("INSERT INTO jobs(id,task_id,scope,request_id,input_hash,spec,state,exit_code,created,updated) VALUES(?1,?2,?2,'fixture','hash','{}','exited',0,0,0)",(&job,&task)).unwrap();
+        assert_eq!(status(&ctx,&json!({"task_id":other,"job_id":job})).unwrap_err().code(),"JOB_TASK_MISMATCH");
+        assert_eq!(status(&ctx,&json!({"task_id":task,"job_id":job})).unwrap()["task_id"],task);
+        assert_eq!(status(&ctx,&json!({"job_id":job})).unwrap()["task_id"],task);
+    }
+
+    #[test]
+    fn server_health_contains_bounded_runtime_pressure() {
+        let (_dir,ctx,_task)=fixture();
+        let result=super::super::dispatch::server_info(&ctx).unwrap();
+        assert_eq!(result["runtime_pressure"]["active"],0);
+        assert_eq!(result["runtime_pressure"]["includes_commands"],false);
+        assert_eq!(result["runtime_pressure"]["state_modified"],false);
+    }
+}
 
 #[cfg(test)]
 mod task_view_job_limit_tests {

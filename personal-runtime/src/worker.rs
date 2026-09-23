@@ -42,6 +42,9 @@ pub fn run(dir: PathBuf, job: &str) -> Result<()> {
     let start = Instant::now();
     let mut heartbeat = Instant::now();
     let control = store.conn()?;
+    let mut delay = 20u64;
+    let jitter = job.bytes().fold(0u64, |sum, byte| sum + byte as u64) % 17;
+    let mut waiting_reported = false;
     let guards = loop {
         if store.job_cancelled_on(&control,job)? {
             store.finish_job(job, "cancelled", None, "cancelled before execution")?;
@@ -51,15 +54,22 @@ pub fn run(dir: PathBuf, job: &str) -> Result<()> {
             store.finish_job(job, "queue_timeout", None, "queue exceeded 30 minutes; command not launched")?;
             return Ok(());
         }
-        if heartbeat.elapsed() >= Duration::from_secs(1) {
-            control.execute("UPDATE jobs SET updated=?2 WHERE id=?1 AND state='queued'", (job, now_ms()))?;
+        let waiting = match acquire(&store, &spec)? {
+            Admission::Ready(guards) => break guards,
+            Admission::Waiting(reason) => reason,
+        };
+        if !waiting_reported || heartbeat.elapsed() >= Duration::from_secs(1) {
+            control.execute("UPDATE jobs SET updated=?2,detail=?3 WHERE id=?1 AND state='queued'", (job, now_ms(), format!("waiting:{waiting}")))?;
             heartbeat = Instant::now();
+            waiting_reported = true;
         }
-        if let Some(guards) = acquire(&store, &spec)? { break guards; }
-        std::thread::sleep(Duration::from_millis(100));
+        // Desynchronize contenders; queue sleep is capped at 266ms. Database
+        // contention can add latency. Failed tries drop every partial reservation.
+        std::thread::sleep(Duration::from_millis(delay + jitter));
+        delay = (delay * 2).min(250);
     };
     let claimed = control.execute(
-        "UPDATE jobs SET state='running',updated=?2 WHERE id=?1 AND state='queued'", (job, now_ms()),
+        "UPDATE jobs SET state='running',detail='',updated=?2 WHERE id=?1 AND state='queued'", (job, now_ms()),
     )?;
     if claimed != 1 { return Ok(()); }
     drop(control);
@@ -71,10 +81,12 @@ pub fn run(dir: PathBuf, job: &str) -> Result<()> {
     result
 }
 
-fn acquire(store: &Store, spec: &JobSpec) -> Result<Option<Vec<Guard>>> {
+enum Admission { Ready(Vec<Guard>), Waiting(&'static str) }
+
+fn acquire(store: &Store, spec: &JobSpec) -> Result<Admission> {
     let mut guards = Vec::new();
     if spec.mode != "read" {
-        let Some(guard) = locks::try_gate(&store.dir, "source", spec.mode == "write")? else { return Ok(None); };
+        let Some(guard) = locks::try_gate(&store.dir, "source", spec.mode == "write")? else { return Ok(Admission::Waiting("source")); };
         guards.push(guard);
         // An unknown historical result must not permanently occupy the whole
         // workspace. Active cooperative children retain the source/resource locks;
@@ -84,16 +96,16 @@ fn acquire(store: &Store, spec: &JobSpec) -> Result<Option<Vec<Guard>>> {
     let mut resources = spec.resources.clone();
     resources.sort(); resources.dedup();
     for resource in resources {
-        let Some(guard) = locks::try_gate(&store.dir, &format!("resource:{resource}"), true)? else { return Ok(None); };
+        let Some(guard) = locks::try_gate(&store.dir, &format!("resource:{resource}"), true)? else { return Ok(Admission::Waiting("resource")); };
         guards.push(guard);
     }
     if spec.mode == "build" {
-        let Some(guard) = locks::slot(&store.dir, "heavy", MAX_HEAVY)? else { return Ok(None); };
+        let Some(guard) = locks::slot(&store.dir, "heavy", MAX_HEAVY)? else { return Ok(Admission::Waiting("heavy_capacity")); };
         guards.push(guard);
     }
-    let Some(guard) = locks::slot(&store.dir, "commands", MAX_RUNNING)? else { return Ok(None); };
+    let Some(guard) = locks::slot(&store.dir, "commands", MAX_RUNNING)? else { return Ok(Admission::Waiting("command_capacity")); };
     guards.push(guard);
-    Ok(Some(guards))
+    Ok(Admission::Ready(guards))
 }
 
 struct OwnedCommand { child: Child, group_cleaned: bool }
