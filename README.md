@@ -1,4 +1,23 @@
-# Coding Tools MCP Personal 0.3.3
+# TaskDock · AI 任务工作台
+
+TaskDock 0.4.0 是原 Coding Tools MCP Personal 的任务工作台重构版本。日常入口收敛为 **工作台、项目、工具与技能、设置**，以真实任务记录、项目上下文和诊断信息替代配置优先的首页。
+
+新工作台提供任务搜索、筛选与分页、目标创建和 AI 客户端接续指令、检查点与作业日志，以及项目级技能自动匹配偏好。**保存目标不等于开始执行**：没有真实作业时显示“待接续”；未经核验的客户端连接不会显示为握手成功。
+
+前端采用 Svelte 5 / SvelteKit，桌面与运行时保留 Tauri 2 / Rust。应用显示名称已更改，现有应用标识、配置与任务数据路径、底层协议及兼容入口保持稳定，避免改名使已有客户端失联。
+
+**当前为源码改造版本，不是已验收的安装包发布。** 类型检查、Rust 编译检查与任务查询专项的已执行结果不代表完整回归、原生桌面交互、签名安装或运行替换已经完成。实施范围见 [TaskDock 规格](docs/specs/taskdocksvelte5tauri2/requirements.md)。
+
+```sh
+npm ci
+npm run check
+npm run build
+# 原生桌面开发：npm run desktop
+```
+
+以下保留个人版历史说明和上游使用资料；其中历史产品名、截图、安装包与发布链接不代表 TaskDock 0.4.0 的交付状态。
+
+## 个人版历史说明
 
 0.3.3 修复 `/mcp` 事件流 GET 的协议响应；以 `Accept: text/event-stream` 请求时返回 `405`，普通健康检查仍可读取版本 JSON。
 

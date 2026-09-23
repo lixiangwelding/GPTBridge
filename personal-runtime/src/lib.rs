@@ -3,6 +3,8 @@ pub mod locks;
 pub mod limits;
 pub mod store;
 pub mod tasks;
+pub mod workbench;
+pub mod skill_preferences;
 mod task_open;
 pub mod jobs;
 pub mod worker;

@@ -1,7 +1,7 @@
 {
-  "name": "coding-tools-mcp-personal",
-  "version": "0.3.8",
-  "description": "Coding Tools MCP desktop client",
+  "name": "taskdock",
+  "version": "0.4.0",
+  "description": "TaskDock - local AI task workbench with compatible MCP services",
   "type": "module",
   "scripts": {
     "dev": "vite dev",

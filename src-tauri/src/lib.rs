@@ -75,6 +75,9 @@ pub fn personal_cli() -> Option<i32> {
 
 use app_state::AppState;
 use commands::{
+    taskdock_snapshot,taskdock_task,taskdock_create,taskdock_job_output,taskdock_add_project,taskdock_connections,
+    taskdock_skills,taskdock_skill_read,taskdock_skill_preference,
+    taskdock_start_service,taskdock_app_info,
     check_app_update, clear_all_logs, create_workspace, delete_frp_profile, delete_workspace,
     discover_upstream_tools, get_audit_config, get_audit_record, get_audit_stats,
     query_audit_records,
@@ -178,7 +181,7 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
 
     let mut builder = TrayIconBuilder::with_id("main-tray")
         .menu(&menu)
-        .tooltip("Coding Tools MCP Personal")
+        .tooltip("TaskDock · AI 任务工作台")
         .on_menu_event(|app, event| match event.id.as_ref() {
             "show" => {
                 let _ = commands::window_chrome::show_main_window(app.clone());
@@ -228,6 +231,9 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            taskdock_snapshot,taskdock_task,taskdock_create,taskdock_job_output,taskdock_add_project,taskdock_connections,
+            taskdock_skills,taskdock_skill_read,taskdock_skill_preference,
+            taskdock_start_service,taskdock_app_info,
             list_workspaces,
             create_workspace,
             discover_upstream_tools,

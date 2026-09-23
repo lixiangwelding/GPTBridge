@@ -66,7 +66,9 @@ impl Store {
         CREATE INDEX IF NOT EXISTS jobs_task_updated ON jobs(task_id,updated);
         CREATE INDEX IF NOT EXISTS jobs_created ON jobs(created DESC,id);
         CREATE INDEX IF NOT EXISTS jobs_task_created ON jobs(task_id,created DESC,id);
-        CREATE INDEX IF NOT EXISTS jobs_active ON jobs(state) WHERE state IN ('queued','running');")?;
+        CREATE INDEX IF NOT EXISTS jobs_active ON jobs(state) WHERE state IN ('queued','running');
+        CREATE TABLE IF NOT EXISTS taskdock_skill_preferences(id INTEGER PRIMARY KEY CHECK(id=1),revision INTEGER NOT NULL,disabled TEXT NOT NULL);
+        INSERT OR IGNORE INTO taskdock_skill_preferences VALUES(1,0,'[]');")?;
         Ok(s)
     }
     pub fn conn(&self) -> Result<Connection> {

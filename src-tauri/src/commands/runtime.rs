@@ -85,7 +85,7 @@ fn mcp_start_failure(
 }
 
 #[allow(clippy::collapsible_if)]
-async fn ensure_port_available(port: u16, service_label: &str) -> AppResult<()> {
+async fn ensure_port_available(port: u16, service_label: &str, allow_reclaim: bool) -> AppResult<()> {
     let Some(pid) = platform().find_pid_listening_on_port(port)? else {
         return Ok(());
     };
@@ -96,7 +96,7 @@ async fn ensure_port_available(port: u16, service_label: &str) -> AppResult<()> 
         }
     }
 
-    if try_reclaim_previous_macos_app_port(port) {
+    if allow_reclaim && try_reclaim_previous_macos_app_port(port) {
         return Ok(());
     }
 
@@ -126,12 +126,16 @@ async fn stop_mcp_service(state: &AppState, id: &str) -> AppResult<RuntimeStatus
 }
 
 async fn start_mcp_service(state: &AppState, id: &str) -> AppResult<RuntimeStatusDto> {
+    start_mcp_service_with_reclaim(state, id, true).await
+}
+
+async fn start_mcp_service_with_reclaim(state: &AppState, id: &str, allow_reclaim: bool) -> AppResult<RuntimeStatusDto> {
     validate_start_resources(state, id, WorkspaceService::Mcp)?;
     let profile = profile_by_id(state, id)?;
     if state.with_runtime(|runtime| Ok(runtime.is_running(id, ServiceKind::Mcp)))? {
         return state.with_runtime(|runtime| Ok(runtime.mcp_status(&profile)));
     }
-    if let Err(error) = ensure_port_available(profile.runtime.local_port, "本地 MCP").await {
+    if let Err(error) = ensure_port_available(profile.runtime.local_port, "本地 MCP", allow_reclaim).await {
         return mcp_start_failure(state, &profile, error.to_string());
     }
     let core_tools = crate::tools::registry::exposed_tool_names(&profile.runtime.tool_profile);
@@ -190,9 +194,16 @@ async fn stop_actions_service(state: &AppState, id: &str) -> AppResult<RuntimeSt
 }
 
 async fn start_actions_service(state: &AppState, id: &str) -> AppResult<RuntimeStatusDto> {
+    start_actions_service_with_reclaim(state, id, true).await
+}
+
+async fn start_actions_service_with_reclaim(state: &AppState, id: &str, allow_reclaim: bool) -> AppResult<RuntimeStatusDto> {
     validate_start_resources(state, id, WorkspaceService::Actions)?;
     let profile = profile_by_id(state, id)?;
-    ensure_port_available(profile.actions.local_port, "本地 Actions").await?;
+    if state.with_runtime(|runtime|Ok(runtime.is_running(id,ServiceKind::Actions)))? {
+        return state.with_runtime(|runtime|Ok(runtime.actions_status(&profile)));
+    }
+    ensure_port_available(profile.actions.local_port, "本地 Actions", allow_reclaim).await?;
     state.with_runtime(|runtime| runtime.start_actions(&profile))?;
     sync_tunnel_routes_from_runtime(state).await?;
 
@@ -247,6 +258,17 @@ pub(crate) async fn restart_actions_by_id(
 #[tauri::command]
 pub async fn start_runtime(state: State<'_, AppState>, id: String) -> AppResult<RuntimeStatusDto> {
     start_mcp_service(&state, &id).await
+}
+
+/// Unlike the compatibility entry, this never reclaims another app's listener.
+#[tauri::command]
+pub async fn taskdock_start_service(state: State<'_, AppState>, workspace_id: String, service: String) -> AppResult<RuntimeStatusDto> {
+    let _guard = RESTART_GATE.lock().await;
+    match service.as_str() {
+        "mcp" => start_mcp_service_with_reclaim(&state,&workspace_id,false).await,
+        "actions" => start_actions_service_with_reclaim(&state,&workspace_id,false).await,
+        _ => Err(AppError::Message("请选择 MCP 或 Actions 服务".into())),
+    }
 }
 
 #[tauri::command]

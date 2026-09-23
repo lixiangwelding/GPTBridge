@@ -7,6 +7,7 @@ use super::{skill_io as io, workspace::WorkspaceError};
 #[derive(Clone,Debug)]
 pub struct Catalog {
     workspace:PathBuf, globals:Vec<PathBuf>, pub enabled:bool,
+    preferences_path:Option<PathBuf>,
     // Per-catalog and shared by clones, not a global cross-repository cache.
     metadata_cache:Arc<Mutex<BTreeMap<PathBuf,CachedMetadata>>>,
 }
@@ -29,18 +30,21 @@ fn file_stamp(path:&Path)->Option<FileStamp> {
     #[cfg(not(unix))] {let _=path;None}
 }
 #[derive(Clone)]
-pub struct Skill {pub id:String,pub name:String,pub description:String,pub alias:String,pub scope:&'static str,pub manual_only:bool,pub root:PathBuf,pub file:PathBuf,pub sha:String}
+pub struct Skill {pub id:String,pub name:String,pub description:String,pub alias:String,pub scope:&'static str,pub manual_only:bool,pub source_manual_only:bool,pub user_disabled:bool,pub root:PathBuf,pub file:PathBuf,pub sha:String}
 pub struct Scan {pub skills:Vec<Skill>,pub truncated:bool,pub skipped:usize,pub visited:usize,pub root_count:usize,pub metadata_cache_hits:usize,pub metadata_reads:usize}
 impl Skill {
     pub fn summary(&self)->Value{json!({"skill_id":self.id,"name":self.name,"description":self.description,
-        "folder_alias":self.alias,"scope":self.scope,"sha256":self.sha,"model_invocable":!self.manual_only,
+        "folder_alias":self.alias,"scope":self.scope,"sha256":self.sha,"model_invocable":!self.manual_only,"source_manual_only":self.source_manual_only,"user_disabled":self.user_disabled,
         "source_ref":format!("skill://{}/{}",self.id,io::uri_component(&self.file.strip_prefix(&self.root).unwrap_or(Path::new("SKILL.md")).to_string_lossy())),"invocation":format!("${}",self.name)})}
 }
 impl Catalog {
-    pub fn new(workspace:PathBuf,globals:Vec<PathBuf>)->Self{Self{workspace,globals,enabled:true,metadata_cache:Arc::new(Mutex::new(BTreeMap::new()))}}
+    pub fn new(workspace:PathBuf,globals:Vec<PathBuf>)->Self{Self{workspace,globals,enabled:true,preferences_path:None,metadata_cache:Arc::new(Mutex::new(BTreeMap::new()))}}
     pub fn production(workspace:PathBuf)->Self{
         let globals=dirs::home_dir().map(|home|vec![home.join(".agents/skills"),home.join(".codex/skills")]).unwrap_or_default();
+        let preferences_path=crate::harness::Harness::default_root().ok().and_then(|root|workspace.canonicalize().ok().map(|canonical|
+            root.join("personal-runtime").join(digest(canonical.to_string_lossy().as_bytes())).join("runtime.sqlite3")));
         let mut result=Self::new(workspace,globals);
+        result.preferences_path=preferences_path;
         result.enabled=std::env::var("CODING_TOOLS_PERSONAL_SKILLS").ok().as_deref()!=Some("off");
         if let Some(extra)=std::env::var_os("CODING_TOOLS_SKILL_ROOTS") {
             result.globals.extend(std::env::split_paths(&extra).filter(|p|p.is_absolute()).take(16));
@@ -82,6 +86,10 @@ impl Catalog {
     }
     pub fn scan(&self)->Result<Scan,WorkspaceError>{
         if !self.enabled{return Err(io::error("SKILLS_DISABLED","The local skill bridge is disabled in server configuration"));}
+        let preferences=match &self.preferences_path {
+            Some(path)=>coding_tools_personal_runtime::skill_preferences::read_file(path).map_err(|e|io::error("SKILL_PREFERENCES_UNAVAILABLE",&e.to_string()))?,
+            None=>Default::default(),
+        };
         let roots=self.roots();let mut seen=BTreeSet::new();let mut seen_files=BTreeSet::new();
         let mut scan=Scan{skills:Vec::new(),truncated:false,skipped:0,visited:0,root_count:roots.len(),metadata_cache_hits:0,metadata_reads:0};
         let mut stack:Vec<_>=roots.iter().rev().map(|(scope,p)|(*scope,p.clone(),0)).collect();
@@ -107,8 +115,9 @@ impl Catalog {
                             Ok((meta,hit))=>{
                                 if hit {scan.metadata_cache_hits+=1;}else{scan.metadata_reads+=1;}
                                 let root=roots.iter().find(|(_,r)|file.starts_with(r)).expect("checked root").1.clone();
-                                scan.skills.push(Skill{id:digest(format!("{}\0{}",self.workspace.display(),file.display()))[..32].into(),
-                                    name:meta.name,description:meta.description,alias:real.file_name().unwrap_or_default().to_string_lossy().to_string(),scope,manual_only:meta.manual_only,root,file,sha:meta.sha});
+                                let id=digest(format!("{}\0{}",self.workspace.display(),file.display()))[..32].to_string();
+                                let user_disabled=preferences.disabled.contains(&id);
+                                scan.skills.push(Skill{id,name:meta.name,description:meta.description,alias:real.file_name().unwrap_or_default().to_string_lossy().to_string(),scope,manual_only:meta.manual_only||user_disabled,source_manual_only:meta.manual_only,user_disabled,root,file,sha:meta.sha});
                             },Err(_)=>scan.skipped+=1,
                         }
                     }else{scan.skipped+=1;}
@@ -141,7 +150,7 @@ impl Catalog {
             (score>0).then_some((score,s))
         }).collect();
         ranked.sort_by(|(a,x),(b,y)|b.cmp(a).then(x.name.cmp(&y.name)).then(x.id.cmp(&y.id)));
-        let revision=digest(json!([self.workspace,query,automatic,ranked.iter().map(|(_,s)|(&s.id,&s.sha)).collect::<Vec<_>>()]).to_string());
+        let revision=digest(json!([self.workspace,query,automatic,ranked.iter().map(|(_,s)|(&s.id,&s.sha,s.manual_only)).collect::<Vec<_>>()]).to_string());
         let mut offset=0usize;
         if let Some(cursor)=args.get("cursor").and_then(Value::as_str){
             let Some((hash,index))=cursor.split_once(':') else{return Err(io::error("INVALID_SKILL_CURSOR","Invalid cursor"));};

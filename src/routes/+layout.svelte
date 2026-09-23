@@ -1,179 +1,34 @@
 <script lang="ts">
   import "../app.css";
-  import { onMount } from "svelte";
-  import { goto } from "$app/navigation";
+  import "$lib/taskdock/taskdock.css";
+  import { onMount, type Snippet } from "svelte";
   import { page } from "$app/stores";
-  import { open } from "@tauri-apps/plugin-dialog";
-  import AppShell from "$lib/components/AppShell.svelte";
+  import Shell from "$lib/taskdock/Shell.svelte";
+  import ProjectDialog from "$lib/taskdock/ProjectDialog.svelte";
+  import CreateTaskDialog from "$lib/taskdock/CreateTaskDialog.svelte";
+  import ConnectionDialog from "$lib/taskdock/ConnectionDialog.svelte";
   import ToastHost from "$lib/components/ToastHost.svelte";
-  import WorkspaceNavItem from "$lib/components/WorkspaceNavItem.svelte";
-  import {
-    createWorkspace,
-    getActionsRuntimeStatus,
-    getRuntimeStatus,
-    listWorkspaces,
-  } from "$lib/api/workspaces";
-  import { getLastWorkspaceId } from "$lib/api/settings";
-  import { actionsRuntimeStates, mcpRuntimeStates, workspaces } from "$lib/stores/app";
-  import { showToast } from "$lib/stores/toast";
+  import CloseConfirmDialog from "$lib/components/CloseConfirmDialog.svelte";
+  import { initialize } from "$lib/taskdock/state";
+  import { nativeAvailable } from "$lib/taskdock/api";
   import { startUiMemoryGuard } from "$lib/ui-memory-guard";
   import { startCloseGuard } from "$lib/close-guard";
-  import CloseConfirmDialog from "$lib/components/CloseConfirmDialog.svelte";
-  import type { RuntimeState } from "$lib/types";
 
-  let { children } = $props();
+  let { children }: { children: Snippet } = $props();
   let closeConfirmOpen = $state(false);
-
-  async function refreshWorkspaces() {
-    const items = await listWorkspaces();
-    workspaces.set(items);
-
-    const mcpStates: Record<string, RuntimeState> = {};
-    const actionsStates: Record<string, RuntimeState> = {};
-    await Promise.all(
-      items.map(async (item) => {
-        try {
-          const [mcp, actions] = await Promise.all([
-            getRuntimeStatus(item.id),
-            getActionsRuntimeStatus(item.id),
-          ]);
-          mcpStates[item.id] = mcp.state;
-          actionsStates[item.id] = actions.state;
-        } catch {
-          mcpStates[item.id] = "stopped";
-          actionsStates[item.id] = "stopped";
-        }
-      }),
-    );
-    mcpRuntimeStates.set(mcpStates);
-    actionsRuntimeStates.set(actionsStates);
-  }
-
-  async function addWorkspace() {
-    try {
-      const selected = await open({ directory: true, multiple: false });
-      if (!selected || Array.isArray(selected)) return;
-      const profile = await createWorkspace(selected);
-      await refreshWorkspaces();
-      goto(`/workspace/${profile.id}`);
-    } catch (error) {
-      showToast(String(error), {
-        title: "添加工作区失败",
-        kind: "error",
-        duration: 8000,
-      });
-    }
-  }
-
-  function openWorkspace(id: string) {
-    goto(`/workspace/${id}`);
-  }
-
-  function openFrpSettings() {
-    goto("/settings/frp");
-  }
-
-  function openSoftwareSettings() {
-    goto("/settings/software");
-  }
-
-  function openGeneralSettings() {
-    goto("/settings/general");
-  }
-
-  function openKeysSettings() {
-    goto("/settings/keys");
-  }
-
-  function openAuditSettings() {
-    goto("/settings/audit");
-  }
-
+  const legacy = $derived($page.url.pathname.startsWith("/workspace/") || $page.url.pathname.startsWith("/settings/"));
   onMount(() => {
-    const stopGuard = startUiMemoryGuard();
-    const stopClose = startCloseGuard(() => {
-      closeConfirmOpen = true;
-    });
-    void (async () => {
-      await refreshWorkspaces();
-      const path = $page.url.pathname;
-      if (path === "/") {
-        const lastId = await getLastWorkspaceId();
-        if (lastId && $workspaces.some((item) => item.id === lastId)) {
-          goto(`/workspace/${lastId}`);
-        } else if ($workspaces.length > 0) {
-          goto(`/workspace/${$workspaces[0].id}`);
-        }
-      }
-    })();
-    return () => {
-      stopGuard();
-      stopClose();
-    };
+    void initialize();
+    if (!nativeAvailable()) return;
+    const stopMemory = startUiMemoryGuard();
+    const stopClose = startCloseGuard(() => closeConfirmOpen = true);
+    return () => { stopMemory(); stopClose(); };
   });
 </script>
 
-<AppShell onAddWorkspace={addWorkspace}>
-  {#snippet settingsNav()}
-    <button
-      type="button"
-      class="tx-settings-link {$page.url.pathname === '/settings/general' ? 'active' : ''}"
-      onclick={openGeneralSettings}
-    >
-      通用
-    </button>
-    <button
-      type="button"
-      class="tx-settings-link {$page.url.pathname === '/settings/keys' ? 'active' : ''}"
-      onclick={openKeysSettings}
-    >
-      共享密钥
-    </button>
-    <button
-      type="button"
-      class="tx-settings-link {$page.url.pathname === '/settings/audit' ? 'active' : ''}"
-      onclick={openAuditSettings}
-    >
-      运行日志
-    </button>
-    <button
-      type="button"
-      class="tx-settings-link {$page.url.pathname === '/settings/frp' ? 'active' : ''}"
-      onclick={openFrpSettings}
-    >
-      FRP 配置
-    </button>
-    <button
-      type="button"
-      class="tx-settings-link {$page.url.pathname === '/settings/software' ? 'active' : ''}"
-      onclick={openSoftwareSettings}
-    >
-      软件管理
-    </button>
-  {/snippet}
-  {#snippet sidebar()}
-    <div class="space-y-1">
-      {#each $workspaces as workspace (workspace.id)}
-        <WorkspaceNavItem
-          workspace={workspace}
-          active={$page.url.pathname === `/workspace/${workspace.id}`}
-          mcpState={$mcpRuntimeStates[workspace.id] ?? "stopped"}
-          actionsState={$actionsRuntimeStates[workspace.id] ?? "stopped"}
-          onClick={() => openWorkspace(workspace.id)}
-        />
-      {/each}
-    </div>
-  {/snippet}
-
-  {#snippet children()}
-    {@render children()}
-  {/snippet}
-</AppShell>
-
-<ToastHost />
-<CloseConfirmDialog
-  open={closeConfirmOpen}
-  onCancel={() => {
-    closeConfirmOpen = false;
-  }}
-/>
+<Shell>
+  {#if legacy}<div class="td-legacy-crumb"><a href="/settings">← 返回设置</a><span>高级配置 · 保留现有功能与数据</span></div><div class="td-legacy">{@render children()}</div>{:else}{@render children()}{/if}
+</Shell>
+<ProjectDialog/><CreateTaskDialog/><ConnectionDialog/>
+<ToastHost/>
+<CloseConfirmDialog open={closeConfirmOpen} onCancel={() => closeConfirmOpen = false}/>
