@@ -38,7 +38,7 @@ pub fn text<'a>(value: &'a Value, key: &str, max: usize) -> Result<&'a str> {
 }
 
 #[derive(Clone, Debug)]
-pub struct Store { pub dir: PathBuf, pub workspace: PathBuf }
+pub struct Store { pub dir: PathBuf, pub workspace: PathBuf, pub limits: crate::limits::ConcurrencyLimits }
 impl Store {
     pub fn open(base: &Path, workspace: &Path) -> Result<Self> {
         let workspace = workspace.canonicalize()?;
@@ -53,7 +53,8 @@ impl Store {
             return Err(Error::contract("SQLITE_UPGRADE_REQUIRED", "personal WAL state requires SQLite >=3.51.3"));
         }
         private_dir(&dir)?; private_dir(&dir.join("locks"))?; private_dir(&dir.join("jobs"))?;
-        let s = Self { dir, workspace: workspace.canonicalize()? };
+        let limits=crate::limits::ConcurrencyLimits::load(&dir)?;
+        let s = Self { dir, workspace: workspace.canonicalize()?, limits };
         let c = s.conn()?;
         c.pragma_update(None, "journal_mode", "WAL")?;
         c.execute_batch("CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY, goal TEXT NOT NULL, state TEXT NOT NULL, revision INTEGER NOT NULL, checkpoint TEXT NOT NULL, created INTEGER NOT NULL, updated INTEGER NOT NULL);

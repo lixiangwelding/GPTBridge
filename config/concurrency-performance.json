@@ -1,0 +1,11 @@
+{
+  "running": 64,
+  "heavy": 4,
+  "queued_and_running": 256,
+  "http_requests": 256,
+  "http_waiting": 192,
+  "http_control_reserved": 32,
+  "stdio_workers": 32,
+  "stdio_control_workers": 4,
+  "stdio_queue": 256
+}

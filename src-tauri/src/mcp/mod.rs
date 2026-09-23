@@ -1,4 +1,5 @@
 mod listener;
+pub(crate) mod flow_control;
 pub(crate) mod server;
 pub(crate) mod gateway;
 #[cfg(test)]

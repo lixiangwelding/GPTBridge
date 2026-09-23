@@ -553,10 +553,16 @@ pub fn server_info(ctx: &ToolContext) -> Result<Value, WorkspaceError> {
         "tool_contract": super::registry::catalog_contract(&ctx.tool_profile),
         "delivery": super::delivery::policy(ctx.workspace.root()),
         "runtime_pressure": ctx.personal.runtime_pressure().unwrap_or_else(|error|json!({"available":false,"error_code":error.code()})),
+        "concurrency": {"profile":ctx.personal.limits.profile(),"effective":ctx.personal.limits,
+            "configuration_path":ctx.personal.dir.join(coding_tools_personal_runtime::limits::CONFIG_FILE),
+            "restart_required":ctx.personal.limits.require_unchanged(&ctx.personal.dir).is_err(),
+            "file_descriptors":coding_tools_personal_runtime::limits::file_capacity(),
+            "scope":"workspace for jobs; per-listener/per-stdio-process for transport",
+            "source_write_exclusive":true,"limits_are_not_throughput_guarantees":true},
         "skill_bridge": {"enabled":ctx.skills.enabled,"tools":super::skills::TOOLS,"local_files":true,
             "textual_dollar_alias":true,"native_dollar_picker":false,"executes_scripts":false},
         "personal_runtime": {"enabled":true,"task_scope":"explicit_task_id","durable_jobs":true,"same_directory":true,"worktree_required":false,
-            "limits":{"running":8,"heavy":2,"queued_and_running":32},"config_isolated":true,"raw_transcript_capture":"only_explicitly_supplied_text",
+            "limits":ctx.personal.limits.jobs_json(),"config_isolated":true,"raw_transcript_capture":"only_explicitly_supplied_text",
             "saturated_queue_reconciliation":true,"completed_task_receipt_recovery":true,"queue_wait_diagnostics":true}
     })))
 }

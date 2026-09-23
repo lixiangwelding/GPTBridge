@@ -111,12 +111,17 @@ fn stdio(profile:WorkspaceProfile,upstream:Arc<UpstreamMcpManager>)->Result<(),S
     let workspace=Workspace::new(profile.path.into()).map_err(|e|e.message())?;
     let state=server::new_state(workspace,profile.id,profile.auth,
         PolicySettings::from_runtime(&profile.runtime),profile.runtime.tool_profile,profile.runtime.permission_mode,upstream);
-    let (send,receive)=mpsc::sync_channel::<Value>(32);
+    let limits=&state.tools.personal.limits;
+    let control_queue=(limits.stdio_control_workers*8).min(limits.stdio_queue/4).max(1);
+    let (send,receive)=mpsc::sync_channel::<Value>(limits.stdio_queue-control_queue);
+    let (control_send,control_receive)=mpsc::sync_channel::<Value>(control_queue);
     let receive=Arc::new(Mutex::new(receive));
+    let control_receive=Arc::new(Mutex::new(control_receive));
     let writer=Arc::new(Mutex::new(io::BufWriter::new(io::stdout())));
     let mut workers=Vec::new();
-    for _ in 0..4 {
-        let receive=receive.clone();let writer=writer.clone();let state=state.clone();
+    for n in 0..limits.stdio_workers {
+        let receive=if n<limits.stdio_control_workers {control_receive.clone()}else{receive.clone()};
+        let writer=writer.clone();let state=state.clone();
         workers.push(std::thread::spawn(move||->Result<(),String>{
             loop {
                 let body=match receive.lock().map_err(|_|"input queue unavailable")?.recv(){Ok(v)=>v,Err(_)=>return Ok(())};
@@ -131,7 +136,22 @@ fn stdio(profile:WorkspaceProfile,upstream:Arc<UpstreamMcpManager>)->Result<(),S
         while let Some(frame)=read_frame(&mut input).map_err(|e|e.to_string())? {
             let body=serde_json::from_slice::<Value>(&frame);
             match body {
-                Ok(body) if valid_request(&body)=>send.send(body).map_err(|_|"stdio workers unavailable")?,
+                Ok(body) if valid_request(&body)=>{
+                    let queue=if crate::mcp::flow_control::is_control(&body){&control_send}else{&send};
+                    // Never block the input reader behind a full work queue:
+                    // later status/cancel requests must reach their own workers.
+                    match queue.try_send(body) {
+                        Ok(())=>{},
+                        Err(mpsc::TrySendError::Full(body))=>{
+                            if !body["id"].is_null() {
+                                write_response(&writer,&json!({"jsonrpc":"2.0","id":body["id"],
+                                    "error":{"code":-32001,"message":"Server capacity reached",
+                                    "data":{"request_executed":false,"retry_same_request":true,"retry_after_ms":1000}}}))?;
+                            }
+                        },
+                        Err(mpsc::TrySendError::Disconnected(_))=>return Err("stdio workers unavailable".into()),
+                    }
+                },
                 Ok(_)=>write_response(&writer,&json!({"jsonrpc":"2.0","id":null,"error":{"code":-32600,"message":"Invalid Request"}}))?,
                 Err(_)=>write_response(&writer,&json!({"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}))?,
             }
@@ -139,6 +159,7 @@ fn stdio(profile:WorkspaceProfile,upstream:Arc<UpstreamMcpManager>)->Result<(),S
         Ok(())
     })();
     drop(send);
+    drop(control_send);
     for worker in workers {worker.join().map_err(|_|"stdio worker failed")??;}
     read_result
 }

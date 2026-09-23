@@ -101,7 +101,22 @@ def rpc_idle(path: Path) -> bool:
     return all(count == 0 for count in counts.values())
 
 
-def activate(profile: str, own_task: str, handover_pid: int | None = None) -> dict:
+def verify_managed_service(definition: dict, home: Path, pid: int, arguments: str) -> None:
+    expected = definition["ProgramArguments"]
+    # The executable has spaces; ps renders argv as text. Compare the complete
+    # known command instead of accepting a substring/profile supplied by callers.
+    if arguments.strip() != " ".join(expected):
+        raise ValueError("managed listener arguments differ from the saved profile")
+    plist = home / "Library/LaunchAgents" / (definition["Label"] + ".plist")
+    if plist.is_symlink() or not plist.is_file() or plistlib.loads(plist.read_bytes()) != definition:
+        raise ValueError("registered LaunchAgent definition differs")
+    state = subprocess.run(["/bin/launchctl", "print", "gui/%d/%s" % (os.getuid(), definition["Label"])],
+                           capture_output=True, text=True, timeout=5)
+    if state.returncode or not re.search(r"(?m)^\s*pid = %d\s*$" % pid, state.stdout):
+        raise ValueError("running PID is not owned by the expected LaunchAgent")
+
+
+def activate(profile: str, own_task: str, handover_pid: int | None = None, restart_service: bool = False) -> dict:
     if sys.platform != "darwin":
         raise ValueError("this activation entry supports the personal macOS installation")
     import uuid
@@ -143,8 +158,14 @@ def activate(profile: str, own_task: str, handover_pid: int | None = None) -> di
                 raise ValueError("old listener remains active; explicit verified GUI handover PID required")
             command = subprocess.run(["/bin/ps", "-p", str(handover_pid), "-o", "comm="], capture_output=True, text=True, timeout=5).stdout.strip()
             arguments = subprocess.run(["/bin/ps", "-ww", "-p", str(handover_pid), "-o", "command="], capture_output=True, text=True, timeout=5).stdout
-            if command != str(executable) or "--personal-job-worker" in arguments or "--personal-serve" in arguments:
-                raise ValueError("handover target is not the exact personal GUI process")
+            if command != str(executable) or "--personal-job-worker" in arguments:
+                raise ValueError("handover target is not the exact personal application")
+            if "--personal-serve" in arguments:
+                if not restart_service:
+                    raise ValueError("managed service restart requires --restart-service")
+                verify_managed_service(definition, home, handover_pid, arguments)
+            elif restart_service:
+                raise ValueError("--restart-service requires the registered headless service")
         # Verify the same installed executable and saved HTTP auth on an unused port.
         with socket.socket() as reservation:
             reservation.bind(("127.0.0.1", 0)); probe_port = reservation.getsockname()[1]
@@ -198,8 +219,19 @@ def activate(profile: str, own_task: str, handover_pid: int | None = None) -> di
         if current:
             if foreign_jobs(home, Path(selected["path"]), own_task) or not rpc_idle(log):
                 raise ValueError("new work arrived before handover; existing listener preserved")
+            if restart_service:
+                verify_managed_service(definition, home, handover_pid, arguments)
             os.kill(handover_pid, signal.SIGTERM)
             result["old_process_stopped"] = True
+            if restart_service:
+                # Existing KeepAlive LaunchAgent starts the replaced executable.
+                # Never unload it or signal its worker children/process group.
+                result["health"] = wait_health(port, version, seconds=20)
+                result.update(status="running", process_ids=pids(port), launch_agent=str(plist),
+                              configuration_unchanged=sha(config)==before, managed_restart=True)
+                if not result["configuration_unchanged"]:
+                    raise ValueError("configuration drifted during service restart")
+                return result
             deadline = time.monotonic() + 5
             while pids(port) and time.monotonic() < deadline: time.sleep(.1)
             if pids(port): raise ValueError("old GUI has not released the port; no forced termination")
@@ -235,9 +267,10 @@ def main() -> int:
     parser.add_argument("--profile", required=True)
     parser.add_argument("--task-id", required=True)
     parser.add_argument("--handover-pid", type=int)
+    parser.add_argument("--restart-service", action="store_true", help="Explicit idle restart of the verified personal LaunchAgent only")
     args = parser.parse_args()
     try:
-        result = activate(args.profile, args.task_id, args.handover_pid)
+        result = activate(args.profile, args.task_id, args.handover_pid, args.restart_service)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if result["status"] in {"running", "already_running", "running_fallback"} else 1
     except (OSError, ValueError) as error:

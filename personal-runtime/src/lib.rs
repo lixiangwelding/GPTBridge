@@ -1,5 +1,6 @@
 //! Local, single-user cooperative runtime. No network server or hidden agent loop.
 pub mod locks;
+pub mod limits;
 pub mod store;
 pub mod tasks;
 mod task_open;

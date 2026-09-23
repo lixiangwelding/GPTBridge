@@ -7,7 +7,7 @@ fn state() -> (tempfile::TempDir,ListenerState) {
     let state=ListenerState{mcp:a,auth:AuthConfig{auth_type:"bearer".into(),..Default::default()},
         workspace_id:"gateway-test".into(),workspace_path:"fixture".into(),bind_port:0,
         configured_public_url:"https://gateway.example.invalid".into(),bearer_token:Some("synthetic-test-token".into()),
-        oauth:None,oauth_client_secret:None,gateway:Some(hub),request_slots:Arc::new(Semaphore::new(32)),waiting_slots:Arc::new(Semaphore::new(24))};
+        oauth:None,oauth_client_secret:None,gateway:Some(hub),request_slots:Arc::new(Semaphore::new(32)),waiting_slots:Arc::new(Semaphore::new(24)),work_slots:Arc::new(Semaphore::new(28))};
     (temp,state)
 }
 
@@ -204,5 +204,60 @@ async fn automatic_skill_catalog_is_authenticated_and_repository_scoped() {
     let mut wrong=invoke;wrong["params"]["arguments"]["workspace_id"]=json!("b");
     let value:Value=c.post(&endpoint).bearer_auth("synthetic-test-token").json(&wrong).send().await.unwrap().json().await.unwrap();
     assert_eq!(value["result"]["structuredContent"]["error"]["code"],"SKILL_NOT_FOUND");
+    stop(server).await;
+}
+
+#[tokio::test]
+async fn performance_general_saturation_keeps_32_control_slots() {
+    let (_temp,mut state)=state();
+    state.request_slots=Arc::new(Semaphore::new(256));state.waiting_slots=Arc::new(Semaphore::new(192));
+    state.work_slots=Arc::new(Semaphore::new(224));
+    let held=state.work_slots.clone().acquire_many_owned(224).await.unwrap();
+    let server=start(state).await;let c=client();let endpoint=format!("{}/mcp",server.url);
+    assert_eq!(c.post(&endpoint).bearer_auth("synthetic-test-token").json(&body("a")).send().await.unwrap().status(),StatusCode::TOO_MANY_REQUESTS);
+    let control=json!({"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"server_info","arguments":{"workspace_id":"a"}}});
+    let response=c.post(&endpoint).bearer_auth("synthetic-test-token").json(&control).send().await.unwrap();
+    assert_eq!(response.status(),StatusCode::OK);assert_eq!(response.json::<Value>().await.unwrap()["result"]["structuredContent"]["ok"],true);
+    assert_eq!(c.post(&endpoint).json(&control).send().await.unwrap().status(),StatusCode::UNAUTHORIZED);
+    drop(held);stop(server).await;
+}
+#[tokio::test(flavor="multi_thread",worker_threads=4)]
+async fn performance_192_simultaneous_waits_keep_queries_and_cancel_responsive() {
+    coding_tools_personal_runtime::limits::raise_file_capacity(4096);
+    let (_temp,mut state)=state();state.request_slots=Arc::new(Semaphore::new(256));
+    state.waiting_slots=Arc::new(Semaphore::new(192));state.work_slots=Arc::new(Semaphore::new(224));
+    let job=uuid::Uuid::new_v4().to_string();let store=state.mcp.tools.personal.clone();
+    store.conn().unwrap().execute("INSERT INTO jobs(id,scope,request_id,input_hash,spec,state,created,updated) VALUES(?1,'workspace','high-polls','fixture','{}','running',0,?2)",(&job,coding_tools_personal_runtime::now_ms())).unwrap();
+    let _alive=coding_tools_personal_runtime::locks::try_gate(&store.dir,&format!("alive:{job}"),true).unwrap().unwrap();
+    let slots=state.request_slots.clone();let server=start(state).await;let c=client();
+    let request=json!({"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"write_stdin","arguments":{"workspace_id":"a","session_id":format!("job-{job}"),"yield_time_ms":8000}}});
+    let mut polls=tokio::task::JoinSet::new();
+    for n in 0..192 {let c=c.clone();let url=format!("{}/mcp",server.url);let body=request.clone();
+        polls.spawn(async move{c.post(url).bearer_auth("synthetic-test-token").json(&body).send().await.unwrap()});
+        // Measure in-flight concurrency, not macOS's 128-entry TCP backlog.
+        // Earlier requests remain pending; no tool call is retried.
+        if (n+1)%32==0 {
+            tokio::time::timeout(std::time::Duration::from_secs(2),async {
+                while slots.available_permits()>256-(n+1) {
+                    tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+                }
+            }).await.expect("each connection batch must be admitted");
+        }
+    }
+    tokio::time::timeout(std::time::Duration::from_secs(6),async{
+        while slots.available_permits()!=64 {tokio::time::sleep(std::time::Duration::from_millis(5)).await;}
+    }).await.expect("192 real long-poll handlers must be admitted");
+    let endpoint=format!("{}/mcp",server.url);let begin=std::time::Instant::now();
+    assert_eq!(c.post(&endpoint).bearer_auth("synthetic-test-token").json(&request).send().await.unwrap().status(),StatusCode::TOO_MANY_REQUESTS);
+    let result:Value=c.post(&endpoint).bearer_auth("synthetic-test-token").json(&body("b")).send().await.unwrap().json().await.unwrap();
+    assert_eq!(result["result"]["structuredContent"]["content"],"beta");
+    let cancel=json!({"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"kill_session","arguments":{"workspace_id":"a","session_id":format!("job-{job}"),"wait_ms":0}}});
+    let result:Value=c.post(&endpoint).bearer_auth("synthetic-test-token").json(&cancel).send().await.unwrap().json().await.unwrap();
+    assert_eq!(result["result"]["structuredContent"]["cancel_requested"],true);
+    let control_ms=begin.elapsed().as_millis();assert!(control_ms<2000);
+    store.finish_job(&job,"cancelled",None,"isolated fixture complete").unwrap();
+    while let Some(r)=polls.join_next().await {assert_eq!(r.unwrap().status(),StatusCode::OK);}
+    assert_eq!(slots.available_permits(),256);
+    println!("{}",json!({"test":"http-high-concurrency","simultaneous_waits":192,"reserved_remaining":64,"control_roundtrip_ms":control_ms}));
     stop(server).await;
 }

@@ -1,6 +1,6 @@
 {
   "name": "codex-infinite",
-  "version": "0.3.6",
+  "version": "0.3.8",
   "description": "Coding Tools MCP Personal：持久任务、并发协作与本地文件交付。",
   "author": {
     "name": "lixiangwelding"

@@ -48,6 +48,9 @@ impl Store {
             if hash!=old_hash {return Err(Error::contract("IDEMPOTENCY_CONFLICT","command request_id already has different input"))}
             drop(tx); let mut value=self.job_status(&id,4096)?;value["deduplicated"]=json!(true);return Ok(value)
         }
+        // Configuration changes must not produce inconsistent shared slot pools.
+        // Old receipts above remain readable even when new work requires restart.
+        self.limits.require_unchanged(&self.dir)?;
         // Receipt recovery is not new work. Check completion only after dedup,
         // in the same transaction as admission so completion cannot race an insert.
         if let Some(t)=task {
@@ -56,7 +59,7 @@ impl Store {
             if state=="completed" {return Err(Error::contract("TASK_COMPLETED","open a follow-up task before launching new work"))}
         }
         let count:i64=tx.query_row("SELECT count(*) FROM jobs WHERE state IN ('queued','running')",[],|r|r.get(0))?;
-        if count>=MAX_QUEUED as i64 {
+        if count>=self.limits.queued_and_running as i64 {
             drop(tx);
             if retried_admission {return Err(Error::contract("QUEUE_FULL","bounded worker queue is full; query existing jobs before submitting more"))}
             // Bounded recovery, outside the write transaction. Alive locks and
@@ -91,7 +94,7 @@ impl Store {
     fn reconcile_active_jobs_on(&self,c:&Connection)->Result<usize> {
         let ids={
             let mut q=c.prepare_cached("SELECT id FROM jobs WHERE state IN ('queued','running') ORDER BY updated,id LIMIT ?1")?;
-            let rows=q.query_map([MAX_QUEUED as i64],|r|r.get::<_,String>(0))?;
+            let rows=q.query_map([self.limits.queued_and_running as i64],|r|r.get::<_,String>(0))?;
             rows.collect::<std::result::Result<Vec<_>,_>>()?
         };
         let mut reconciled=0;
@@ -110,11 +113,11 @@ impl Store {
         let observed=now_ms();
         let c=self.conn()?;
         let mut q=c.prepare_cached("SELECT id,task_id,state,created,updated,json_extract(spec,'$.mode'),detail FROM jobs WHERE state IN ('queued','running') ORDER BY created,id LIMIT ?1")?;
-        let rows=q.query_map([(MAX_QUEUED+1) as i64],|r|Ok((r.get::<_,String>(0)?,r.get::<_,Option<String>>(1)?,r.get::<_,String>(2)?,r.get::<_,i64>(3)?,r.get::<_,i64>(4)?,r.get::<_,Option<String>>(5)?,r.get::<_,String>(6)?)))?
+        let rows=q.query_map([(self.limits.queued_and_running+1) as i64],|r|Ok((r.get::<_,String>(0)?,r.get::<_,Option<String>>(1)?,r.get::<_,String>(2)?,r.get::<_,i64>(3)?,r.get::<_,i64>(4)?,r.get::<_,Option<String>>(5)?,r.get::<_,String>(6)?)))?
             .collect::<std::result::Result<Vec<_>,_>>()?;
         let (mut queued,mut running,mut heavy)=(0usize,0usize,0usize);
         let mut sample=Vec::new();
-        for (job,task,state,created,updated,mode,detail) in rows.iter().take(MAX_QUEUED) {
+        for (job,task,state,created,updated,mode,detail) in rows.iter().take(self.limits.queued_and_running) {
             if state=="queued" {queued+=1;} else {running+=1;if mode.as_deref()==Some("build") {heavy+=1;}}
             if sample.len()<8 {
                 sample.push(json!({"job_id":job,"task_id":task,"state":state,"mode":mode,
@@ -123,9 +126,9 @@ impl Store {
             }
         }
         Ok(json!({"available":true,"scope":"workspace","observed_at_ms":observed,"queued":queued,"running":running,"running_builds":heavy,
-            "active":queued+running,"admission_remaining":MAX_QUEUED.saturating_sub(queued+running),
-            "counts_are_lower_bounds":rows.len()>MAX_QUEUED,"sample":sample,"sample_truncated":rows.len()>8,
-            "limits":{"running":MAX_RUNNING,"heavy":MAX_HEAVY,"queued_and_running":MAX_QUEUED},
+            "active":queued+running,"admission_remaining":self.limits.queued_and_running.saturating_sub(queued+running),
+            "counts_are_lower_bounds":rows.len()>self.limits.queued_and_running,"sample":sample,"sample_truncated":rows.len()>8,
+            "limits":self.limits.jobs_json(),
             "state_modified":false,"includes_commands":false,
             "interpretation":"database snapshot, not held-permit measurement; old heartbeat alone does not prove worker loss"}))
     }
@@ -174,6 +177,8 @@ impl Store {
         let command_ok=match state.as_str(){"exited"=>Some(exit==Some(0)),"queued"|"running"|"unknown"|"resolved"=>None,_=>Some(false)};
         let mut value=json!({"job_id":job,"session_id":format!("job-{job}"),"task_id":task,"request_id":request,"status":state,"termination_reason":state,"exit_code":exit,"command_ok":command_ok,"created":created,"updated":updated,"cancel_requested":cancel!=0,"detail":detail,"output_loaded":false,"stdout_truncated":null,"stderr_truncated":null,"output_refs":{"stdout":format!("job:{job}:stdout"),"stderr":format!("job:{job}:stderr")},"durable":true,"safe_to_replay":false,"limits":{"running":MAX_RUNNING,"heavy":MAX_HEAVY,"queued_and_running":MAX_QUEUED,"stream_bytes":MAX_STREAM_BYTES}});
         let observed=now_ms();
+        value["limits"]=self.limits.jobs_json();
+        value["limits"]["stream_bytes"]=json!(MAX_STREAM_BYTES);
         value["waiting_for"]=json!(if state=="queued" {waiting_reason(&detail)} else {None});
         value["queued_for_ms"]=json!(if state=="queued" {Some(observed.saturating_sub(created).max(0))} else {None});
         value["heartbeat_age_ms"]=json!(if matches!(state.as_str(),"queued"|"running") {Some(observed.saturating_sub(updated).max(0))} else {None});

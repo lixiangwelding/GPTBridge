@@ -8,7 +8,7 @@ use std::{
 };
 use serde_json::json;
 use crate::{now_ms, Error, Result, Store};
-use crate::jobs::{JobSpec, MAX_HEAVY, MAX_RUNNING, MAX_STREAM_BYTES};
+use crate::jobs::{JobSpec, MAX_STREAM_BYTES};
 use crate::locks::{self, Guard};
 
 pub fn run_from_args() -> Option<i32> {
@@ -100,10 +100,10 @@ fn acquire(store: &Store, spec: &JobSpec) -> Result<Admission> {
         guards.push(guard);
     }
     if spec.mode == "build" {
-        let Some(guard) = locks::slot(&store.dir, "heavy", MAX_HEAVY)? else { return Ok(Admission::Waiting("heavy_capacity")); };
+        let Some(guard) = locks::slot(&store.dir, "heavy", store.limits.heavy)? else { return Ok(Admission::Waiting("heavy_capacity")); };
         guards.push(guard);
     }
-    let Some(guard) = locks::slot(&store.dir, "commands", MAX_RUNNING)? else { return Ok(Admission::Waiting("command_capacity")); };
+    let Some(guard) = locks::slot(&store.dir, "commands", store.limits.running)? else { return Ok(Admission::Waiting("command_capacity")); };
     guards.push(guard);
     Ok(Admission::Ready(guards))
 }

@@ -44,6 +44,8 @@ struct ListenerState {
     // Long waits cannot occupy all total slots. Queries and cancellation retain
     // capacity across repositories; both permits live until execution ends.
     waiting_slots: Arc<Semaphore>,
+    // Ordinary searches/patches also cannot consume the reserved control lane.
+    work_slots: Arc<Semaphore>,
 }
 
 #[cfg(test)]
@@ -120,6 +122,7 @@ pub fn spawn_listener(
     } else {
         None
     };
+    let limits=mcp.tools.personal.limits.clone();
     let state = ListenerState {
         mcp,
         auth,
@@ -131,8 +134,9 @@ pub fn spawn_listener(
         oauth,
         oauth_client_secret,
         gateway,
-        request_slots: Arc::new(Semaphore::new(32)),
-        waiting_slots: Arc::new(Semaphore::new(24)),
+        request_slots: Arc::new(Semaphore::new(limits.http_requests)),
+        waiting_slots: Arc::new(Semaphore::new(limits.http_waiting)),
+        work_slots: Arc::new(Semaphore::new(limits.http_requests-limits.http_control_reserved)),
     };
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
     let profile_id = state.workspace_id.clone();
@@ -244,6 +248,11 @@ async fn mcp_post(
         return response;
     }
     let tool=body["params"]["name"].as_str().unwrap_or("");
+    let work_permit=if super::flow_control::is_control(&body) {None} else {
+        match state.work_slots.clone().try_acquire_owned() {
+            Ok(permit)=>Some(permit),Err(_)=>return capacity_response(),
+        }
+    };
     let waiting=body["method"]=="tools/call" && (
         state.mcp.upstream.owns_tool(tool) || matches!(crate::tools::registry::canonical_tool_name(tool),
             "exec_command" | "exec_health_check" | "write_stdin"));
@@ -294,6 +303,7 @@ async fn mcp_post(
         // Hold capacity until actual execution ends, including when the HTTP client disconnects.
         let _permit = permit;
         let _waiting_permit = waiting_permit;
+        let _work_permit = work_permit;
         match gateway {Some(hub)=>hub.handle(&body,&request_context),None=>handle_request_with_context(&mcp,&body,&request_context)}
     })
     .await;
