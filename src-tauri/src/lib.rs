@@ -7,6 +7,7 @@ mod auth;
 mod audit;
 mod commands;
 mod data;
+mod desktop_cli;
 mod error;
 pub mod harness;
 mod health;
@@ -23,6 +24,7 @@ mod workspace;
 /// Administrative CLI runs before Tauri, listeners, tunnels or configuration migration.
 pub fn personal_cli() -> Option<i32> {
     let args: Vec<String> = std::env::args().collect();
+    if let Some(code)=desktop_cli::run(&args) {return Some(code);}
     if args.get(1).map(String::as_str) == Some("--personal-tool-contract") {
         if args.len() != 2 { eprintln!("usage: --personal-tool-contract"); return Some(2); }
         let mut report = tools::registry::catalog_contract("core");

@@ -1,0 +1,26 @@
+{
+  "name": "codex-infinite",
+  "version": "0.3.6",
+  "description": "Coding Tools MCP Personal：持久任务、并发协作与本地文件交付。",
+  "author": {
+    "name": "lixiangwelding"
+  },
+  "license": "Apache-2.0",
+  "apps": "./.app.json",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "codex无限",
+    "shortDescription": "个人 MCP · 本地文件 · 持久任务",
+    "longDescription": "连接已有 Coding Tools MCP Personal；任务和文档保存在本机工作区，返回绝对路径，保留并发任务和写入校验。",
+    "developerName": "lixiangwelding",
+    "category": "Developer Tools",
+    "capabilities": [
+      "MCP",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "使用 codex无限处理当前任务，文档直接写入本地并返回绝对路径。"
+    ]
+  }
+}

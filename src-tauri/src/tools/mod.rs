@@ -10,6 +10,7 @@ mod command_line;
 mod exec_paths;
 pub mod context;
 pub mod dispatch;
+pub(crate) mod delivery;
 pub mod exec;
 pub mod file;
 pub mod git;

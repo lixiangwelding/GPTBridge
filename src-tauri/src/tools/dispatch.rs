@@ -128,6 +128,7 @@ pub fn call_tool(ctx: &ToolContext, name: &str, args: &Value) -> Value {
             .or_else(|| effective_args.get("task_id").filter(|v| v.is_string()).cloned())
             .unwrap_or(Value::Null);
         output["recovery_hint"] = json!("Use the existing task_id and job_id/session_id; query uncertain outcomes before a new attempt. No worktree or whole-workspace rollback.");
+        if name=="apply_patch" {super::delivery::attach_patch(ctx.workspace.root(),&effective_args,&mut output);}
         return output;
     }
 
@@ -550,6 +551,7 @@ pub fn server_info(ctx: &ToolContext) -> Result<Value, WorkspaceError> {
         "tools": tools,
         "tool_count": tools.len(),
         "tool_contract": super::registry::catalog_contract(&ctx.tool_profile),
+        "delivery": super::delivery::policy(ctx.workspace.root()),
         "runtime_pressure": ctx.personal.runtime_pressure().unwrap_or_else(|error|json!({"available":false,"error_code":error.code()})),
         "skill_bridge": {"enabled":ctx.skills.enabled,"tools":super::skills::TOOLS,"local_files":true,
             "textual_dollar_alias":true,"native_dollar_picker":false,"executes_scripts":false},
