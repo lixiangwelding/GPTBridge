@@ -1,0 +1,66 @@
+src-tauri/tests/desktop_native.rs
+  67357c0e62f8b677 37-39
+src-tauri/src/actions/openapi.rs
+  36eea6daa4b6d904 241-250,252-255
+src-tauri/src/tools/mod.rs
+  36eea6daa4b6d904 4
+scripts/desktop_personal.py
+  67357c0e62f8b677 16-18,50,72,74-75,78,85,116
+src-tauri/src/tools/dispatch.rs
+  36eea6daa4b6d904 136-140
+src-tauri/src/tools/registry.rs
+  36eea6daa4b6d904 419,464,490-493,495,509,535,951,959,967-968
+docs/gptbridge/screenshots/browser-preview-0.4.1/source-manifest.json
+  67357c0e62f8b677 1-158
+src-tauri/tests/call_tool_contract.rs
+  36eea6daa4b6d904 186-194,207,209-211,224-232,237,244-245
+  67357c0e62f8b677 195,233
+src-tauri/src/tools/skill_write.rs
+  36eea6daa4b6d904 1-540
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "c705e5d1b2a505d72f43aebf448f9f8ff7261933",
+  "prompts": {
+    "36eea6daa4b6d904": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cd27-2273-7922-a7a9-1cfd4be38b29",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "lixiang",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1555,
+      "overriden_lines": 0
+    },
+    "67357c0e62f8b677": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cd27-4873-7a83-b616-14f2f2c8c632",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "lixiang",
+      "messages": [],
+      "total_additions": 21,
+      "total_deletions": 8,
+      "accepted_lines": 526,
+      "overriden_lines": 0
+    },
+    "f776c91c97fa280c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cda2-2f77-7901-856c-aefad80a9096",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "lixiang",
+      "messages": [],
+      "total_additions": 465,
+      "total_deletions": 0,
+      "accepted_lines": 95,
+      "overriden_lines": 0
+    }
+  }
+}
