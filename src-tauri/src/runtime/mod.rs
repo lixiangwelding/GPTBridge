@@ -1,6 +1,8 @@
+mod managed;
 mod port;
 mod supervisor;
 
+pub use managed::managed_personal_mcp_pid;
 pub use port::{
     await_listener_shutdown, await_listener_shutdown_for_delete, is_own_process, port_busy_message,
     try_reclaim_previous_macos_app_port, wait_for_port_free,

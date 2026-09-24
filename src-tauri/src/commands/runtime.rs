@@ -11,7 +11,7 @@ use crate::error::{AppError, AppResult};
 use crate::mcp::upstream::UpstreamMcpManager;
 use crate::platform::platform;
 use crate::runtime::{
-    await_listener_shutdown, port_busy_message, try_reclaim_previous_macos_app_port,
+    await_listener_shutdown, managed_personal_mcp_pid, port_busy_message, try_reclaim_previous_macos_app_port,
     wait_for_port_free, ServiceKind,
 };
 use crate::tunnel::{
@@ -19,7 +19,7 @@ use crate::tunnel::{
     TunnelServiceKind,
 };
 use crate::workspace::resources::{validate_service_start, WorkspaceService};
-use crate::workspace::RuntimeStatusDto;
+use crate::workspace::{RuntimeStatusDto, WorkspaceProfile};
 
 /// Serialize MCP/Actions restarts so secret-save and form-save cannot tear down
 /// the same listener concurrently (that race could abort the process on Windows).
@@ -84,6 +84,30 @@ fn mcp_start_failure(
     })
 }
 
+fn managed_mcp_status(mut status: RuntimeStatusDto, profile: &WorkspaceProfile, pid: u32) -> RuntimeStatusDto {
+    status.state = "external".into();
+    status.pid = Some(pid);
+    status.local_message = format!(
+        "系统后台服务正在监听 127.0.0.1:{}",
+        profile.runtime.local_port
+    );
+    status
+}
+
+pub(crate) fn mcp_status_with_managed(state: &AppState, profile: &WorkspaceProfile) -> AppResult<RuntimeStatusDto> {
+    let status = state.with_runtime(|runtime| {
+        runtime.refresh_mcp(profile);
+        Ok(runtime.mcp_status(profile))
+    })?;
+    if matches!(status.state.as_str(), "running" | "starting" | "stopping") {
+        return Ok(status);
+    }
+    Ok(match managed_personal_mcp_pid(&profile.id, profile.runtime.local_port) {
+        Some(pid) => managed_mcp_status(status, profile, pid),
+        None => status,
+    })
+}
+
 #[allow(clippy::collapsible_if)]
 async fn ensure_port_available(port: u16, service_label: &str, allow_reclaim: bool) -> AppResult<()> {
     let Some(pid) = platform().find_pid_listening_on_port(port)? else {
@@ -113,6 +137,9 @@ async fn ensure_port_available(port: u16, service_label: &str, allow_reclaim: bo
 
 async fn stop_mcp_service(state: &AppState, id: &str) -> AppResult<RuntimeStatusDto> {
     let profile = profile_by_id(state, id)?;
+    if managed_personal_mcp_pid(&profile.id, profile.runtime.local_port).is_some() {
+        return mcp_status_with_managed(state, &profile);
+    }
     let port = profile.runtime.local_port;
     let handle = state.with_runtime(|runtime| Ok(runtime.begin_stop(id, ServiceKind::Mcp)))?;
     await_listener_shutdown(handle, port).await;
@@ -134,6 +161,9 @@ async fn start_mcp_service_with_reclaim(state: &AppState, id: &str, allow_reclai
     let profile = profile_by_id(state, id)?;
     if state.with_runtime(|runtime| Ok(runtime.is_running(id, ServiceKind::Mcp)))? {
         return state.with_runtime(|runtime| Ok(runtime.mcp_status(&profile)));
+    }
+    if let Some(pid) = managed_personal_mcp_pid(&profile.id, profile.runtime.local_port) {
+        return state.with_runtime(|runtime| Ok(managed_mcp_status(runtime.mcp_status(&profile), &profile, pid)));
     }
     if let Err(error) = ensure_port_available(profile.runtime.local_port, "本地 MCP", allow_reclaim).await {
         return mcp_start_failure(state, &profile, error.to_string());
@@ -279,10 +309,7 @@ pub async fn stop_runtime(state: State<'_, AppState>, id: String) -> AppResult<R
 #[tauri::command]
 pub fn get_runtime_status(state: State<'_, AppState>, id: String) -> AppResult<RuntimeStatusDto> {
     let profile = profile_by_id(&state, &id)?;
-    state.with_runtime(|runtime| {
-        runtime.refresh_mcp(&profile);
-        Ok(runtime.mcp_status(&profile))
-    })
+    mcp_status_with_managed(&state, &profile)
 }
 
 #[tauri::command]

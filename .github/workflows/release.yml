@@ -121,9 +121,11 @@ jobs:
           generate_release_notes: true
           prerelease: true
           body: |
-            GPTBridge 0.4.1 桌面预览版；Windows NSIS 安装包与 macOS 通用 DMG 来自同一源码提交。
+            GPTBridge ${{ inputs.release_tag || github.ref_name }} 桌面预览版；Windows NSIS 安装包与 macOS 通用 DMG 来自同一源码提交。
 
-            macOS 在 GitHub Runner 上执行完整 Rust 测试。Windows 已通过前端检查、Worker 构建和 Rust 测试编译；Windows 运行测试在上一轮 CI 中有 15 项失败（322 项通过），涉及文件锁、路径/脚本和异步用例，尚未完成 Windows 原生运行验收。
+            本版修复了 macOS 后台 MCP 服务的状态识别：MCP 连接页与连接弹窗会自动刷新，已由系统后台服务运行时显示真实状态，避免重复启动时误报端口占用。
+
+            macOS 在 GitHub Runner 上执行完整 Rust 测试。Windows 执行前端检查、Worker 构建和 Rust 测试编译；此发布流程不执行 Windows Rust 运行测试。
 
             macOS DMG 和 Windows EXE 均未做发布者证书签名；安装时系统可能要求手动确认来源。
           fail_on_unmatched_files: true

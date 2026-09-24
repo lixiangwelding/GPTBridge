@@ -81,6 +81,7 @@
   let mcpSubTab = $state<SubTab>("config");
   let actionsSubTab = $state<SubTab>("config");
   let loadGeneration = 0;
+  let runtimeStatusGeneration = 0;
 
   const subTabs = [
     { value: "config", label: "配置" },
@@ -121,6 +122,8 @@
     switch (state) {
       case "running":
         return "运行中";
+      case "external":
+        return "后台运行";
       case "starting":
         return "启动中";
       case "stopping":
@@ -180,13 +183,31 @@
       return;
     }
 
+    const statusGeneration = runtimeStatusGeneration;
     const [mcpRuntime, actionsRuntime] = await Promise.all([
       getRuntimeStatus(id),
       getActionsRuntimeStatus(id),
     ]);
-    if (generation !== loadGeneration || id !== workspaceId) return;
+    if (generation !== loadGeneration || statusGeneration !== runtimeStatusGeneration || id !== workspaceId) return;
     applyMcpRuntime(mcpRuntime, id);
     applyActionsRuntime(actionsRuntime, id);
+  }
+
+  async function refreshRuntimeStatuses(id: string) {
+    if (mcpBusy || actionsBusy) return;
+    const loadToken = loadGeneration;
+    const statusToken = runtimeStatusGeneration;
+    try {
+      const [mcpRuntime, actionsRuntime] = await Promise.all([
+        getRuntimeStatus(id),
+        getActionsRuntimeStatus(id),
+      ]);
+      if (id !== workspaceId || loadToken !== loadGeneration || statusToken !== runtimeStatusGeneration || mcpBusy || actionsBusy) return;
+      applyMcpRuntime(mcpRuntime, id);
+      applyActionsRuntime(actionsRuntime, id);
+    } catch {
+      // Keep the last confirmed status; the next visible-page poll retries.
+    }
   }
 
   async function refreshProfile(id = workspaceId): Promise<WorkspaceProfile | null> {
@@ -226,9 +247,10 @@
 
   async function toggleMcp() {
     const id = workspaceId;
-    if (!id || mcpBusy) return;
+    if (!id || mcpBusy || mcpStatus === "external") return;
     const wasRunning = mcpStatus === "running";
     mcpBusy = true;
+    runtimeStatusGeneration += 1;
     try {
       const runtime = await runServiceToggle(
         wasRunning,
@@ -256,6 +278,7 @@
     if (!id || actionsBusy) return;
     const wasRunning = actionsStatus === "running";
     actionsBusy = true;
+    runtimeStatusGeneration += 1;
     try {
       const runtime = await runServiceToggle(
         wasRunning,
@@ -579,7 +602,15 @@
     profile = null;
     void load(id);
 
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshRuntimeStatuses(id);
+    };
+    const timer = window.setInterval(refreshWhenVisible, 10_000);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
     return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
       loadGeneration += 1;
     };
   });

@@ -1,4 +1,4 @@
-export type RuntimeState = "stopped" | "starting" | "running" | "stopping" | "error";
+export type RuntimeState = "stopped" | "starting" | "running" | "external" | "stopping" | "error";
 
 export const DEFAULT_SERVICE_PORT = 28766;
 export const DEFAULT_ACTIONS_PORT = 8787;

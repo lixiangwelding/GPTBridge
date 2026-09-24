@@ -114,8 +114,9 @@ pub fn taskdock_add_project(state:State<'_,AppState>,path:String,name:Option<Str
 #[tauri::command]
 pub async fn taskdock_connections(state:State<'_,AppState>,workspace_id:String)->AppResult<Value> {
     let p=profile(&state,&workspace_id)?;
-    let (mcp,actions)=state.with_runtime(|r|{
-        r.refresh_mcp(&p);r.refresh_actions(&p);Ok((r.mcp_status(&p),r.actions_status(&p)))
+    let mcp=super::runtime::mcp_status_with_managed(&state,&p)?;
+    let actions=state.with_runtime(|r|{
+        r.refresh_actions(&p);Ok(r.actions_status(&p))
     })?;
     async fn reachable(port:u16)->bool {
         matches!(tokio::time::timeout(Duration::from_millis(300),tokio::net::TcpStream::connect((std::net::Ipv4Addr::LOCALHOST,port))).await,Ok(Ok(_)))
