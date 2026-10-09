@@ -3,6 +3,7 @@ mod common;
 use coding_tools_mcp_desktop_lib::tools::{call_tool, wrap_mcp_tool_result, ToolContext};
 use serde_json::{json, Value};
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 #[cfg(windows)]
 const PYTHON: &str = "python";
@@ -15,6 +16,25 @@ fn run(ctx: &ToolContext, cmd: String, cwd: &Path) -> Value {
         "exec_command",
         &json!({"cmd": cmd, "workdir": cwd, "yield_time_ms": 1000}),
     )
+}
+
+fn wait_original_completion(ctx: &ToolContext, initial: &Value) -> Value {
+    assert_eq!(initial["ok"], true, "{initial}");
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut result = initial.clone();
+    while matches!(result["status"].as_str(), Some("queued" | "running")) {
+        assert!(Instant::now() < deadline, "original command did not finish: {result}");
+        let remaining_ms = deadline.saturating_duration_since(Instant::now()).as_millis() as u64;
+        result = call_tool(ctx, "write_stdin", &json!({
+            "session_id": initial["session_id"], "chars": "",
+            "yield_time_ms": remaining_ms.min(100), "max_output_bytes": 65536
+        }));
+        assert_eq!(result["ok"], true, "{result}");
+        assert_eq!(result["job_id"], initial["job_id"]);
+        assert_eq!(result["task_id"], initial["task_id"]);
+        assert_eq!(result["output_refs"], initial["output_refs"]);
+    }
+    result
 }
 
 #[test]
@@ -36,7 +56,10 @@ fn absolute_workspace_cwd_and_interpreter_can_really_write() {
         ),
         &project,
     );
-    assert_eq!(out["command_ok"], true, "{out}");
+    let done = wait_original_completion(&ctx, &out);
+    assert_eq!(done["status"], "exited", "{done}");
+    assert_eq!(done["exit_code"], 0);
+    assert_eq!(done["command_ok"], true, "{done}");
     assert_eq!(std::fs::read_to_string(target).unwrap(), "written");
     assert_eq!(
         out["resolved_cwd"],
@@ -99,8 +122,10 @@ fn nonzero_and_running_commands_do_not_receive_a_success_hint() {
         &json!({"cmd": format!("{PYTHON} -c \"import sys; sys.exit(7)\"")}),
     );
     assert_eq!(out["ok"], true, "{out}");
-    assert_eq!(out["command_ok"], false);
-    assert_eq!(out["exit_code"], 7);
+    let done = wait_original_completion(&ctx, &out);
+    assert_eq!(done["status"], "exited", "{done}");
+    assert_eq!(done["command_ok"], false);
+    assert_eq!(done["exit_code"], 7);
     assert!(!out["recovery_hint"]
         .as_str()
         .unwrap()
@@ -167,9 +192,12 @@ fn venv_entry_keeps_its_environment_and_versioned_python_is_allowed() {
         ),
         dir.path(),
     );
-    assert_eq!(out["command_ok"], true, "{out}");
+    let done = wait_original_completion(&ctx, &out);
+    assert_eq!(done["status"], "exited", "{done}");
+    assert_eq!(done["exit_code"], 0);
+    assert_eq!(done["command_ok"], true, "{done}");
     assert_eq!(
-        Path::new(out["stdout"].as_str().unwrap().trim())
+        Path::new(done["stdout"].as_str().unwrap().trim())
             .canonicalize()
             .unwrap(),
         dir.path().join("venv").canonicalize().unwrap()
@@ -183,8 +211,11 @@ fn venv_entry_keeps_its_environment_and_versioned_python_is_allowed() {
         format!("\"{}\"", versioned_entry.display()),
         dir.path(),
     );
-    assert_eq!(out["command_ok"], true, "{out}");
-    assert_eq!(out["stdout"], "versioned");
+    let done = wait_original_completion(&ctx, &out);
+    assert_eq!(done["status"], "exited", "{done}");
+    assert_eq!(done["exit_code"], 0);
+    assert_eq!(done["command_ok"], true, "{done}");
+    assert_eq!(done["stdout"], "versioned");
 }
 
 #[cfg(unix)]
@@ -220,9 +251,12 @@ fn windows_unquoted_backslashes_reach_the_process_intact() {
         "exec_command",
         &json!({"cmd": r#"python -c "import sys; print(sys.argv[1])" D:\some\project\file.txt"#}),
     );
-    assert_eq!(out["command_ok"], true, "{out}");
+    let done = wait_original_completion(&ctx, &out);
+    assert_eq!(done["status"], "exited", "{done}");
+    assert_eq!(done["exit_code"], 0);
+    assert_eq!(done["command_ok"], true, "{done}");
     assert_eq!(
-        out["stdout"].as_str().unwrap().trim(),
+        done["stdout"].as_str().unwrap().trim(),
         r"D:\some\project\file.txt"
     );
 }

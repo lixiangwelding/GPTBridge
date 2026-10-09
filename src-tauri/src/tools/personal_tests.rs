@@ -79,11 +79,28 @@ fn independent_files_in_one_directory_can_be_submitted_concurrently() {
         threads.push(std::thread::spawn(move || {
             let t=task(&ctx,&format!("writer-{index}"));
             let path=format!("same-directory/file-{index}.txt");
-            let result=patch(&ctx,&t,"edit",&format!("*** Begin Patch\n*** Add File: {path}\n+owned-{index}\n*** End Patch"),json!({path:null}));
+            let text=format!("*** Begin Patch\n*** Add File: {path}\n+owned-{index}\n*** End Patch");
+            let hashes=json!({path:null});
+            let deadline=std::time::Instant::now()+std::time::Duration::from_secs(20);
+            let result=loop {
+                let result=patch(&ctx,&t,"edit",&text,hashes.clone());
+                // Only the explicit no-side-effect lock rejection permits retrying
+                // this unchanged request; uncertain or persisted outcomes fail.
+                let safely_busy=result["error"]["code"]=="RESOURCE_BUSY"
+                    && result["error"]["details"]["patch_applied"]==false
+                    && result["error"]["details"]["receipt_persisted"]==false;
+                if safely_busy && std::time::Instant::now()<deadline {
+                    std::thread::sleep(std::time::Duration::from_millis(25));
+                    continue;
+                }
+                break result;
+            };
             assert_eq!(result["ok"],true,"{result}");
         }));
     }
-    for thread in threads { thread.join().unwrap(); }
+    // Join every writer before propagating a failure, keeping the fixture alive.
+    let joined=threads.into_iter().map(|thread|thread.join()).collect::<Vec<_>>();
+    for result in joined { result.unwrap(); }
     for index in 0..4 { assert_eq!(fs::read_to_string(ctx.workspace.root().join(format!("same-directory/file-{index}.txt"))).unwrap(),format!("owned-{index}\n")); }
 }
 

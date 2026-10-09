@@ -1,0 +1,45 @@
+{
+  "source_attachment_sha256": "e8ddef604bc2a80a14ab39c697f283385ae5ce0cd37a09d3b39de41eaa8dc203",
+  "app_version": "0.4.2",
+  "base_sha": "17f47d3d261aa23f9e8d2c11d269438e000bceba",
+  "component_source": "working_tree_not_committed",
+  "layout_profile": "layout-only fixture property; no mocked IPC, connections, tasks, jobs or results",
+  "browser_url": "http://127.0.0.1:4319/",
+  "native_business_acceptance": "NOT_VERIFIED_BY_UI_AGENT",
+  "mobile_support": "component 375px layout only; native App minWidth unchanged",
+  "check": "exit 0; 0 errors, 0 warnings",
+  "model_tests": "exit 0; 5 passed",
+  "build": "exit 0; working tree frontend build, not a clean release candidate",
+  "browser_console_errors": 0,
+  "mobile_dimensions": {
+    "viewport": 375,
+    "document_scroll_width": 375,
+    "panel_width": 351,
+    "panel_scroll_width": 349
+  },
+  "sources": {
+    "src/routes/workspace/[id]/+page.svelte": "e78a32edbf24fb94dbf0e7a98a9d54352047f674cb5af27e4c23df7dc64f1b24",
+    "src/lib/components/DotWorkspacePanel.svelte": "c18cdf7b5767b99d632f5f5a2f29c504defaf3bfca03954a81f9a2142e1df995",
+    "src/lib/dot/model.ts": "430837373c9cfeddc5f182ed94bf861d4918728e91e282f9c26b027fb512f9ad",
+    "tests/dot-workspace-panel.test.mjs": "341d6d04049e21a7c6a3848e338498e267daca1fb92cd7fe7995ddfd3051e538"
+  },
+  "visual_rubric": {
+    "header": 96,
+    "guide": 96,
+    "diagnostics_unavailable": 95,
+    "safety": 95,
+    "task_unavailable": 97,
+    "loaded_receipt": "NOT_VERIFIED_NATIVE"
+  },
+  "cleanup": {
+    "owned_visual_tool_node_modules": {
+      "path": "/tmp/gptbridge-dot-20261009/visual-tools/node_modules",
+      "before_bytes": 1105180,
+      "after_exists": false
+    },
+    "owned_services": "4318 and 4319 stopped; own Playwright session closed",
+    "shared_build_cache": "build and .svelte-kit left for root release coordinator; no other author caches removed"
+  },
+  "final_component_sha256": "7f8d0e2915c0f011f21f371a673d5179c81cc627e62479c17f0010cb9fe0abf2",
+  "post_screenshot_change": "Clear detail/job on same-task refresh failure or ownership mismatch; layout unchanged. Screenshot source hashes retained."
+}

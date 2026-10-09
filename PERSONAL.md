@@ -1,10 +1,32 @@
 # GPTBridge · 使用与兼容说明
 
-源码版本：0.4.1。产品显示名统一为 GPTBridge；0.4.0 工作台重构时曾使用 TaskDock，早期版本名为 Coding Tools MCP Personal。
+源码版本：0.4.2。产品显示名统一为 GPTBridge；0.4.0 工作台重构时曾使用 TaskDock，早期版本名为 Coding Tools MCP Personal。当前安装和运行版本请从实际应用、进程及 `server_info` 分别核对。
 
-**把对话，接到你的工作现场。** 当前四个入口为工作台、项目、工具与技能、设置；普通用户只需选择项目并描述目标。目标保存后需要已连接的 AI 客户端接续，不在后台凭空生成执行结果。
+**把对话，接到你的工作现场。** 当前入口为工作台、项目、MCP 连接、工具与技能、设置；普通用户只需选择项目并描述目标。目标保存后需要已连接的 AI 客户端接续，不在后台凭空生成执行结果。
 
-名称改变不搬动已有数据。内部 `taskdock_*` IPC、Rust 二进制名、旧服务脚本定位与配置目录是兼容标识，不应通过全仓替换更名。既有安装与服务不会因本次源码更新被停止或替换；新应用包显示名由 Tauri 的 `productName` 决定。详见 [品牌与发布边界](docs/gptbridge/BRANDING.md)。
+名称改变不搬动已有数据。内部 `taskdock_*` IPC、Rust 二进制名、旧服务脚本定位与配置目录是兼容标识，不应通过全仓替换更名。源码更新、应用包替换和运行服务切换分别核验；新应用包显示名由 Tauri 的 `productName` 决定。详见 [品牌与发布边界](docs/gptbridge/BRANDING.md)。
+
+## dot 与原有连接的使用方式
+
+两种客户端路径使用同一个 MCP 服务和已有工具，不需要为 dot 再配置一套执行服务。先在客户端确认当前连接器可调用；`@GPTBridge` 的显示名称、客户端是否选择连接器及 dot 可用性取决于对应客户端，宿主指南不会替客户端完成授权或刷新。
+
+单工作区先调用 `server_info`、`get_default_cwd`，核对项目、工具档位和权限。共享入口先 `workspace_list`，再给每次业务调用添加所选 `workspace_id`，包括恢复任务和取 job 输出。按 [完整操作示例](docs/dot-compatibility.md) 执行读文件与哈希 → 受控补丁 → 持久命令 → 原句柄取结果 → 检查点。`task_open` 和检查点用于持久记账、恢复与去重，原生文件或命令工具直接执行，不要求外部 Agent。
+
+工作区详情的 **dot · 原生工作区** 提供使用提示、连接诊断及任务与恢复回执。“刷新观察”读取真实本机状态，“复制使用提示”和“复制接续指令”只复制文本。没有真实作业时不会显示执行成功；目录发现、平台授权、dot 实际调用和客户端缓存刷新无法从端口探测推断。
+
+`server_info.direct_workspace` 是可忽略的能力说明，实际工具清单仍以 `tools/list` 为准。旧客户端无需增加参数；若运行实例尚未更新，没有该字段也不能据此判定原生工具不可用。源码兼容与真实客户端签收见 [兼容规格](docs/specs/dot-compatibility/requirements.md)，实际验证结果单独记录。
+
+## 读取范围与执行策略
+
+单工作区保留旧的显式外部读取行为：原生读取工具可接受外部绝对路径或 `..`，相对路径指向的软链接仍检查是否逃出根目录。共享网关开启严格读取，canonical 路径必须在所选工作区真实根目录内。`direct_workspace.security.read_scope` 按真实 strict-read 状态区分 `explicit_external_paths_allowed` 和 `workspace_root`；只读权限本身不等于严格根目录读取。
+
+受管补丁写入和命令工作目录仍按已有规则约束。命令执行为 `policy_only`、`sandbox_enforced=false`，read/build/write 是调度声明，不是操作系统级文件系统沙箱。仅对用户已授权的路径与命令操作；路径或权限拒绝应报告实际原因，不通过另一个工具绕过。
+
+## 工具目录刷新
+
+当前 initialize 声明 `tools.listChanged=false`；以 `Accept: text/event-stream` 访问 `/mcp` 的 GET 返回 `405`，普通健康 GET 的 JSON 不是目录通知。服务端没有推送目录更新的能力。
+
+升级后先重新 initialize、读取 `tools/list` 和 `server_info`，核对服务版本、工具名称和完整 schema。再使用对应客户端支持的刷新或重新初始化；必要时新建会话。`tool_catalog_check` 能检查传入的目录信息，不能证明客户端缓存已刷新。只有真实客户端发现目录并完成读改运行闭环，才记录该客户端通过；当前无法实测的客户端保持“未验证”。不要为了刷新目录强制关闭在用的客户端或重建认证。
 
 ## 历史能力记录
 

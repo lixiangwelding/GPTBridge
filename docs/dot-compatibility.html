@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>GPTBridge · dot 使用与兼容说明</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">GPTBridge · dot 使用与兼容说明</h1>
+</header>
+<h1 id="gptbridge-dot-使用与兼容说明">GPTBridge · dot
+使用与兼容说明</h1>
+<p>适用源码：0.4.2，增量基线
+<code>17f47d3d261aa23f9e8d2c11d269438e000bceba</code>。本文说明现有工具如何直接操作工作区；安装版本、监听服务及真实客户端验收须分别核对。用户提供的设计稿是需求来源，其中的模拟任务和连接状态不属于运行证据。</p>
+<h2 id="先确认连接与项目">先确认连接与项目</h2>
+<p>客户端允许且连接器可用时，dot 与原有 <code>@GPTBridge</code>
+使用同一个 <code>/mcp</code>、既有认证和工具。无需为 dot
+新建执行器或迁移项目。客户端是否选中连接器、显示名称、权限确认和计费由对应客户端决定，GPTBridge
+不替它们作保证。</p>
+<p>单工作区先调用
+<code>server_info</code>、<code>get_default_cwd</code>，核对项目、运行版本、工具档位和权限。共享网关先调用
+<code>workspace_list</code>，再将返回的 <code>workspace_id</code>
+放入每次业务调用，包括任务恢复、命令轮询和输出读取。工作区必须由本地主人登记，远程不能把任意路径加入网关。</p>
+<p><code>server_info.direct_workspace</code>
+是可忽略的说明字段：<code>execution_path=native_tools</code>、<code>external_agent_required=false</code>，持久记账继续使用原
+task/request 生命周期。实际可调用工具以 <code>tools/list</code>
+为准；该元数据不代表 <code>dot_supported=true</code>，也不改变权限。</p>
+<h2 id="在宿主应用观察">在宿主应用观察</h2>
+<p>打开项目工作区详情的 <strong>dot ·
+原生工作区</strong>，同页查看“同一连接，直接操作”“连接诊断”“任务与恢复回执”。</p>
+<ul>
+<li>“刷新观察”读取真实连接和该工作区最近的有界任务数据，不执行命令。</li>
+<li>“复制使用提示”“复制接续指令”只复制文本，由已连接客户端继续处理。</li>
+<li>任务状态、作业状态和检查点来自现有后端；没有作业时不能据任务 active
+推断正在运行。</li>
+<li>端口可达、客户端目录已发现、平台授权允许、命令结束和结果已取回分别判断。客户端缓存和
+dot 路由无法从宿主探测确认，界面显示未验证。</li>
+</ul>
+<h2 id="单工作区的最小操作闭环">单工作区的最小操作闭环</h2>
+<p>以下 JSON 块是工具 <code>arguments</code>，不是自动执行脚本。占位
+ID、哈希和输出引用必须替换成前一步真实返回值；在临时测试工作区中准备
+<code>example.txt</code>，初始内容为
+<code>before</code>。生产或已有仓库需要遵守其实际授权和测试要求。</p>
+<ol type="1">
+<li>创建或恢复任务。新任务提供稳定 <code>request_id</code>，恢复时使用原
+<code>task_id</code>，无需重复初始化模板：</li>
+</ol>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;goal&quot;</span><span class="fu">:</span><span class="st">&quot;在临时工作区验证文件修改和命令输出&quot;</span><span class="fu">,</span><span class="dt">&quot;request_id&quot;</span><span class="fu">:</span><span class="st">&quot;dot-example-open-1&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>调用工具：<code>task_open</code>。保留返回的 <code>task_id</code> 和
+<code>revision</code>。<code>task_open</code>、<code>task_status</code>、<code>task_checkpoint</code>
+是持久记账与恢复工具；原生文件和命令工具不要求外部 Agent。</p>
+<ol start="2" type="1">
+<li>调用 <code>read_file</code>，保留返回的整个文件
+<code>file_sha256</code>，即使只读取一段文本也不能自算该片段哈希代替它：</li>
+</ol>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;path&quot;</span><span class="fu">:</span><span class="st">&quot;example.txt&quot;</span><span class="fu">,</span><span class="dt">&quot;max_bytes&quot;</span><span class="fu">:</span><span class="dv">8192</span><span class="fu">}</span></span></code></pre></div>
+<ol start="3" type="1">
+<li>调用 <code>apply_patch</code>，携带真实 task ID、稳定请求
+ID及读取的哈希：</li>
+</ol>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;task_id&quot;</span><span class="fu">:</span><span class="st">&quot;TASK_ID_FROM_TASK_OPEN&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;request_id&quot;</span><span class="fu">:</span><span class="st">&quot;dot-example-patch-1&quot;</span><span class="fu">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expected_hashes&quot;</span><span class="fu">:{</span><span class="dt">&quot;example.txt&quot;</span><span class="fu">:</span><span class="st">&quot;FILE_SHA256_FROM_READ_FILE&quot;</span><span class="fu">},</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;patch&quot;</span><span class="fu">:</span><span class="st">&quot;*** Begin Patch</span><span class="ch">\n</span><span class="st">*** Update File: example.txt</span><span class="ch">\n</span><span class="st">@@</span><span class="ch">\n</span><span class="st">-before</span><span class="ch">\n</span><span class="st">+after</span><span class="ch">\n</span><span class="st">*** End Patch&quot;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>新文件的哈希前置条件使用
+<code>null</code>，仅适用于文件确实不存在。旧哈希冲突返回
+<code>STALE_FILE</code> 时重读、合并当前改动，并为新的补丁内容使用新请求
+ID。不能恢复旧全文覆盖其他作者。相同 ID、相同载荷用于查询原回执；同 ID
+改变载荷会发生幂等冲突。</p>
+<ol start="4" type="1">
+<li>调用 <code>exec_command</code>
+校验真实文件。示例需工作区命令策略允许已安装的 Python：</li>
+</ol>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;task_id&quot;</span><span class="fu">:</span><span class="st">&quot;TASK_ID_FROM_TASK_OPEN&quot;</span><span class="fu">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;request_id&quot;</span><span class="fu">:</span><span class="st">&quot;dot-example-command-1&quot;</span><span class="fu">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;cmd&quot;</span><span class="fu">:</span><span class="st">&quot;python3 -c </span><span class="ch">\&quot;</span><span class="st">from pathlib import Path; assert Path(&#39;example.txt&#39;).read_text().strip() == &#39;after&#39;; print(&#39;verified&#39;)</span><span class="ch">\&quot;</span><span class="st">&quot;</span><span class="fu">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;workdir&quot;</span><span class="fu">:</span><span class="st">&quot;.&quot;</span><span class="fu">,</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;durable&quot;</span><span class="fu">:</span><span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tty&quot;</span><span class="fu">:</span><span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mode&quot;</span><span class="fu">:</span><span class="st">&quot;read&quot;</span><span class="fu">,</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;yield_time_ms&quot;</span><span class="fu">:</span><span class="dv">0</span><span class="fu">,</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;timeout_ms&quot;</span><span class="fu">:</span><span class="dv">30000</span><span class="fu">,</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;max_output_bytes&quot;</span><span class="fu">:</span><span class="dv">8192</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>这里 <code>mode=read</code> 对应只读取的校验；实际写源码命令须使用
+<code>write</code>，构建按真实行为使用
+<code>build</code>，不能为了并行把写操作声明为 read。<code>cmd</code>
+是单个直接命令，不是外层 shell 链；解释器允许范围继续由原策略决定。</p>
+<ol start="5" type="1">
+<li>返回 queued/running 后调用 <code>write_stdin</code> 查询原
+<code>session_id</code>，不重启命令；持久命令关闭 stdin，轮询的
+<code>chars</code> 留空：</li>
+</ol>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;session_id&quot;</span><span class="fu">:</span><span class="st">&quot;SESSION_ID_FROM_EXEC_COMMAND&quot;</span><span class="fu">,</span><span class="dt">&quot;yield_time_ms&quot;</span><span class="fu">:</span><span class="dv">1000</span><span class="fu">,</span><span class="dt">&quot;max_output_bytes&quot;</span><span class="fu">:</span><span class="dv">8192</span><span class="fu">}</span></span></code></pre></div>
+<p>也可用 <code>task_status</code> 的 <code>job_id</code> 查询原
+job。需要完整输出时调用 <code>read_output</code>，使用返回的
+<code>output_refs.stdout</code> 或 <code>output_refs.stderr</code>：</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;output_ref&quot;</span><span class="fu">:</span><span class="st">&quot;OUTPUT_REF_FROM_EXEC_COMMAND&quot;</span><span class="fu">,</span><span class="dt">&quot;offset&quot;</span><span class="fu">:</span><span class="dv">0</span><span class="fu">,</span><span class="dt">&quot;limit&quot;</span><span class="fu">:</span><span class="dv">4096</span><span class="fu">}</span></span></code></pre></div>
+<p>沿返回的 <code>next_offset</code>
+继续，保持同一流的引用。<code>read_output</code> 和
+<code>write_stdin</code> 的单工作区公开 schema 不接受
+<code>task_id</code>；归属由原句柄决定，不能附加未公开字段。共享网关仍要额外传
+<code>workspace_id</code>。</p>
+<ol start="6" type="1">
+<li>核实
+<code>status=exited</code>、<code>exit_code=0</code>、<code>command_ok=true</code>，检查输出截断、缺失或损失标记，再调用
+<code>task_checkpoint</code>：</li>
+</ol>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;task_id&quot;</span><span class="fu">:</span><span class="st">&quot;TASK_ID_FROM_TASK_OPEN&quot;</span><span class="fu">,</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;request_id&quot;</span><span class="fu">:</span><span class="st">&quot;dot-example-checkpoint-1&quot;</span><span class="fu">,</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expected_revision&quot;</span><span class="fu">:</span><span class="dv">0</span><span class="fu">,</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;state&quot;</span><span class="fu">:</span><span class="st">&quot;active&quot;</span><span class="fu">,</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;checkpoint&quot;</span><span class="fu">:{</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;summary&quot;</span><span class="fu">:</span><span class="st">&quot;已验证临时文件补丁与命令输出&quot;</span><span class="fu">,</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;next_step&quot;</span><span class="fu">:</span><span class="st">&quot;核对客户端目录和调用证据&quot;</span><span class="fu">,</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;steps&quot;</span><span class="fu">:{</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;read-patch-run&quot;</span><span class="fu">:{</span><span class="dt">&quot;state&quot;</span><span class="fu">:</span><span class="st">&quot;passed&quot;</span><span class="fu">,</span><span class="dt">&quot;evidence&quot;</span><span class="fu">:</span><span class="st">&quot;真实校验日志的已授权路径或回执引用&quot;</span><span class="fu">}</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><code>expected_revision=0</code> 只适用于步骤 1 实际返回 0
+且尚无其他检查点的情况。后续始终使用最新
+revision；过期时重新读取，不覆盖较新的进度。工具接受证据字段不等于自动证明业务正确，声明通过前检查引用的真实文件和结果。完成任务还需满足全部已声明验收项并无未解决
+job，不能因为保存了检查点就标记完成。</p>
+<h2 id="结果不明时怎样继续">结果不明时怎样继续</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>实际状态</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>queued / running</td>
+<td>继续查原 job/session，使用有界等待，不再次启动同一命令</td>
+</tr>
+<tr>
+<td>exited，非零退出码</td>
+<td>阅读 stdout/stderr，按实际原因修复后创建新的逻辑尝试</td>
+</tr>
+<tr>
+<td>timeout / queue_timeout / cancelled / spawn_failed</td>
+<td>保留原回执，检查是否已产生外部效果，再决定后续步骤</td>
+</tr>
+<tr>
+<td>unknown / 连接超时 / 响应丢失</td>
+<td>查询原 task/job/request，并核实文件或外部效果；不盲目重放</td>
+</tr>
+<tr>
+<td>输出有 next_offset 或截断标记</td>
+<td>按引用分页取结果，不能把部分输出宣称为完整输出</td>
+</tr>
+<tr>
+<td>任务已 completed</td>
+<td>原请求可恢复原回执；新的工作需要后继任务</td>
+</tr>
+</tbody>
+</table>
+<p>worker
+或主机崩溃并不保证任意进程续跑。恢复使用当前工作区和原持久记录，不恢复整仓旧快照；任务数据格式和保留规则沿用既有配置。</p>
+<h2 id="安全与读取范围">安全与读取范围</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>维度</th>
+<th>当前行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单工作区原生读取</td>
+<td>旧逻辑允许显式外部绝对路径或
+<code>..</code>；正常相对路径的软链接逃逸会拒绝</td>
+</tr>
+<tr>
+<td>共享网关原生读取</td>
+<td>canonical 后必须位于选定真实根目录，拒绝跨仓库路径与逃逸</td>
+</tr>
+<tr>
+<td><code>direct_workspace.security.read_scope</code></td>
+<td>严格读取为 <code>workspace_root</code>，旧读取为
+<code>explicit_external_paths_allowed</code>，从真实 strict-read
+标志映射</td>
+</tr>
+<tr>
+<td>补丁和命令工作目录</td>
+<td>继续受已有路径、工具档位、策略与合作锁约束</td>
+</tr>
+<tr>
+<td>命令进程隔离</td>
+<td><code>execution_isolation=policy_only</code>，<code>sandbox_enforced=false</code>，当前没有操作系统级文件系统沙箱</td>
+</tr>
+<tr>
+<td>权限拒绝</td>
+<td>保留原拒绝机制，不用说明文字或另一个工具扩大授权</td>
+</tr>
+</tbody>
+</table>
+<p>只读权限不自动收紧单工作区读取根目录。read/build/write
+用于合作调度与资源锁，不限制子进程全部文件系统访问；配置解释器时需按其实际能力判断。</p>
+<h2 id="更新后如何核对目录">更新后如何核对目录</h2>
+<ol type="1">
+<li>保留升级前运行版本、模式、工具档位和脱敏目录基线。</li>
+<li>更新服务后重新
+initialize、<code>tools/list</code>、<code>server_info</code>，核对运行版本和说明。</li>
+<li>工具名称、完整
+<code>inputSchema</code>、annotations、暴露层级及旧响应关键字段应保持原契约；说明文本与新增可选元数据单独审查。<code>tool_contract.schema_sha256</code>
+覆盖名称与 inputSchema，顶层说明和 annotations 需要另外比对。</li>
+<li>使用客户端支持的刷新或重新初始化；必要时新建会话。先记录实际流程，不假定重启服务已刷新客户端。</li>
+<li>原有 <code>@GPTBridge</code> 与 dot
+各自实际运行读→补丁→命令→原句柄输出，保留脱敏工具轨迹。缺少可用客户端时该项记录
+<code>NOT_VERIFIED</code>，不能用服务端测试替代。</li>
+</ol>
+<p>当前 initialize 为 <code>tools.listChanged=false</code>；带
+<code>Accept: text/event-stream</code> 的 <code>/mcp</code> GET 返回
+<code>405</code>。普通 GET 的健康 JSON 不属于 SSE
+通知，当前没有工具目录推送更新功能。</p>
+<h2 id="验证与回滚">验证与回滚</h2>
+<p>源码/协议、构建制品、安装路径、运行进程、HTTP、宿主
+UI、客户端调用分别记录。精确验收项见 <a
+href="specs/dot-compatibility/requirements.md">需求</a>、<a
+href="specs/dot-compatibility/design.md">设计</a>、<a
+href="specs/dot-compatibility/tasks.md">执行清单</a>；本轮结果及截图存于
+<code>docs/gptbridge/dot-compatibility/</code>，清单本身不代表全部通过。</p>
+<p>替换应用前保留旧 App 完整副本、版本和
+SHA，确认活动命令可安全延续。回退时安全退出新应用并恢复旧
+App，读回安装字节、进程与服务；保留任务库和恢复句柄，不回滚用户工作树。客户端目录缓存仍可能需要其支持的刷新。</p>
+<p>源码定位：<a
+href="../src-tauri/src/tools/registry.rs"><code>registry.rs</code></a>、<a
+href="../src-tauri/src/tools/personal_schema.rs"><code>personal_schema.rs</code></a>、<a
+href="../src-tauri/src/tools/personal.rs"><code>personal.rs</code></a>、<a
+href="../src-tauri/src/tools/dispatch.rs"><code>dispatch.rs</code></a>、<a
+href="../src-tauri/src/tools/workspace.rs"><code>workspace.rs</code></a>、<a
+href="../src-tauri/src/mcp/gateway.rs"><code>gateway.rs</code></a>、<a
+href="../src-tauri/src/mcp/server.rs"><code>server.rs</code></a>、<a
+href="../src-tauri/src/mcp/listener.rs"><code>listener.rs</code></a>、<a
+href="../personal-runtime/src/jobs.rs"><code>jobs.rs</code></a>。这些路径是源码依据，不能替代运行实例或客户端验证。</p>
+</body>
+</html>

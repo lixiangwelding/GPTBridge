@@ -1,0 +1,107 @@
+{
+  "generated_at": "2026-10-09T03:49:37.875Z",
+  "engines": {
+    "looks_same": "10.0.1",
+    "pixelmatch": "7.2.0",
+    "pngjs": "7.0.0"
+  },
+  "interpretation": "NON_ISOMORPHIC: attachment includes a document/app shell and blue tokens; the accepted prototype uses current green tokens and simultaneous sections. The actual component has no native backend in this browser and shows unavailable states. Pixel equality is not an acceptance threshold. These images are not installed-application evidence.",
+  "pairs": [
+    {
+      "reference": "source-desktop",
+      "current": "prototype-desktop",
+      "width": 1440,
+      "height": 900,
+      "looks_same": {
+        "equal": false,
+        "different_pixels": 865110,
+        "total_pixels": 1296000,
+        "diff_bounds": {
+          "left": 1,
+          "top": 0,
+          "right": 1439,
+          "bottom": 899
+        },
+        "diff": "screenshots/source-desktop-vs-prototype-desktop-looks-same.png"
+      },
+      "pixelmatch": {
+        "different_pixels": 314587,
+        "total_pixels": 1296000,
+        "different_ratio": 0.24273688271604937,
+        "diff": "screenshots/source-desktop-vs-prototype-desktop-pixelmatch.png"
+      }
+    },
+    {
+      "reference": "source-mobile",
+      "current": "prototype-mobile",
+      "width": 375,
+      "height": 844,
+      "looks_same": {
+        "equal": false,
+        "different_pixels": 110646,
+        "total_pixels": 316500,
+        "diff_bounds": {
+          "left": 1,
+          "top": 0,
+          "right": 374,
+          "bottom": 843
+        },
+        "diff": "screenshots/source-mobile-vs-prototype-mobile-looks-same.png"
+      },
+      "pixelmatch": {
+        "different_pixels": 47366,
+        "total_pixels": 316500,
+        "different_ratio": 0.1496556082148499,
+        "diff": "screenshots/source-mobile-vs-prototype-mobile-pixelmatch.png"
+      }
+    },
+    {
+      "reference": "prototype-desktop",
+      "current": "component-desktop-native-unavailable",
+      "width": 1440,
+      "height": 900,
+      "looks_same": {
+        "equal": false,
+        "different_pixels": 268172,
+        "total_pixels": 1296000,
+        "diff_bounds": {
+          "left": 157,
+          "top": 40,
+          "right": 1282,
+          "bottom": 862
+        },
+        "diff": "screenshots/prototype-desktop-vs-component-desktop-native-unavailable-looks-same.png"
+      },
+      "pixelmatch": {
+        "different_pixels": 63531,
+        "total_pixels": 1296000,
+        "different_ratio": 0.04902083333333333,
+        "diff": "screenshots/prototype-desktop-vs-component-desktop-native-unavailable-pixelmatch.png"
+      }
+    },
+    {
+      "reference": "prototype-mobile",
+      "current": "component-mobile-native-unavailable",
+      "width": 375,
+      "height": 844,
+      "looks_same": {
+        "equal": false,
+        "different_pixels": 59730,
+        "total_pixels": 316500,
+        "diff_bounds": {
+          "left": 12,
+          "top": 20,
+          "right": 362,
+          "bottom": 843
+        },
+        "diff": "screenshots/prototype-mobile-vs-component-mobile-native-unavailable-looks-same.png"
+      },
+      "pixelmatch": {
+        "different_pixels": 34770,
+        "total_pixels": 316500,
+        "different_ratio": 0.10985781990521327,
+        "diff": "screenshots/prototype-mobile-vs-component-mobile-native-unavailable-pixelmatch.png"
+      }
+    }
+  ]
+}

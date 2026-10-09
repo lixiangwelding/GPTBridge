@@ -26,6 +26,16 @@
 
 **保存目标不等于开始执行。** 没有真实作业时显示“待接续”；端口可达也不等于客户端已握手。GPTBridge 不自动读取未传入的聊天记录，不用演示任务填充真实工作台。
 
+## dot 与原有对话共用一个工作区
+
+在客户端允许且连接器可用时，dot 和原有的 `@GPTBridge` 使用同一个 `/mcp`、既有认证及工具。先确认项目与权限，再通过现有 `read_file`、`apply_patch`、`exec_command` 等工具读文件、提交带哈希保护的补丁、运行校验，并按返回的原 job/session 取回结果。`task_open` 和 `task_checkpoint` 保存任务身份、进度与恢复回执；它们不要求委托外部 Agent。
+
+打开项目的工作区详情，可在 **dot · 原生工作区** 查看使用提示、真实连接观察及任务回执。复制提示只复制文本，刷新观察只读取当前状态；任务已保存、端口可达、命令结束和客户端实际调用分别显示。客户端目录缓存、dot 路由与实际调用仍需在对应客户端验证。
+
+命令执行当前为 `policy_only`，`sandbox_enforced=false`。单工作区的旧读取逻辑允许显式外部绝对路径或 `..`；共享网关将读取限制在所选工作区真实根目录。只读档位、命令策略与目录范围是不同检查，按实际返回为准。客户端目录没有自动推送更新：当前 initialize 的 `tools.listChanged=false`，带 `Accept: text/event-stream` 的 `/mcp` GET 返回 `405`；服务更新后需分别核服务目录和客户端支持的刷新流程。
+
+参阅 [dot 操作示例、刷新与恢复](docs/dot-compatibility.md)、[单工作区说明](PERSONAL.md) 和 [共享网关说明](docs/shared-gateway.md)。本功能不承诺客户端自动选择 GPTBridge、绕过确认或特定计费结果；构建、安装与服务端测试也不代替 dot 或原有客户端的实际签收。
+
 ## 0.4.1：统一名称，不打断旧连接
 
 产品显示名从 TaskDock 更新为 **GPTBridge**；这是原 Coding Tools MCP Personal 的后续重构版本。Svelte 5 / SvelteKit 前端与 Tauri 2 / Rust 运行时保持原有技术栈。应用标识、配置目录、任务数据库、既有 IPC 名称及 MCP 协议入口保留兼容，避免改名导致客户端失联或任务丢失。

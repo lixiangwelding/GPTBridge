@@ -20,7 +20,7 @@ pub const P0_TOOLS: &[(&str, &str, &str, bool, bool, bool)] = &[
     (
         "server_info",
         "Server info",
-        "Return server, workspace, auth, profile, and exposed-tool metadata.",
+        "Return server, workspace, auth, profile, and exposed-tool metadata, including descriptive native-workspace and actual read-policy information. This does not grant permissions or prove client routing support.",
         true,
         false,
         false,
@@ -172,7 +172,7 @@ pub const P0_TOOLS: &[(&str, &str, &str, bool, bool, bool)] = &[
     (
         "read_file",
         "Read file",
-        "Read a UTF-8 text file slice inside the configured workspace.",
+        "Read a UTF-8 text file slice directly with its current file_sha256. Single-workspace legacy reads allow explicitly supplied external absolute or parent paths; gateway reads are restricted to the selected workspace root. Follow the actual server_info read scope and current authorization.",
         true,
         false,
         false,
@@ -212,7 +212,7 @@ pub const P0_TOOLS: &[(&str, &str, &str, bool, bool, bool)] = &[
     (
         "apply_patch",
         "Apply patch",
-        "Apply a patch transactionally. Non-dry writes require stable request_id and expected_hashes; dry_run returns hashes. Paths are workspace-relative. If these fields are missing in the client schema, refresh its tool catalog; never bypass preconditions.",
+        "Apply a patch directly and transactionally, using task_id for durable bookkeeping rather than external Agent delegation. Non-dry writes require stable request_id and expected_hashes; dry_run returns hashes. Paths are workspace-relative. On stale hashes re-read and merge; on uncertain delivery inspect the original request. If these fields are missing in the client schema, refresh its tool catalog; never bypass preconditions.",
         false,
         true,
         false,
@@ -228,7 +228,7 @@ pub const P0_TOOLS: &[(&str, &str, &str, bool, bool, bool)] = &[
     (
         "exec_command",
         "Execute command",
-        "Run a bounded command in the workspace under runtime policy.",
+        "Run a bounded native command in the workspace under runtime policy; no external Agent is required. Non-interactive commands use durable jobs by default. Keep task_id and stable request_id, then query the original job/session after timeouts instead of replaying. Execution is policy_only, not an operating-system sandbox; inspect status, command_ok and exit_code.",
         false,
         true,
         true,
@@ -236,7 +236,7 @@ pub const P0_TOOLS: &[(&str, &str, &str, bool, bool, bool)] = &[
     (
         "write_stdin",
         "Write stdin",
-        "Write characters to a server-managed running command session.",
+        "Write characters to a server-managed running command session, or poll the original durable job session with empty chars. Durable non-interactive jobs close stdin at launch. Continue the returned handle rather than starting another command.",
         false,
         false,
         false,
@@ -252,7 +252,7 @@ pub const P0_TOOLS: &[(&str, &str, &str, bool, bool, bool)] = &[
     (
         "read_output",
         "Read output",
-        "Read retained stdout or stderr by output_ref with per-stream byte offset pagination.",
+        "Read retained stdout or stderr from the original output_ref with per-stream byte offset pagination. Follow returned offsets and truncation information; partial output alone does not prove command success. Task/request identity is durable bookkeeping, not external Agent delegation.",
         true,
         false,
         false,

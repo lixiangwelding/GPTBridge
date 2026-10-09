@@ -594,6 +594,7 @@ pub fn server_info(ctx: &ToolContext) -> Result<Value, WorkspaceError> {
         "tools": tools,
         "tool_count": tools.len(),
         "tool_contract": super::registry::catalog_contract(&ctx.tool_profile),
+        "direct_workspace": direct_workspace_metadata(ctx),
         "delivery": super::delivery::policy(ctx.workspace.root()),
         "runtime_pressure": ctx.personal.runtime_pressure().unwrap_or_else(|error|json!({"available":false,"error_code":error.code()})),
         "concurrency": {"profile":ctx.personal.limits.profile(),"effective":ctx.personal.limits,
@@ -608,6 +609,26 @@ pub fn server_info(ctx: &ToolContext) -> Result<Value, WorkspaceError> {
             "limits":ctx.personal.limits.jobs_json(),"config_isolated":true,"raw_transcript_capture":"only_explicitly_supplied_text",
             "saturated_queue_reconciliation":true,"completed_task_receipt_recovery":true,"queue_wait_diagnostics":true}
     })))
+}
+
+/// Descriptive metadata only; neither grants permissions nor changes tool exposure.
+fn direct_workspace_metadata(ctx: &ToolContext) -> Value {
+    json!({
+        "version": 1,
+        "execution_path": "native_tools",
+        "external_agent_required": false,
+        "durable_bookkeeping": "existing_task_and_request_lifecycle",
+        "catalog_refresh": "client_dependent_no_list_changed_notification",
+        "security": {
+            "execution_isolation": "policy_only",
+            "sandbox_enforced": false,
+            "read_scope": if ctx.workspace.reads_restricted_to_root() {
+                "workspace_root"
+            } else {
+                "explicit_external_paths_allowed"
+            }
+        }
+    })
 }
 
 pub fn check_exec_environment(ctx: &ToolContext) -> Result<Value, WorkspaceError> {

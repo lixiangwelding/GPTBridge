@@ -1,0 +1,26 @@
+{
+  "foreign_untouched_paths": {
+    "AGENTS.md": true,
+    "desktop-plugin/.codex-plugin/plugin.json": true,
+    "desktop-plugin/skills/gptbridge-plugin/SKILL.md": true,
+    "package.json": true,
+    "src-tauri/src/mcp/flow_control.rs": true,
+    "src-tauri/src/mcp/gateway.rs": true,
+    "src-tauri/src/mcp/gateway_http_tests.rs": true,
+    "src-tauri/src/mcp/gateway_tests.rs": true,
+    "src-tauri/src/mcp/listener.rs": true,
+    "src-tauri/src/mcp/server.rs": true,
+    "src-tauri/src/tools/auto_skill_tests.rs": true,
+    "src-tauri/src/tools/mod.rs": true,
+    "src-tauri/src/tools/skill_discovery.rs": true,
+    "src-tauri/src/tools/skills.rs": true,
+    "src-tauri/tests/call_tool_contract.rs": true
+  },
+  "overlap_hunks_verified": [
+    "README.md",
+    "src-tauri/src/tools/dispatch.rs",
+    "src-tauri/src/tools/registry.rs"
+  ],
+  "candidate_has_foreign_hunks": false,
+  "conversationChangeId": "fea762dc-b010-4652-a73b-88270bd5bf92"
+}

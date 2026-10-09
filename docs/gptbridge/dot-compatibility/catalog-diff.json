@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "violations": [],
+  "description_changes": [
+    "core/apply_patch",
+    "core/exec_command",
+    "core/read_file",
+    "core/read_output",
+    "core/server_info",
+    "core/write_stdin",
+    "read-only/read_file",
+    "read-only/read_output",
+    "read-only/server_info",
+    "advanced/apply_patch",
+    "advanced/exec_command",
+    "advanced/read_file",
+    "advanced/read_output",
+    "advanced/server_info",
+    "advanced/write_stdin",
+    "compat-readonly-all/apply_patch",
+    "compat-readonly-all/exec_command",
+    "compat-readonly-all/read_file",
+    "compat-readonly-all/read_output",
+    "compat-readonly-all/server_info",
+    "compat-readonly-all/write_stdin"
+  ],
+  "profile_tool_counts": {
+    "core": 39,
+    "read-only": 26,
+    "advanced": 52,
+    "compat-readonly-all": 52
+  },
+  "full_input_schema_and_annotations_compared": true,
+  "client_refresh_verified": false
+}

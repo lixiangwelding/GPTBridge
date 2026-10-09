@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const json = path => JSON.parse(read(path));
-const version = '0.4.1';
+const version = json('package.json').version;
 
 test('package and Tauri branding have one name and version', () => {
   const pkg = json('package.json'), lock = json('package-lock.json'), tauri = json('src-tauri/tauri.conf.json');
@@ -14,8 +14,10 @@ test('package and Tauri branding have one name and version', () => {
   for (const actual of [pkg.version, lock.version, lock.packages[''].version, tauri.version]) assert.equal(actual, version);
   assert.equal(tauri.productName, 'GPTBridge');
   assert.match(tauri.app.windows[0].title, /^GPTBridge/);
-  assert.match(read('src-tauri/Cargo.toml'), /version = "0\.4\.1"/);
-  assert.match(read('src-tauri/Cargo.lock'), /name = "coding-tools-mcp-personal"\nversion = "0\.4\.1"/);
+  const cargoVersion = read('src-tauri/Cargo.toml').match(/^version = "([^"]+)"/m)?.[1];
+  const lockedVersion = read('src-tauri/Cargo.lock').match(/name = "coding-tools-mcp-personal"\nversion = "([^"]+)"/)?.[1];
+  assert.equal(cargoVersion, version);
+  assert.equal(lockedVersion, version);
 });
 
 test('rendered main routes and close dialog use GPTBridge', () => {

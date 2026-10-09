@@ -1,0 +1,39 @@
+{
+  "source_base": "17f47d3d261aa23f9e8d2c11d269438e000bceba",
+  "execution_scope": "clean candidate, foreign hunks excluded",
+  "logs": {
+    "cargo-full-tests": {
+      "log_sha256": "534a80a2c3112b80c00d784e5917d7f50c6c46b4b1f4fd6364301c86eecd3822",
+      "passed": 466,
+      "status": "PASS"
+    },
+    "runtime-full-tests": {
+      "log_sha256": "9010870d5bd47042016dd4c26b0637b18c60f234ca74fa1a4b88839b42763cc1",
+      "passed": 74,
+      "status": "PASS"
+    },
+    "frontend-tests": {
+      "log_sha256": "906965dd79f23e30c8bae1b7a03f94ba8cf6955e701183b065f4b923a93a32f4",
+      "passed": 22,
+      "status": "PASS"
+    },
+    "candidate-check": {
+      "log_sha256": "faf15b2460926eb59af1b7d9a73d20cd52f66ecace0bbc12a780ab610f707161",
+      "passed": null,
+      "status": "PASS"
+    },
+    "candidate-vite": {
+      "log_sha256": "e054ba33c527770c8fa9e07c97b65689dea09ff454c6b2d0c2d1f5f47d0c9aef",
+      "passed": null,
+      "status": "PASS"
+    },
+    "dot-protocol-tests": {
+      "log_sha256": "bf9fca9c6cd8dde3bff94bbe0d5280151439182326aebd0bc7fe94b7630adf87",
+      "passed": 6,
+      "status": "PASS"
+    }
+  },
+  "frontend_check": "0 errors / 0 warnings",
+  "source_catalog": "four profiles, complete schemas and annotations unchanged",
+  "client_dot_acceptance": "NOT_VERIFIED"
+}

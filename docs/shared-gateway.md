@@ -20,6 +20,30 @@
 
 例如，入口使用个人版默认分配的 MCP 端口 38766 时，FRP 指向 `127.0.0.1:38766`；这个数字只是示例，以界面实际端口为准。成员的配置仍保存各自端口，但共享模式不需要启动那些监听器。不要把同一个公网子域重复配置成多条相互冲突的 FRP 代理。
 
+## dot 和原有对话使用同一入口
+
+客户端允许且连接器可用时，dot 与原有 `@GPTBridge` 仍连接这个 `/mcp`，沿用入口认证，不切换单/多工作区模式。原生读文件、补丁与持久命令都复用已有工具；任务与检查点保存身份和进度，不要求调用外部 Agent。
+
+先取得登记 ID，再在每次调用中显式传入。以下是实际工具参数结构，`workspace-a` 要替换成 `workspace_list` 返回的 ID，而不是本机路径：
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"workspace_list","arguments":{}}}
+```
+
+```json
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"server_info","arguments":{"workspace_id":"workspace-a"}}}
+```
+
+```json
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"read_file","arguments":{"workspace_id":"workspace-a","path":"README.md","max_bytes":8192}}}
+```
+
+创建任务、提交补丁、启动命令、`task_status`、`write_stdin` 和 `read_output` 都继续带同一个 `workspace_id`。复用其他仓库的 task/job/session/output 标识不会获得跨仓访问。完整哈希补丁和恢复示例见 [dot 使用说明](dot-compatibility.md)。
+
+网关 `server_info.direct_workspace.security.read_scope` 为 `workspace_root`，来自实际严格读取标志；单工作区旧读取值为 `explicit_external_paths_allowed`。这不改变工具档位或命令策略。命令执行仍报告 `policy_only` / `sandbox_enforced=false`，不能把登记工作区理解为操作系统沙箱。
+
+服务端 initialize 保持 `tools.listChanged=false`，带 `Accept: text/event-stream` 的 GET 保持 `405`。服务更新后分别检查服务目录及客户端刷新，无法从健康检查、配置保存或指南可见推断 dot 已调用成功。各客户端实际接入、缓存刷新与平台计费需单独验证。
+
 如果已经在“全局 FRP 配置”保存了服务器信息，入口直接选择该配置即可。复用 FRP 服务器配置与只暴露一个 MCP 地址是两件事：前者已有，后者由本版网关实现。
 
 ## 对话怎么用

@@ -7,6 +7,7 @@
   } from "$lib/components/ActionsPolicyForm.svelte";
   import AuthConfigForm from "$lib/components/AuthConfigForm.svelte";
   import HealthPanel from "$lib/components/HealthPanel.svelte";
+  import DotWorkspacePanel from "$lib/components/DotWorkspacePanel.svelte";
   import LogViewer from "$lib/components/LogViewer.svelte";
   import RuntimePolicyForm, {
     type RuntimePolicyDraft,
@@ -685,6 +686,7 @@
 
     <div class="page-body">
       {#if activeService === "mcp"}
+        <DotWorkspacePanel {profile} />
         <div class="mt-4 flex flex-col gap-3">
           <ServicePanel
             title="MCP"

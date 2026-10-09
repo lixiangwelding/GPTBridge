@@ -167,6 +167,11 @@ impl Workspace {
         self.strict_reads.store(true,std::sync::atomic::Ordering::Release);
     }
 
+    /// Report the existing read policy without changing it or probing host paths.
+    pub fn reads_restricted_to_root(&self) -> bool {
+        self.strict_reads.load(std::sync::atomic::Ordering::Acquire)
+    }
+
     pub fn root_display(&self) -> String {
         self.root.to_string_lossy().into_owned()
     }

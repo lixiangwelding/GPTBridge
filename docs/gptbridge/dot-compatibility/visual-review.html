@@ -1,0 +1,61 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dot 工作区视觉评审</title><style>body{max-width:1000px;margin:35px auto;padding:0 20px;font:14px/1.8 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;background:#f5f7f2;color:#24352d}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;background:white;border:1px solid #dde5d8;padding:22px;border-radius:6px}a{color:#246247}</style><body><p>伴生产物：<a href="visual-review.md">Markdown 唯一真源</a> · <a href="visual-metrics.json">真实视觉指标</a> · <a href="ui-evidence.json">验证证据</a></p><pre># dot 工作区视觉评审
+
+来源：用户附件 `/Users/didi/Downloads/GPTBridge-dot-产品方案与设计稿 (4).html` 的 `#mockups`，已用真实 Playwright CLI 浏览器采集 desktop 1440×900 与 mobile 375×844。来源中的连接与任务是模拟，不作为业务验收。
+
+## 集成前静态原型门禁
+
+`workspace-prototype.html` 先按附件提取指南、诊断、任务/回执与常驻安全边界，再沿用当前应用的 `--td-*` 绿色 token。同页展示取代附件 Tab，保留当前宿主壳；因此不是整页逐像素同构。原型带“示例数据”提示，按钮不连接服务。
+
+评分为人工观察 rubric，权重为布局 25、字体 20、间距 20、颜色 15、信息层级 20。分数依据已打开的桌面/手机截图，不代表自动算法或真实业务验收。
+
+| 区块 | 布局 | 字体 | 间距 | 颜色 | 信息层级 | 总分 | 观察 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 顶栏 | 24 | 19 | 19 | 15 | 19 | 96 | 标题、解释和刷新按钮同层；375px不溢出 |
+| 使用指南 | 24 | 19 | 19 | 15 | 19 | 96 | 三步编号、提示与工具名清晰；窄屏自然折行 |
+| 连接诊断 | 24 | 19 | 19 | 14 | 19 | 95 | 观测状态与未知客户端字段分开；警告有文字 |
+| 常驻安全条 | 23 | 18 | 19 | 15 | 19 | 94 | 保存配置与无OS沙箱贴近任务；窄屏纵向换行 |
+| 任务与回执 | 24 | 19 | 19 | 15 | 19 | 96 | 原任务、句柄及恢复操作集中，不模拟第二套执行链 |
+
+各区均达到集成前 90 分门禁。原型手机 screenshot 为视口图，下半部须滚动观察；后续集成继续核横向溢出。
+
+## 图谱覆盖
+
+写代码前使用受管 `mcp-probe-kit code_insight` 对 `load` / 精确 Svelte 文件 / UID 做 impact；当前 GPTBridge 索引未含该 Svelte 函数，不能从其他 Rust 同名函数推出影响。改动仅新增独立组件和页面 import/render，不改现有页面函数或共享 API。root 负责整体 detect_changes 和最终候选审阅。
+
+## 最终验证
+
+已真实编译并在独立 Vite 浏览器页面渲染 `DotWorkspacePanel.svelte`，采集 1440×900、375×844 与手机下半部截图。页面明确写“浏览器原生后端未连接”；唯一布局输入 `profile.id=layout-only` 是组件属性，不是实际工作区配置。没有 mock IPC、连接、任务、job、输出或成功结果。实际 API 的 `nativeAvailable()` 拒绝在浏览器中调用，组件据实展示“尚未观察 / 未验证 / 原生服务未连接”。这属于组件布局与错误反馈验证，不能替代完整工作区页面或 native 业务验收。
+
+375px 实测：`innerWidth=375`、`document.scrollWidth=375`、panel width 351、panel scrollWidth 349；无横向溢出。真实浏览器 console error 为 0。App 原有 minWidth 保持不变；此证据不宣称 App 支持手机运行。
+
+`npm run check`：退出 0，0 errors / 0 warnings。`node --test tests/dot-workspace-panel.test.mjs`：退出 0，5/5。`npm run build`：退出 0，这是当前工作树前端构建，正式制品仍由 root 从干净候选构建。API 失败后清除旧 connection / snapshot / 回执；页面切换的 generation 令牌拒绝过期异步结果。真实安装应用的 UI 与 native 读取由唯一安装协调者 root 补充验收。
+
+| 实际组件区块 | 布局 | 字体 | 间距 | 颜色 | 信息层级 | 总分 | 观察范围 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 顶栏 | 24 | 19 | 19 | 15 | 19 | 96 | 桌面与375px视口 |
+| 使用指南 | 24 | 19 | 19 | 15 | 19 | 96 | 三步与按钮均可见，文字不溢出 |
+| 连接诊断 | 23 | 19 | 18 | 15 | 20 | 95 | 未连接反馈，无伪造成功 |
+| 常驻安全条 | 23 | 19 | 18 | 15 | 20 | 95 | 手机下半部折行完整 |
+| 任务区未连接反馈 | 24 | 19 | 19 | 15 | 20 | 97 | 错误与未知态；已加载回执待native验收 |
+
+## 双引擎视觉指标
+
+隔离临时目录安装 looks-same 10.0.1、pixelmatch 7.2.0、pngjs 7.0.0；没有改变项目依赖。`compare.mjs` 是可复跑脚本，`visual-metrics.json` 记录真实指标，两个引擎各输出独立 diff PNG。
+
+| 比较 | looks-same equal | pixelmatch差异比例 |
+| --- | --- | ---: |
+| 附件desktop → 新静态prototype | false | 24.2737% |
+| 附件375px → 新静态prototype | false | 14.9656% |
+| 静态prototype desktop → 实际组件未连接态 | false | 4.9021% |
+| 静态prototype375px → 实际组件未连接态 | false | 10.9858% |
+
+这些比较不是逐像素同构：附件有整份方案文档的蓝色导航壳，现有应用使用绿色 token；静态prototype含示例任务，实际组件显示真实未连接错误。因此保留 `equal=false`，不将不同内容的像素差异包装成通过。人工 rubric 用于本次布局/层级门禁；实际 native 页面签收独立记录。
+
+`ui-evidence.json` 固定附件 SHA、基线、组件源码 SHA 与验证层级。截图入口位于 `screenshots/`：source 为用户附件；prototype 为明确标注的静态设计；component-* 为无 native 后端的实际 Svelte 组件。
+
+| Before | After | Why |
+| --- | --- | --- |
+| 附件通过 Tab 隐藏指南、诊断、回执 | 现有 MCP 详情页同页常驻 | 一眼查看操作方式与风险 |
+| 模拟状态推进按钮 | 原生只读刷新、选择原任务、复制接续 | 不暗示已执行或重放副作用 |
+| 无按压反馈 | 复制/刷新按钮 `translateY(1px)`；减少动效偏好不添加动画 | 反馈轻且保持布局稳定 |
+</pre></body></html>

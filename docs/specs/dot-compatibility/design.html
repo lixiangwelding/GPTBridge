@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>设计文档：GPTBridge dot 增量兼容</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">设计文档：GPTBridge dot 增量兼容</h1>
+</header>
+<h1 id="设计文档gptbridge-dot-增量兼容">设计文档：GPTBridge dot
+增量兼容</h1>
+<h2 id="概述">概述</h2>
+<p>覆盖 FR-1 至 FR-8、NFR-1 至
+NFR-4。保留现有执行链与合同，只补能力表达、用户说明和工作区详情的真实观察。附件模拟界面用于设计参考；实际应用状态由当前后端提供。</p>
+<h2 id="技术方案">技术方案</h2>
+<h3 id="技术选型">技术选型</h3>
+<p>沿用 Svelte 5、项目组件/设计 token、Tauri IPC、Rust registry/dispatch
+与现有 personal-runtime Store/worker，不新增
+Bridge、通用写入工具、认证服务、队列或外部 Agent。</p>
+<h3 id="架构设计">架构设计</h3>
+<p>客户端 → 既有 <code>/mcp</code>/认证 → 单工作区 dispatcher 或登记网关
+→ 原生读取/补丁/持久命令。task_open/checkpoint 与 job/request
+保存身份、修订和回执；task 的存在不表示外部
+Agent，也不代表命令正在执行。</p>
+<p>宿主工作区详情 → 指南/观察组件 → 原
+<code>taskdock_connections</code>、有界
+<code>taskdock_snapshot</code>、<code>taskdock_task</code>
+与作业输出接口。复制动作只复制，刷新动作只读取，不暴露新的执行
+IPC。策略说明从已保存 profile 读取，诊断状态来自真实快照；不能伪装成现场
+MCP <code>server_info</code> 探测。</p>
+<h2 id="数据模型">数据模型</h2>
+<p><code>server_info</code> 增加可忽略
+<code>direct_workspace</code>：</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span><span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;execution_path&quot;</span><span class="fu">:</span><span class="st">&quot;native_tools&quot;</span><span class="fu">,</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;external_agent_required&quot;</span><span class="fu">:</span><span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;durable_bookkeeping&quot;</span><span class="fu">:</span><span class="st">&quot;existing_task_and_request_lifecycle&quot;</span><span class="fu">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;catalog_refresh&quot;</span><span class="fu">:</span><span class="st">&quot;client_dependent_no_list_changed_notification&quot;</span><span class="fu">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;security&quot;</span><span class="fu">:{</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;execution_isolation&quot;</span><span class="fu">:</span><span class="st">&quot;policy_only&quot;</span><span class="fu">,</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sandbox_enforced&quot;</span><span class="fu">:</span><span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;read_scope&quot;</span><span class="fu">:</span><span class="st">&quot;workspace_root&quot;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>read_scope 从 Workspace 当前严格读取原子标志获得：true 为
+<code>workspace_root</code>，false 为
+<code>explicit_external_paths_allowed</code>。网关构造时启用严格读取；只读工具档位不用于推断该值。示例展示网关值，单工作区按真实标志返回。</p>
+<p>UI 复用 TaskRow、连接快照、任务详情及 job 输出。job 状态为
+queued/running/exited/cancelled/timeout/queue_timeout/spawn_failed/unknown；exited
+的非零退出码仍是失败，任务 active 没有执行中 job
+时是待接续。每个快照保留来源/观察时间，缺少客户端证据为“未验证”。</p>
+<h2 id="api-设计">API 设计</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>入口</th>
+<th>类型</th>
+<th>输入变化</th>
+<th>输出/说明变化</th>
+<th>对应需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tools/call: server_info</code></td>
+<td>已有接口改造</td>
+<td>无，原 schema 保留</td>
+<td>增加可忽略 direct_workspace；旧字段保留</td>
+<td>FR-1、FR-2、FR-5</td>
+</tr>
+<tr>
+<td>initialize instructions</td>
+<td>已有说明改造</td>
+<td>无</td>
+<td>澄清原生操作、任务记账、真实安全和刷新边界</td>
+<td>FR-2、FR-6</td>
+</tr>
+<tr>
+<td>server_info/read_file/apply_patch/exec_command/write_stdin/read_output
+的 description</td>
+<td>已有说明改造</td>
+<td>无；完整 inputSchema 保留</td>
+<td>仅审核过的说明文字；annotations 保留</td>
+<td>FR-1 至 FR-6</td>
+</tr>
+<tr>
+<td>原 task/open/checkpoint、补丁和命令工具</td>
+<td>无接口变化</td>
+<td>task/request/revision/hash/session/output 原字段</td>
+<td>无行为变化，按原结果恢复</td>
+<td>FR-3、FR-4</td>
+</tr>
+<tr>
+<td><code>taskdock_connections</code> / snapshot / task / job
+output</td>
+<td>无接口变化</td>
+<td>原参数、workspace/task/job 归属</td>
+<td>UI 消费已有真实返回，不新增远程执行能力</td>
+<td>FR-7</td>
+</tr>
+</tbody>
+</table>
+<p>网关继续给目录中的业务 inputSchema 注入原有必填
+workspace_id，再剥离路由参数交给所选成员；该既有模式差异属于基线，不能把网关
+schema 与单工作区 schema
+混同比对。工具档位差异、插件显式选择标志与本轮变更分别核验。</p>
+<h2 id="文件结构">文件结构</h2>
+<ul>
+<li>协议：<code>src-tauri/src/tools/personal.rs</code>、<code>dispatch.rs</code>、<code>registry.rs</code>
+及 <code>workspace.rs</code> 的只读状态 getter；新增
+<code>src-tauri/tests/dot_compatibility.rs</code>。</li>
+<li>界面：<code>src/routes/workspace/[id]/+page.svelte</code>
+与专属指南/状态模块和相关测试；不覆盖原配置路由或改认证。</li>
+<li>文档：README 的 dot 章节、PERSONAL、shared-gateway、desktop-plugin
+README、<code>docs/dot-compatibility.md</code>、本三份规格。</li>
+<li>证据：<code>docs/gptbridge/dot-compatibility/</code>；唯一执行真源为
+<code>docs/goals/gptbridge-dot-compatibility-goal.md</code>，同名 HTML
+为伴生产物。</li>
+</ul>
+<h2 id="设计决策">设计决策</h2>
+<h3 id="决策-1兼容用结构证据说明变化用白名单fr-1fr-2">决策
+1：兼容用结构证据，说明变化用白名单（FR-1、FR-2）</h3>
+<p>比较工具名、完整
+inputSchema、annotations、暴露档位和旧响应关键字段，不只比较
+tool_count。catalog_contract 的 schema 指纹覆盖名称与 schema，顶层
+description/annotations 要另比对。可选 metadata
+不增加必填参数，也不修改执行行为。</p>
+<h3 id="决策-2按真实标志披露读取范围fr-2fr-5">决策
+2：按真实标志披露读取范围（FR-2、FR-5）</h3>
+<p>保留单工作区旧显式外部读取和网关 strict_reads。可选元数据读取当前
+flag，不按名称、权限档位或网络配置猜测。OS 沙箱、SSE
+通知及统一路径加固另立任务，本轮没有伪安全开关。</p>
+<h3 id="决策-3恢复继续原请求不重复执行fr-3fr-4">决策
+3：恢复继续原请求，不重复执行（FR-3、FR-4）</h3>
+<p>补丁继续整个文件 hash、写锁与幂等；命令复用原持久
+worker。输出持久归属由 job/session/output_ref 决定，公开
+read_output/write_stdin schema 不追加
+task_id。响应未知先查原回执及效果，不能盲目重放。</p>
+<h3 id="决策-4客户端结果和宿主观察分开fr-6fr-7">决策
+4：客户端结果和宿主观察分开（FR-6、FR-7）</h3>
+<p>指南同页常驻，服务可达/任务状态基于真实查询，客户端目录/授权/dot
+路由保留未知。listChanged=false、SSE GET 405 保持，无目录推送承诺。P1
+不倒逼协议增加执行功能。</p>
+<h3 id="决策-5提交制品和安装同源fr-8nfr-4">决策
+5：提交、制品和安装同源（FR-8、NFR-4）</h3>
+<p>启动时冻结 foreign diff；只从本轮拥有片段构造提交与干净候选。唯一
+root 协调者执行普通 push、远端读回、App 构建和精确替换，保留旧 App
+与任务库。任何 Git
+片段无法安全切分时该路径停止提交依赖，其他独立工作继续。</p>
+<h2 id="测试策略">测试策略</h2>
+<p>契约对比先固定基线，再审核白名单说明和
+metadata。集成测试使用临时工作区与单测试实例，真实 HTTP/MCP 覆盖
+initialize/tools/list/server_info、读→哈希补丁→持久命令→原句柄输出→checkpoint；反例覆盖哈希、幂等、只读、网关目标/路径/归属与恢复。</p>
+<p>原 Rust 回归覆盖并发写锁、已完成任务恢复、worker 丢失为
+unknown、输出分页和 Unicode
+等。前端类型/构建与专属状态测试，真实桌面/375px
+页面截图、键盘与空/加载/错误/长路径状态分别记录；原型截图仅作视觉参考。</p>
+<p>源码测试、制品、安装、进程、HTTP、宿主 UI 与 dot/<span
+class="citation" data-cites="GPTBridge">@GPTBridge</span>
+客户端各自有结果字段。无法运行的真实客户端保持
+NOT_VERIFIED，不因上游测试通过写为 PASS。精确命令和证据编号见 tasks
+与本轮报告。</p>
+<h2 id="风险评估">风险评估</h2>
+<p>主要风险是工具合同漂移、错误 read_scope、未知命令重放、foreign
+误入提交/构建、活动 job 丢失和客户端缓存陈旧。分别用冻结合同、真实
+flag、原句柄恢复、差分所有权、活动作业盘点与客户端独立验收控制。发生越权、非白名单差异或无法安全延续活动命令，停止依赖发布步骤，不取消独立只读/文档工作。</p>
+<h2 id="检查清单">检查清单</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" checked="" />FR-1 至 FR-8
+与数据、接口及验证边界对应。</label></li>
+<li><label><input type="checkbox"
+checked="" />无认证、数据格式或执行链迁移。</label></li>
+<li><label><input type="checkbox" />按 tasks
+完成本轮实际验证和安装回读。</label></li>
+</ul>
+</body>
+</html>

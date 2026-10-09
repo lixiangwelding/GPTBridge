@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-09",
+  "baseline": "17f47d3d261aa23f9e8d2c11d269438e000bceba",
+  "source_catalog_sha256": "7b40443747be00460ae3b992c7d205094f1994f5461f1285371553282e107836",
+  "checked_count": 10,
+  "checks": [
+    {
+      "file": "docs/dot-compatibility.md",
+      "tool": "task_open",
+      "result": "PASS_BASELINE_INPUT_SCHEMA",
+      "placeholder_ids_require_real_receipts": true
+    },
+    {
+      "file": "docs/dot-compatibility.md",
+      "tool": "read_file",
+      "result": "PASS_BASELINE_INPUT_SCHEMA",
+      "placeholder_ids_require_real_receipts": true
+    },
+    {
+      "file": "docs/dot-compatibility.md",
+      "tool": "apply_patch",
+      "result": "PASS_BASELINE_INPUT_SCHEMA",
+      "placeholder_ids_require_real_receipts": true
+    },
+    {
+      "file": "docs/dot-compatibility.md",
+      "tool": "exec_command",
+      "result": "PASS_BASELINE_INPUT_SCHEMA",
+      "placeholder_ids_require_real_receipts": true
+    },
+    {
+      "file": "docs/dot-compatibility.md",
+      "tool": "write_stdin",
+      "result": "PASS_BASELINE_INPUT_SCHEMA",
+      "placeholder_ids_require_real_receipts": true
+    },
+    {
+      "file": "docs/dot-compatibility.md",
+      "tool": "read_output",
+      "result": "PASS_BASELINE_INPUT_SCHEMA",
+      "placeholder_ids_require_real_receipts": true
+    },
+    {
+      "file": "docs/dot-compatibility.md",
+      "tool": "task_checkpoint",
+      "result": "PASS_BASELINE_INPUT_SCHEMA",
+      "placeholder_ids_require_real_receipts": true
+    },
+    {
+      "file": "docs/shared-gateway.md",
+      "tool": "workspace_list",
+      "result": "PASS_BASELINE_INPUT_SCHEMA_WITH_EXISTING_GATEWAY_ROUTING"
+    },
+    {
+      "file": "docs/shared-gateway.md",
+      "tool": "server_info",
+      "result": "PASS_BASELINE_INPUT_SCHEMA_WITH_EXISTING_GATEWAY_ROUTING"
+    },
+    {
+      "file": "docs/shared-gateway.md",
+      "tool": "read_file",
+      "result": "PASS_BASELINE_INPUT_SCHEMA_WITH_EXISTING_GATEWAY_ROUTING"
+    }
+  ],
+  "scope": "JSON parsing and published baseline inputSchema constraints (types, required, additional properties, enums, length/range/items). Placeholder values must be replaced; no command or client was executed.",
+  "documentation_sha256": {
+    "docs/dot-compatibility.md": "4cd0d039829a250c8bcac4ddbdc331a272a093e692713e7179c2f47a06921efe",
+    "docs/shared-gateway.md": "e0645bbc6b930df132ddef173b9271e6d1cf2e1d669c750c1696fae3f2e924d3"
+  },
+  "foreign_readme_preserved": true,
+  "foreign_readme_frozen_sha256": "6fa3321974ccd369f1629e17efb32e6b929e8ba861d3cdd2e012edf9fccf60ea",
+  "owned_document_links_checked": 23
+}
