@@ -13,10 +13,14 @@ pub(crate) mod window_chrome;
 mod workspace;
 pub(crate) mod taskdock;
 mod taskdock_skills;
+mod taskdock_receipts;
+mod taskdock_diagnostics;
 
 pub use taskdock::{taskdock_snapshot,taskdock_task,taskdock_create,taskdock_job_output,taskdock_add_project,taskdock_connections,taskdock_app_info};
 pub use runtime::taskdock_start_service;
 pub use taskdock_skills::{taskdock_skills,taskdock_skill_read,taskdock_skill_preference};
+pub use taskdock_receipts::taskdock_operation_receipts;
+pub use taskdock_diagnostics::taskdock_protocol_diagnostics;
 
 pub use app_info::{check_app_update, open_url};
 pub use access_logs::{open_http_access_log_directory, query_http_access_logs};

@@ -12,22 +12,25 @@ from pathlib import Path
 import plistlib
 import re
 import socket
+import sqlite3
 import subprocess
 import time
 import uuid
-from service_personal import foreign_jobs, health, launch_definition, rpc_idle, sha, wait_health
+from service_personal import (JobIdleObserver, health, launch_definition, personal_app, pids,
+                             rpc_idle, sha, verify_app_signature, verify_mapped_executable, wait_health)
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def parse_service(text: str, executable: Path, profile: str) -> int:
+def parse_service(text: str, executable: Path, profile: str, port: int | None = None) -> int:
     program = re.findall(r'^\s*program = (.+)$', text, re.MULTILINE)
     pids = re.findall(r'^\s*pid = ([0-9]+)$', text, re.MULTILINE)
     args = re.search(r'^\s*arguments = \{\n(.*?)^\s*\}', text, re.MULTILINE | re.DOTALL)
     expected = [str(executable), '--personal-serve', profile]
     entries = [line.strip() for line in args.group(1).splitlines()] if args else []
     if (program != [str(executable)] or len(pids) != 1 or int(pids[0]) <= 1
-            or entries[:3] != expected or len(entries) != 4 or not entries[3].isdigit()):
+            or entries[:3] != expected or len(entries) != 4 or not entries[3].isdigit()
+            or (port is not None and entries[3] != str(port))):
         raise ValueError('launchd service identity is not the exact personal server')
     return int(pids[0])
 
@@ -48,6 +51,7 @@ def main() -> int:
     parser.add_argument('--profile', required=True)
     parser.add_argument('--task-id', required=True)
     parser.add_argument('--apply', action='store_true')
+    parser.add_argument('--app', type=Path, help='Absolute installed App path; defaults to GPTBridge.app, then the legacy name')
     args = parser.parse_args()
     uuid.UUID(args.task_id)
     if not re.fullmatch(r'[A-Za-z0-9_-]+', args.profile):
@@ -59,7 +63,7 @@ def main() -> int:
     if len(selected) != 1:
         raise ValueError('exact saved profile required')
     selected = selected[0]
-    app = home / 'Applications/Coding Tools MCP Personal.app'
+    app = personal_app(home, args.app)
     info = plistlib.loads((app / 'Contents/Info.plist').read_bytes())
     version = json.loads((ROOT / 'src-tauri/tauri.conf.json').read_text())['version']
     if (info.get('CFBundleIdentifier') != 'com.lixiangwelding.codingtools.personal'
@@ -83,13 +87,15 @@ def main() -> int:
         result = subprocess.run(['/bin/launchctl', 'print', target], capture_output=True, text=True, timeout=5)
         if result.returncode:
             raise ValueError('registered personal LaunchAgent is unavailable')
-        return parse_service(result.stdout, executable, args.profile)
+        return parse_service(result.stdout, executable, args.profile, port)
 
-    def idle():
+    def idle(observer):
         return (sha(config) == before and sha(plist) == plist_sha and sha(executable) == binary_sha
-                and not foreign_jobs(home, Path(selected['path']), args.task_id) and rpc_idle(log))
+                and not observer.foreign_jobs(args.task_id) and rpc_idle(log))
 
     old_pid = read_pid()
+    if pids(port) != [old_pid]:
+        raise ValueError('selected port is not owned by the registered personal LaunchAgent')
     report = {'profile': args.profile, 'version': version, 'oldPid': old_pid,
               'configurationSha256': before, 'executableSha256': binary_sha,
               'target': target, 'restartRequested': False, 'foreignJobsCancelled': False}
@@ -100,6 +106,8 @@ def main() -> int:
     out.mkdir(parents=True, mode=0o700)
     report['receipt'] = str(out / 'receipt.json')
     try:
+        verify_app_signature(app)
+        report['strictSignatureVerified'] = True
         with socket.socket() as reservation:
             reservation.bind(('127.0.0.1', 0)); probe_port = reservation.getsockname()[1]
         env = {**os.environ, **definition['EnvironmentVariables']}
@@ -108,32 +116,36 @@ def main() -> int:
                 stdin=subprocess.DEVNULL, stdout=sink, stderr=sink, env=env, start_new_session=True)
             try:
                 report['candidateHealth'] = wait_health(probe_port, version)
-                if probe.poll() is not None:
-                    raise ValueError('candidate exited during warmup')
+                if probe.poll() is not None or pids(probe_port) != [probe.pid]:
+                    raise ValueError('candidate exited or probe listener ownership changed during warmup')
             finally:
                 probe.terminate()
                 try: probe.wait(timeout=5)
                 except subprocess.TimeoutExpired: probe.kill(); probe.wait(timeout=5)
-        # The administrative tool RPC may still be completing. Wait only for
-        # bounded idle samples; never cancel any other task to manufacture idle.
-        deadline = time.monotonic() + 10
-        while time.monotonic() < deadline and not idle():
-            time.sleep(.3)
-
         def restart():
             report['restartRequested'] = True
             result = subprocess.run(['/bin/launchctl', 'kickstart', '-k', target], capture_output=True, timeout=10)
             if result.returncode:
                 raise ValueError('launchd rejected the selected service reload')
 
-        guarded_restart(old_pid, read_pid, idle, restart)
+        # Hold an ordinary read-only connection over every idle sample. There is
+        # no pinned transaction: each sample must observe any new writer commit.
+        with JobIdleObserver(home, Path(selected['path'])) as observer:
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline and not idle(observer):
+                time.sleep(.3)
+            guarded_restart(old_pid, read_pid, lambda: idle(observer), restart)
+        report['jobGuard'] = 'persistent_readonly_queued_running_unknown'
         report['health'] = wait_health(port, version)
         report['newPid'] = read_pid()
         report['configurationUnchanged'] = sha(config) == before and sha(plist) == plist_sha
-        if not report['configurationUnchanged'] or report['newPid'] == old_pid or sha(executable) != binary_sha:
+        if (not report['configurationUnchanged'] or report['newPid'] == old_pid
+                or sha(executable) != binary_sha or pids(port) != [report['newPid']]):
             raise ValueError('service reload identity or configuration readback failed')
+        verify_mapped_executable(report['newPid'], executable)
+        report['mappedExecutableVerified'] = True
         report['status'] = 'running'
-    except (ValueError, OSError, subprocess.SubprocessError) as error:
+    except (ValueError, OSError, sqlite3.Error, subprocess.SubprocessError) as error:
         report.update(status='not_verified', error=str(error)[:400])
     finally:
         (out / 'receipt.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')

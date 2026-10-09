@@ -1,6 +1,6 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { WorkspaceProfile, RuntimeStatus } from "$lib/types";
-import type { AppInfo, Connections, JobOutput, SkillContent, SkillPage, Snapshot, TaskDetail, TaskQuery } from "./types";
+import type { AppInfo, Connections, JobOutput, OperationReceiptCursor, OperationReceiptPage, ProtocolDiagnostics, SkillContent, SkillPage, Snapshot, TaskDetail, TaskQuery } from "./types";
 
 export const nativeAvailable = (): boolean => typeof window !== "undefined" && isTauri();
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
@@ -14,6 +14,8 @@ export const getSnapshot = (workspaceId: string | null, query: TaskQuery) => cal
 export const getTask = (workspaceId: string, taskId: string) => call<TaskDetail>("taskdock_task", { workspaceId, taskId });
 export const createTask = (workspaceId: string, goal: string, requestId: string) => call<{ task_id: string; workspace_id: string; requires_client: boolean }>("taskdock_create", { workspaceId, goal, requestId });
 export const getConnections = (workspaceId: string) => call<Connections>("taskdock_connections", { workspaceId });
+export const getProtocolDiagnostics = (workspaceId: string) => call<ProtocolDiagnostics>("taskdock_protocol_diagnostics", { workspaceId });
+export const getOperationReceipts = (workspaceId: string, taskId: string, cursor: OperationReceiptCursor | null = null, limit = 20) => call<OperationReceiptPage>("taskdock_operation_receipts", { workspaceId, taskId, cursor, limit });
 export const startService = (workspaceId: string, service: "mcp" | "actions") => call<RuntimeStatus>("taskdock_start_service", { workspaceId, service });
 export const getSkills = (workspaceId: string, query = "", cursor: string | null = null) => call<SkillPage>("taskdock_skills", { workspaceId, query, cursor });
 export const readSkill = (workspaceId: string, skillId: string, offset = 0, expectedSha256: string | null = null) => call<SkillContent>("taskdock_skill_read", { workspaceId, skillId, offset, expectedSha256 });

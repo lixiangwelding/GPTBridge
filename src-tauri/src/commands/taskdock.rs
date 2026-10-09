@@ -86,7 +86,9 @@ pub async fn taskdock_job_output(state:State<'_,AppState>,workspace_id:String,ta
     let p=profile(&state,&workspace_id)?;
     tauri::async_runtime::spawn_blocking(move||{
         let s=store_for(&p)?;
-        read_job_output(&s,&task_id,&job_id,&stream,offset.unwrap_or(0))
+        let mut output=read_job_output(&s,&task_id,&job_id,&stream,offset.unwrap_or(0))?;
+        output["workspace_id"]=json!(p.id);
+        Ok(output)
     }).await.map_err(failure)?
 }
 
@@ -96,7 +98,9 @@ pub(crate) fn read_job_output(s:&Store,task:&str,job:&str,stream:&str,offset:u64
     let owner:Option<String>=s.conn().map_err(failure)?.query_row("SELECT task_id FROM jobs WHERE id=?1",[job],|r|r.get(0)).optional().map_err(failure)?;
     if owner.as_deref()!=Some(task) {return Err(failure("JOB_TASK_MISMATCH：该作业不属于选中任务"));}
     if !["stdout","stderr"].contains(&stream) {return Err(failure("无效日志流"));}
-    s.job_output(job,stream,offset,8192).map_err(failure)
+    let mut output=s.job_output(job,stream,offset,8192).map_err(failure)?;
+    output["task_id"]=json!(task);output["job_id"]=json!(job);output["stream"]=json!(stream);
+    Ok(output)
 }
 
 #[tauri::command]
@@ -123,4 +127,23 @@ pub async fn taskdock_connections(state:State<'_,AppState>,workspace_id:String)-
     }
     let (mcp_reachable,actions_reachable)=tokio::join!(reachable(p.runtime.local_port),reachable(p.actions.local_port));
     Ok(json!({"workspace_id":p.id,"mcp":mcp,"actions":actions,"mcp_reachable":mcp_reachable,"actions_reachable":actions_reachable,"checked_at":now_ms(),"client_connections":null,"note":"端口可达不是客户端握手证明；非本实例服务不接管、不重启"}))
+}
+
+#[cfg(test)]
+mod output_identity_tests {
+    use super::*;
+    #[test]
+    fn job_output_identity_is_persisted_owner_and_validated_stream() {
+        let temp=tempfile::tempdir().unwrap();let workspace=temp.path().join("workspace");std::fs::create_dir(&workspace).unwrap();
+        let store=Store::open(&temp.path().join("runtime"),&workspace).unwrap();
+        let task=store.task_open("output identity",None,true).unwrap()["task_id"].as_str().unwrap().to_string();
+        let other=store.task_open("other",None,true).unwrap()["task_id"].as_str().unwrap().to_string();
+        let job=uuid::Uuid::new_v4().to_string();
+        store.conn().unwrap().execute("INSERT INTO jobs(id,task_id,scope,request_id,input_hash,spec,state,exit_code,created,updated,detail) VALUES(?1,?2,'exec',?1,'hash','{}','exited',0,1,2,'finished')",rusqlite::params![job,task]).unwrap();
+        let output=read_job_output(&store,&task,&job,"stdout",0).unwrap();
+        assert_eq!(output["task_id"],task);assert_eq!(output["job_id"],job);assert_eq!(output["stream"],"stdout");
+        assert_eq!(output["job_status"],"exited");assert_eq!(output["retained_bytes"],0);
+        assert!(read_job_output(&store,&other,&job,"stdout",0).unwrap_err().to_string().contains("JOB_TASK_MISMATCH"));
+        assert!(read_job_output(&store,&task,&job,"invalid",0).is_err());
+    }
 }

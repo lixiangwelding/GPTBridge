@@ -12,6 +12,7 @@ from collections import Counter
 import signal
 import socket
 import sqlite3
+import stat
 import subprocess
 import sys
 import time
@@ -52,14 +53,117 @@ def launch_definition(executable: Path, home: Path, profile: str, port: int) -> 
             "StandardOutPath": str(logs / "stdout.log"), "StandardErrorPath": str(logs / "stderr.log")}
 
 
+class JobIdleObserver:
+    """Keep one ordinary read-only connection across the complete idle guard.
+
+    Each query releases its cursor and read transaction so later samples see
+    newly committed jobs. The database must remain the same regular file; WAL
+    contents may change normally while writers continue working.
+    """
+
+    def __init__(self, home: Path, workspace: Path):
+        self.original_home = home
+        self.home = home.resolve(strict=True)
+        self.original_workspace = workspace
+        self.workspace = workspace.resolve(strict=True)
+        key = hashlib.sha256(str(self.workspace).encode()).hexdigest()
+        self.database = self.home / "Library/Application Support/coding-tools-mcp/harness/personal-runtime" / key / "runtime.sqlite3"
+        self.connection = None
+        self.descriptor = None
+
+    def _verify_identity(self) -> None:
+        try:
+            if self.original_home.resolve(strict=True) != self.home:
+                raise sqlite3.OperationalError("runtime home identity changed; listener preserved")
+            if (self.original_workspace.resolve(strict=True) != self.workspace
+                    or not self.workspace.is_dir()):
+                raise sqlite3.OperationalError("runtime workspace identity changed; listener preserved")
+            if self.database.resolve(strict=True) != self.database.absolute():
+                raise sqlite3.OperationalError("runtime store path contains a symbolic link")
+            current = self.database.lstat()
+            pinned = os.fstat(self.descriptor)
+            if (not stat.S_ISREG(current.st_mode) or not stat.S_ISREG(pinned.st_mode)
+                    or current.st_dev != pinned.st_dev or current.st_ino != pinned.st_ino
+                    or pinned.st_nlink == 0):
+                raise sqlite3.OperationalError("runtime store identity changed; listener preserved")
+        except OSError as error:
+            raise sqlite3.OperationalError("runtime store is unavailable; listener preserved") from error
+
+    def __enter__(self):
+        try:
+            self.descriptor = os.open(self.database, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+            self._verify_identity()
+            self.connection = sqlite3.connect(self.database.as_uri() + "?mode=ro", uri=True,
+                                             timeout=2, isolation_level=None)
+            cursor = self.connection.execute("PRAGMA query_only=ON")
+            cursor.close()
+            self._verify_identity()
+            return self
+        except OSError as error:
+            self.__exit__(None, None, None)
+            raise sqlite3.OperationalError("runtime store cannot be opened read-only; listener preserved") from error
+        except Exception:
+            self.__exit__(None, None, None)
+            raise
+
+    def foreign_jobs(self, own_task: str) -> list[str]:
+        if self.connection is None:
+            raise sqlite3.OperationalError("runtime store observer is not open")
+        self._verify_identity()
+        cursor = self.connection.execute(
+            "SELECT id FROM jobs WHERE state='unknown' OR (state IN ('queued','running') "
+            "AND (task_id IS NULL OR task_id<>?)) ORDER BY id LIMIT 33", (own_task,))
+        try:
+            jobs = [row[0] for row in cursor.fetchall()]
+        finally:
+            cursor.close()
+        self._verify_identity()
+        return jobs
+
+    def __exit__(self, *_):
+        try:
+            if self.connection is not None:
+                self.connection.close()
+        finally:
+            self.connection = None
+            if self.descriptor is not None:
+                os.close(self.descriptor)
+                self.descriptor = None
+
+
 def foreign_jobs(home: Path, workspace: Path, own_task: str) -> list[str]:
-    key = hashlib.sha256(str(workspace.resolve()).encode()).hexdigest()
-    database = home / "Library/Application Support/coding-tools-mcp/harness/personal-runtime" / key / "runtime.sqlite3"
-    connection = sqlite3.connect(database.as_uri() + "?mode=ro", uri=True, timeout=2)
-    try:
-        return [row[0] for row in connection.execute("SELECT id FROM jobs WHERE state IN ('queued','running') AND (task_id IS NULL OR task_id<>?) LIMIT 33", (own_task,))]
-    finally:
-        connection.close()
+    # Preserve the one-shot caller API. Restart guards use the context directly.
+    with JobIdleObserver(home, workspace) as observer:
+        return observer.foreign_jobs(own_task)
+
+
+def personal_app(home: Path, explicit: Path | None = None) -> Path:
+    if explicit is not None:
+        if not explicit.is_absolute():
+            raise ValueError("--app requires an absolute application path")
+        return explicit
+    preferred = home / "Applications/GPTBridge.app"
+    if preferred.exists() or preferred.is_symlink():
+        return preferred
+    legacy = home / "Applications/Coding Tools MCP Personal.app"
+    return legacy if legacy.exists() or legacy.is_symlink() else preferred
+
+
+def verify_app_signature(app: Path) -> None:
+    if app.resolve(strict=True) != app.absolute():
+        raise ValueError("installed App path contains a symbolic link")
+    result = subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(app)],
+                            capture_output=True, timeout=15)
+    if result.returncode:
+        raise ValueError("installed App did not pass strict code-signature verification")
+
+
+def verify_mapped_executable(pid: int, executable: Path) -> None:
+    result = subprocess.run(["/usr/sbin/lsof", "-a", "-p", str(pid), "-d", "txt", "-Fn"],
+                            capture_output=True, text=True, timeout=5)
+    mapped = {line[1:] for line in result.stdout.splitlines() if line.startswith("n")}
+    if result.returncode or result.stderr.strip() or str(executable) not in mapped:
+        raise ValueError("listener does not map the exact installed executable")
 
 
 def wait_health(port: int, version: str, seconds: int = 15) -> dict:
@@ -116,13 +220,13 @@ def verify_managed_service(definition: dict, home: Path, pid: int, arguments: st
         raise ValueError("running PID is not owned by the expected LaunchAgent")
 
 
-def activate(profile: str, own_task: str, handover_pid: int | None = None, restart_service: bool = False) -> dict:
+def activate(profile: str, own_task: str, handover_pid: int | None = None, restart_service: bool = False, app: Path | None = None) -> dict:
     if sys.platform != "darwin":
         raise ValueError("this activation entry supports the personal macOS installation")
     import uuid
     uuid.UUID(own_task)
     home = Path.home()
-    app = home / "Applications/Coding Tools MCP Personal.app"
+    app = personal_app(home, app)
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
     if info.get("CFBundleIdentifier") != "com.lixiangwelding.codingtools.personal":
         raise ValueError("unexpected application identity")
@@ -167,6 +271,7 @@ def activate(profile: str, own_task: str, handover_pid: int | None = None, resta
             elif restart_service:
                 raise ValueError("--restart-service requires the registered headless service")
         # Verify the same installed executable and saved HTTP auth on an unused port.
+        verify_app_signature(app)
         with socket.socket() as reservation:
             reservation.bind(("127.0.0.1", 0)); probe_port = reservation.getsockname()[1]
         env = os.environ.copy(); env.update(definition["EnvironmentVariables"])
@@ -241,7 +346,7 @@ def activate(profile: str, own_task: str, handover_pid: int | None = None, resta
         result.update(status="running", process_ids=pids(port), launch_agent=str(plist), configuration_unchanged=sha(config)==before)
         if not result["configuration_unchanged"]: raise ValueError("configuration drifted during activation")
         return result
-    except (OSError, ValueError, subprocess.SubprocessError) as error:
+    except (OSError, ValueError, sqlite3.Error, subprocess.SubprocessError) as error:
         result.update(status="blocked" if not result["old_process_stopped"] else "activation_failed", error=str(error))
         # A launchd problem must not strand the verified port after handover.
         # Start only the already-tested personal binary, never replay user jobs.
@@ -268,12 +373,13 @@ def main() -> int:
     parser.add_argument("--task-id", required=True)
     parser.add_argument("--handover-pid", type=int)
     parser.add_argument("--restart-service", action="store_true", help="Explicit idle restart of the verified personal LaunchAgent only")
+    parser.add_argument("--app", type=Path, help="Absolute installed App path; defaults to GPTBridge.app, then the legacy name")
     args = parser.parse_args()
     try:
-        result = activate(args.profile, args.task_id, args.handover_pid, args.restart_service)
+        result = activate(args.profile, args.task_id, args.handover_pid, args.restart_service, args.app)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if result["status"] in {"running", "already_running", "running_fallback"} else 1
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, sqlite3.Error) as error:
         print(json.dumps({"status":"blocked","error_type":type(error).__name__,"old_process_stopped":False}))
         return 1
 

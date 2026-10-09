@@ -1,12 +1,11 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>GPTBridge dot 增量兼容交付记录</title>
+  <title>GPTBridge dot delivery</title>
   <style>
-
 html {
 color: #1a1a1a;
 background-color: #fdfdfd;
@@ -157,7 +156,6 @@ span.smallcaps{font-variant: small-caps;}
 div.columns{display: flex; gap: min(4vw, 1.5em);}
 div.column{flex: auto; overflow-x: auto;}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
 ul.task-list[class]{list-style: none;}
 ul.task-list li input[type="checkbox"] {
 font-size: inherit;
@@ -170,33 +168,21 @@ vertical-align: middle;
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">GPTBridge dot 增量兼容交付记录</h1>
+<h1 class="title">GPTBridge dot delivery</h1>
 </header>
-<nav id="TOC" role="doc-toc">
-<ul>
-<li><a href="#gptbridge-dot-增量兼容交付记录" id="toc-gptbridge-dot-增量兼容交付记录">GPTBridge dot
-增量兼容交付记录</a>
-<ul>
-<li><a href="#需求与改动" id="toc-需求与改动">需求与改动</a></li>
-<li><a href="#源码所有权与提交" id="toc-源码所有权与提交">源码、所有权与提交</a></li>
-<li><a href="#合同与验证结果" id="toc-合同与验证结果">合同与验证结果</a></li>
-<li><a href="#界面与视觉证据" id="toc-界面与视觉证据">界面与视觉证据</a></li>
-<li><a href="#macos-app-制品" id="toc-macos-app-制品">macOS App
-制品</a></li>
-<li><a href="#本机替换与运行收口" id="toc-本机替换与运行收口">本机替换与运行收口</a></li>
-<li><a href="#本次报告完成范围" id="toc-本次报告完成范围">本次报告完成范围</a></li>
-</ul></li>
-</ul>
-</nav>
 <h1 id="gptbridge-dot-增量兼容交付记录">GPTBridge dot
 增量兼容交付记录</h1>
-<p>本轮实现、验证、源码 commit/push
+<p>上次源码交付、验证、commit/push
 与本机替换已完成。<code>/Users/didi/Applications/GPTBridge.app</code>
 已安装并打开 0.4.2；后台服务亦已切换到 0.4.2，正常
 OAuth、工具目录和能力元数据回读通过，原有任务与恢复句柄保留。真实 dot
-与原有客户端实际签收仍为 <strong>NOT_VERIFIED</strong>。</p>
+与原有客户端实际签收仍为
+<strong>NOT_VERIFIED</strong>，不将上述安装交付称为附件全部功能与验收完成。</p>
 <p>本文 Markdown 为事实真源，同名 HTML
 从本文件生成。报告日期：2026-10-09；不将构建或目录合同测试当成安装、服务或客户端完成。</p>
+<p>用户已要求继续补齐 9 项缺口，本次状态见 <a href="fixes-20261009.md">后续修复记录</a>。统一回执、真实协议诊断、完整输出状态和安全重启门禁已实现，干净候选回归与前端构建通过；0.4.3
+安装、原生 UI、真实客户端与回滚实演仍分别待验。以下 SHA、PID
+和测试结果保留为上次各回执时点的事实，不作为本次新增代码的 PASS。</p>
 <h2 id="需求与改动">需求与改动</h2>
 <p>需求来源为用户提供的
 <code>GPTBridge-dot-产品方案与设计稿 (4).html</code>；<a href="ui-evidence.json">设计取证</a> 记录附件 SHA
@@ -447,6 +433,8 @@ SHA、构建命令、退出码、架构、签名及制品哈希。源码归属�
 </tbody>
 </table>
 <h2 id="本机替换与运行收口">本机替换与运行收口</h2>
+<p>本节 PID 与状态来自上次安装回执时点；当前新 boot
+的只读健康观察、旧故障未复现及根因边界另记于 <a href="fixes-20261009.md">fixes-20261009.md</a>，不回写或替换旧取证身份。</p>
 <p>安装过程中曾等待其他任务的 running job
 结束，没有取消其他作业。替换阶段对 live data
 做精确字节备份并保持原值；新 GUI 启动后 profiles.json
@@ -525,11 +513,13 @@ Use 安全规则拒绝操作
 <code>com.apple.UserNotificationCenter</code>，因此没有关闭该提示，也未对外发送报告。用户可在系统提示中选择“忽略”。</p>
 <p>回滚使用保留的旧
 App：安全退出新版，恢复原安装路径并核字节、进程及服务，保留持久状态。不重置用户工作树；客户端目录缓存仍可能需要其支持的刷新。</p>
-<h2 id="本次报告完成范围">本次报告完成范围</h2>
-<p>已完成本轮实现、回归、真实 HTTP 闭环、目录合同、源码提交推送、同源码
-App 构建、本机替换、正常 OAuth 与真实原生 UI
-回读。后续收口提交只保存安装/测试/截图与清理文档，App 的源码归属仍为
-<code>4b2215386b175e97ffff5fb7bf31af6b5a43e6f7</code>。</p>
+<h2 id="上次报告完成范围">上次报告完成范围</h2>
+<p>已完成上次源码交付、回归、debug 临时实例的真实 HTTP
+闭环、目录合同、提交推送、同源码 App 构建、本机替换、正常 OAuth
+与正常原生 UI 回读。上次收口提交只保存安装/测试/截图与清理文档，App
+的源码归属仍为
+<code>4b2215386b175e97ffff5fb7bf31af6b5a43e6f7</code>。完整回执/诊断/输出、installed
+release 写改闭环和场景组合等本次缺口不能据此宣称完成。</p>
 <p><a href="cleanup-receipt.json">清理回执</a>
 记录本轮可重建导出源码、依赖及编译缓存的精确路径、大小与删除后回读；当前
 App bundle、冻结的 HTTP 测试可执行文件、已安装 App、0.4.1
