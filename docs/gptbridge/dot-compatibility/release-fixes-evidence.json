@@ -1,0 +1,421 @@
+{
+  "status": "PASS",
+  "started_utc": "2026-10-09T10:36:47.431640+00:00",
+  "transport": "real_loopback_HTTP_MCP",
+  "source_commit": "935791e6d47a70637e084c1c0fa8db8098aff702",
+  "installed_release": true,
+  "external_dot_client_acceptance": "NOT_VERIFIED",
+  "legacy_GPTBridge_client_acceptance": "NOT_VERIFIED",
+  "steps": [
+    {
+      "name": "authentication_rejection",
+      "status": "PASS",
+      "http_status": 401,
+      "token": "redacted_ephemeral_bearer"
+    },
+    {
+      "name": "initialize",
+      "status": "PASS",
+      "version": "0.4.3",
+      "list_changed": false,
+      "native_instructions_present": true
+    },
+    {
+      "name": "GET_SSE",
+      "status": "PASS",
+      "http_status": 405
+    },
+    {
+      "name": "tools_list",
+      "status": "PASS",
+      "count": 39,
+      "names": [
+        "server_info",
+        "history_session_bootstrap",
+        "history_session_checkpoint",
+        "history_session_validate",
+        "history_session_search",
+        "history_session_read",
+        "check_exec_environment",
+        "get_default_cwd",
+        "set_default_cwd",
+        "read_file",
+        "list_dir",
+        "list_files",
+        "search_text",
+        "grep_text",
+        "apply_patch",
+        "exec_command",
+        "write_stdin",
+        "kill_session",
+        "read_output",
+        "git_status",
+        "git_diff",
+        "git_log",
+        "git_show",
+        "git_blame",
+        "request_permissions",
+        "view_image",
+        "task_open",
+        "task_status",
+        "task_checkpoint",
+        "apply_skill_patch",
+        "list_skills",
+        "search_skills",
+        "read_skill",
+        "invoke_skill",
+        "list_skill_write_roots",
+        "check_command",
+        "tool_catalog_check",
+        "read_files",
+        "stat_path"
+      ],
+      "catalog_sha256": "e4af48656b53cfe2b84515e82622ad2894185cd8179337aa65f55260185354d6",
+      "mutation_preconditions_present": true
+    },
+    {
+      "name": "server_info",
+      "status": "PASS",
+      "version": "0.4.3",
+      "auth_type": "bearer",
+      "direct_workspace": {
+        "catalog_refresh": "client_dependent_no_list_changed_notification",
+        "durable_bookkeeping": "existing_task_and_request_lifecycle",
+        "execution_path": "native_tools",
+        "external_agent_required": false,
+        "security": {
+          "execution_isolation": "policy_only",
+          "read_scope": "explicit_external_paths_allowed",
+          "sandbox_enforced": false
+        },
+        "version": 1
+      },
+      "actual_tool_profile": "core",
+      "actual_permission_mode": "dangerous"
+    },
+    {
+      "name": "task_open",
+      "status": "PASS",
+      "task_id": "67765335-463b-4818-97a0-5d9735ce6036",
+      "revision": 0
+    },
+    {
+      "name": "read_file_hash",
+      "status": "PASS",
+      "file_sha256": "9160d4be34c8695bd172a76c7c7966587ea5a4d991ad22c87b2b91af54aa9ebb",
+      "path": "dot-owned.txt"
+    },
+    {
+      "name": "hash_protected_patch",
+      "status": "PASS",
+      "task_id": "67765335-463b-4818-97a0-5d9735ce6036",
+      "request_id": "release-patch",
+      "change_id": "ee2e81c607f04688859eb714042d0ca8",
+      "before_hashes": {
+        "dot-owned.txt": "9160d4be34c8695bd172a76c7c7966587ea5a4d991ad22c87b2b91af54aa9ebb"
+      },
+      "after_hashes": {
+        "dot-owned.txt": "672eb8316fec83f94119a4193f9fc552513d56a147502f8be4830e017d817831"
+      }
+    },
+    {
+      "name": "patch_replay",
+      "status": "PASS",
+      "original_change_id": "ee2e81c607f04688859eb714042d0ca8",
+      "deduplicated": true
+    },
+    {
+      "name": "stale_hash_rejection",
+      "status": "PASS",
+      "error_code": "STALE_FILE",
+      "file_unchanged": true
+    },
+    {
+      "name": "disconnect_after_request",
+      "status": "PASS",
+      "rpc_id": 26,
+      "response_received": false,
+      "request_sha256": "77f8a3cdaf635960d11c6ada8e735eba6a54ca19c187e86151d1deeaf30f0a93",
+      "request_bytes": 356,
+      "task_id": "67765335-463b-4818-97a0-5d9735ce6036",
+      "request_id": "release-exec-once",
+      "job_id": "22734a10-41c8-4809-8970-54a3060fb355",
+      "original_identity_observed_before_replay": true
+    },
+    {
+      "name": "original_request_recovery",
+      "status": "PASS",
+      "job_id": "22734a10-41c8-4809-8970-54a3060fb355",
+      "session_id": "job-22734a10-41c8-4809-8970-54a3060fb355",
+      "request_id": "release-exec-once",
+      "deduplicated": true,
+      "execution_mode": "durable_worker"
+    },
+    {
+      "name": "original_session_terminal",
+      "status": "PASS",
+      "job_id": "22734a10-41c8-4809-8970-54a3060fb355",
+      "session_id": "job-22734a10-41c8-4809-8970-54a3060fb355",
+      "polls": 5,
+      "job_status": "exited",
+      "exit_code": 0,
+      "command_ok": true
+    },
+    {
+      "name": "original_stdout_pages",
+      "status": "PASS",
+      "output_ref": "job:22734a10-41c8-4809-8970-54a3060fb355:stdout",
+      "pages": [
+        {
+          "offset": 0,
+          "next_offset": 128,
+          "poll_offset": 128,
+          "bytes_read": 128,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 128,
+          "next_offset": 256,
+          "poll_offset": 256,
+          "bytes_read": 128,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 256,
+          "next_offset": 383,
+          "poll_offset": 383,
+          "bytes_read": 127,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 383,
+          "next_offset": 511,
+          "poll_offset": 511,
+          "bytes_read": 128,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 511,
+          "next_offset": 639,
+          "poll_offset": 639,
+          "bytes_read": 128,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 639,
+          "next_offset": 767,
+          "poll_offset": 767,
+          "bytes_read": 128,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 767,
+          "next_offset": 893,
+          "poll_offset": 893,
+          "bytes_read": 126,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 893,
+          "next_offset": 1021,
+          "poll_offset": 1021,
+          "bytes_read": 128,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 1021,
+          "next_offset": 1149,
+          "poll_offset": 1149,
+          "bytes_read": 128,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 1149,
+          "next_offset": 1277,
+          "poll_offset": 1277,
+          "bytes_read": 128,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 1277,
+          "next_offset": 1403,
+          "poll_offset": 1403,
+          "bytes_read": 126,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 1403,
+          "next_offset": 1531,
+          "poll_offset": 1531,
+          "bytes_read": 128,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        },
+        {
+          "offset": 1531,
+          "next_offset": null,
+          "poll_offset": 1641,
+          "bytes_read": 110,
+          "retained_bytes": 1641,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        }
+      ],
+      "content_sha256": "5f90f85ffc031cfec53bb8de997f6227e89814c0ddcc105d256a0d3e43e194a5",
+      "content_bytes": 1641
+    },
+    {
+      "name": "original_stderr_pages",
+      "status": "PASS",
+      "output_ref": "job:22734a10-41c8-4809-8970-54a3060fb355:stderr",
+      "pages": [
+        {
+          "offset": 0,
+          "next_offset": null,
+          "poll_offset": 24,
+          "bytes_read": 24,
+          "retained_bytes": 24,
+          "may_be_truncated": false,
+          "job_status": "exited"
+        }
+      ],
+      "content_sha256": "dc59098adecd6b769b0f8463fbc4791101a08ab84b962af825116e2801f2f98f",
+      "content_bytes": 24
+    },
+    {
+      "name": "exec_replay_side_effect",
+      "status": "PASS",
+      "job_id": "22734a10-41c8-4809-8970-54a3060fb355",
+      "deduplicated": true,
+      "actual_side_effect_count": 1
+    },
+    {
+      "name": "checkpoint_and_reopen",
+      "status": "PASS",
+      "task_id": "67765335-463b-4818-97a0-5d9735ce6036",
+      "state": "completed",
+      "revision": 1,
+      "checkpoint_replay_same_revision": true
+    },
+    {
+      "name": "read_only_write_denial",
+      "status": "PASS",
+      "catalog_count": 26,
+      "error_codes": {
+        "apply_patch": "unknown_tool",
+        "exec_command": "unknown_tool"
+      },
+      "fixture_files_unchanged": true
+    },
+    {
+      "name": "isolated_profile_preserved",
+      "status": "PASS",
+      "byte_sha256": "dab2a9a17d7509cf9e5778e3de182097043a800eec29bc82acff465baa2d502b",
+      "unchanged": true
+    }
+  ],
+  "artifact": {
+    "app_path": "/Users/didi/Applications/GPTBridge.app",
+    "binary_path": "/Users/didi/Applications/GPTBridge.app/Contents/MacOS/coding-tools-mcp-personal",
+    "version": "0.4.3",
+    "binary_sha256": "443c192f8b655ed980d8480171230e1bc56e9d8f9538c45a6cb5ae57495e35f8",
+    "strict_signature_verified": true,
+    "app_is_adhoc_or_developer_signed": "not_a_notarization_assertion",
+    "binary_sha256_after": "443c192f8b655ed980d8480171230e1bc56e9d8f9538c45a6cb5ae57495e35f8"
+  },
+  "fixture": {
+    "root": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-fixes-20261009/evidence/fixtures/gptbridge-dot-release-_3hxyr2c",
+    "workspace": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-fixes-20261009/evidence/fixtures/gptbridge-dot-release-_3hxyr2c/workspace",
+    "profile_home": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-fixes-20261009/evidence/fixtures/gptbridge-dot-release-_3hxyr2c/home",
+    "core_profile_id": "c4b3b7a703194214aca6334df3cf3603",
+    "readonly_profile_id": "9aab443427534be5a9602320fd8bb618",
+    "ports": {
+      "c4b3b7a703194214aca6334df3cf3603": 58972,
+      "9aab443427534be5a9602320fd8bb618": 58973
+    },
+    "runtime_directory": "/Users/didi/Library/Application Support/coding-tools-mcp/harness/personal-runtime/4b37c1e25d87370b2dd59c54eeac172dfc625e8ea6632c0b959847566ee270b5",
+    "legacy_directory": "/Users/didi/Library/Application Support/coding-tools-mcp/harness/workspaces/4b37c1e25d87370b2dd59c54eeac172d",
+    "canonical_lock": "/Users/didi/Library/Application Support/coding-tools-mcp/harness/personal-runtime/shared-write-roots/locks/e6098f16074dea66e0d760dd9ef2104d822b6724af94b92d809fa9267d2da745.lock",
+    "temporary_profiles_only": true,
+    "root_profile_accessed": false,
+    "home_environment_repurposed": false,
+    "worker_override": false,
+    "upstreams": [],
+    "tunnels": []
+  },
+  "processes": [
+    {
+      "pid": 62794,
+      "role": "isolated_listener",
+      "profile_id": "c4b3b7a703194214aca6334df3cf3603",
+      "arguments": [
+        "/Users/didi/Applications/GPTBridge.app/Contents/MacOS/coding-tools-mcp-personal",
+        "--personal-serve",
+        "c4b3b7a703194214aca6334df3cf3603",
+        "58972"
+      ],
+      "started": true,
+      "ready": true,
+      "stopped": true,
+      "returncode": -15
+    },
+    {
+      "pid": 63145,
+      "role": "isolated_listener",
+      "profile_id": "9aab443427534be5a9602320fd8bb618",
+      "arguments": [
+        "/Users/didi/Applications/GPTBridge.app/Contents/MacOS/coding-tools-mcp-personal",
+        "--personal-serve",
+        "9aab443427534be5a9602320fd8bb618",
+        "58973"
+      ],
+      "started": true,
+      "ready": true,
+      "stopped": true,
+      "returncode": -15
+    }
+  ],
+  "listener_log_tail": {
+    "listener-c4b3b7a703194214aca6334df3cf3603.log": "personal HTTP 0.4.3 listening on 127.0.0.1:58972; no GUI/tunnel changes\n",
+    "listener-9aab443427534be5a9602320fd8bb618.log": "personal HTTP 0.4.3 listening on 127.0.0.1:58973; no GUI/tunnel changes\n"
+  },
+  "workers": [
+    {
+      "created": 1791542209512,
+      "job_id": "22734a10-41c8-4809-8970-54a3060fb355",
+      "worker_pid": 63010
+    }
+  ],
+  "cleanup": {
+    "status": "PASS",
+    "kept_for_ui_evidence": true,
+    "removed": [],
+    "errors": [],
+    "production_processes_stopped": false,
+    "exact_fixture_paths_only": true
+  },
+  "finished_utc": "2026-10-09T10:36:50.458204+00:00"
+}

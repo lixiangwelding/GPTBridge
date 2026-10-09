@@ -1,0 +1,36 @@
+{
+  "version": "0.4.3",
+  "previous_version": "0.4.2",
+  "target_app": "/Users/didi/Applications/GPTBridge.app",
+  "backup": "/Users/didi/Library/Application Support/coding-tools-mcp-personal-backups/20261009T103302Z-1791541982610698000",
+  "executable_sha256": "443c192f8b655ed980d8480171230e1bc56e9d8f9538c45a6cb5ae57495e35f8",
+  "source_commit": "935791e6d47a70637e084c1c0fa8db8098aff702",
+  "exact_configuration_preserved": true,
+  "configuration_semantics_preserved": true,
+  "status": "installed_app_files_service_not_switched",
+  "service": {
+    "version": "0.4.2",
+    "pid": 3649,
+    "frpc_pid": 3656,
+    "restartRequested": false,
+    "foreignJobsCancelled": false,
+    "blocker": "unclosed_rpc_records",
+    "sqlite_system_no_sidecars": "FAIL",
+    "sqlite_homebrew_no_sidecars": "PASS"
+  },
+  "tests": {
+    "rust": 495,
+    "node": 29,
+    "python": 80,
+    "svelte_errors": 0,
+    "svelte_warnings": 0,
+    "installed_native_flow_steps": 19
+  },
+  "final_configuration_readback": {
+    "bytes_changed_after_normal_connection_page": true,
+    "semantic_sha256": "f97e325851cf648034831dc026a13bb5b19477d54b30c054384217781d15c62b",
+    "semantics_preserved": true,
+    "sha256": "78f125a09e0e8722924837fafd4509fcd24e6d54d6aedda47f2e401fe11c5364",
+    "old_bytes_restored": false
+  }
+}

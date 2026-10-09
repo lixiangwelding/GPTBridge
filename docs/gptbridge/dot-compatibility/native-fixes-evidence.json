@@ -1,0 +1,87 @@
+{
+  "status": "PASS_SCOPED",
+  "source_commit": "935791e6d47a70637e084c1c0fa8db8098aff702",
+  "installed_version": "0.4.3",
+  "executable_sha256": "443c192f8b655ed980d8480171230e1bc56e9d8f9538c45a6cb5ae57495e35f8",
+  "fixture_only": true,
+  "mocked_ipc": false,
+  "gui_pid": 83035,
+  "task_id": "67765335-463b-4818-97a0-5d9735ce6036",
+  "job_id": "22734a10-41c8-4809-8970-54a3060fb355",
+  "diagnostics": {
+    "authentication": "verified",
+    "initialize": "verified",
+    "tools_count": 39,
+    "service_version": "0.4.3",
+    "catalog_sha256": "e90395946ad8dfc97946be9214db862dcd709d58c2a6cdb1e1cfb80c529379de",
+    "client_cache": "NOT_VERIFIED",
+    "dot_route": "NOT_VERIFIED"
+  },
+  "output": {
+    "stdout_retained_bytes": 1641,
+    "eof_offset": 1641,
+    "next_disabled_at_eof": true,
+    "stderr_bytes": 24,
+    "escape_closed": true
+  },
+  "receipts": {
+    "original_handles_displayed": true,
+    "dispatcher_and_process_times_separate": true,
+    "missing_request_shown_unknown": true
+  },
+  "shutdown": {
+    "fixtureGuiStopped": true,
+    "fixturePortsClosed": true,
+    "productionProcessesPreserved": true,
+    "ports": {
+      "58972": false,
+      "58973": false,
+      "28766": true
+    },
+    "pids": {
+      "83035": false,
+      "3649": true,
+      "3656": true
+    }
+  },
+  "normal_restoration": {
+    "observedVersion": "0.4.3",
+    "nativeTaskListDisplayed": true,
+    "configBytesUnchanged": true,
+    "productionPidsPreserved": true
+  },
+  "limitations": [
+    "full native error and unknown matrix not captured",
+    "actual external clients not verified",
+    "native phone app unsupported"
+  ],
+  "screenshots": [
+    {
+      "path": "screenshots/fixes-20261009/installed-0.4.3-diagnostics.png",
+      "sha256": "90dac9c040b73ab3a31be3b17b434656069dc5cceb721fa9e64626a0805a6ac1"
+    },
+    {
+      "path": "screenshots/fixes-20261009/installed-0.4.3-output.png",
+      "sha256": "25c942def5614ff956b689a6036da8d1bfcb6b145644e7bbe73ce3dc7ccf046f"
+    },
+    {
+      "path": "screenshots/fixes-20261009/installed-0.4.3-receipts.png",
+      "sha256": "ac4aac5728b7338e024542999ef5901550f9c7306a13cdf981945141105205bc"
+    },
+    {
+      "path": "screenshots/fixes-20261009/installed-0.4.3-stderr.png",
+      "sha256": "5d465f71a0e101ec7d7209a105411b1cec67c198195431b0ee877b1d6a23907c"
+    },
+    {
+      "path": "screenshots/fixes-20261009/installed-0.4.3-task.png",
+      "sha256": "cec929c22397390096e2946f9e389355d4f0ed405414aa230f1991927a718a16"
+    }
+  ],
+  "final_configuration_readback": {
+    "bytes_changed_after_normal_connection_page": true,
+    "semantic_sha256": "f97e325851cf648034831dc026a13bb5b19477d54b30c054384217781d15c62b",
+    "semantics_preserved": true,
+    "sha256": "78f125a09e0e8722924837fafd4509fcd24e6d54d6aedda47f2e401fe11c5364",
+    "old_bytes_restored": false
+  }
+}
