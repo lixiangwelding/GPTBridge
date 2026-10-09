@@ -30,5 +30,23 @@
     "docs/specs/dot-compatibility/design.md": "046af68db64a1f464d35b83fd008d9d66c088f607e947c5a94233cf8acd8a022",
     "docs/specs/dot-compatibility/tasks.md": "2cdfb8265aa04d2ebcf3e213a993d5c2723228d4db2720ad79e1b5ade97374fe"
   },
-  "scope": "Spec structure only; does not imply implementation, client, build or installation acceptance."
+  "scope": "Spec structure only; does not imply implementation, client, build or installation acceptance.",
+  "final_check": {
+    "passed": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "issues": [],
+    "frIds": [
+      "FR-1",
+      "FR-2",
+      "FR-3",
+      "FR-4",
+      "FR-5",
+      "FR-6",
+      "FR-7",
+      "FR-8"
+    ],
+    "summary": "规格校验通过（8 条需求）"
+  },
+  "final_check_recorded_at_utc": "2026-10-09T04:32:03Z"
 }

@@ -1,245 +1,272 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>任务清单：GPTBridge dot 增量兼容</title>
+  <title>GPTBridge dot 任务清单</title>
   <style>
-    /* Default styles provided by pandoc.
-    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
-    */
-    html {
-      color: #1a1a1a;
-      background-color: #fdfdfd;
-    }
-    body {
-      margin: 0 auto;
-      max-width: 36em;
-      padding-left: 50px;
-      padding-right: 50px;
-      padding-top: 50px;
-      padding-bottom: 50px;
-      hyphens: auto;
-      overflow-wrap: break-word;
-      text-rendering: optimizeLegibility;
-      font-kerning: normal;
-    }
-    @media (max-width: 600px) {
-      body {
-        font-size: 0.9em;
-        padding: 12px;
-      }
-      h1 {
-        font-size: 1.8em;
-      }
-    }
-    @media print {
-      html {
-        background-color: white;
-      }
-      body {
-        background-color: transparent;
-        color: black;
-        font-size: 12pt;
-      }
-      p, h2, h3 {
-        orphans: 3;
-        widows: 3;
-      }
-      h2, h3, h4 {
-        page-break-after: avoid;
-      }
-    }
-    p {
-      margin: 1em 0;
-    }
-    a {
-      color: #1a1a1a;
-    }
-    a:visited {
-      color: #1a1a1a;
-    }
-    img {
-      max-width: 100%;
-    }
-    svg {
-      height: auto;
-      max-width: 100%;
-    }
-    h1, h2, h3, h4, h5, h6 {
-      margin-top: 1.4em;
-    }
-    h5, h6 {
-      font-size: 1em;
-      font-style: italic;
-    }
-    h6 {
-      font-weight: normal;
-    }
-    ol, ul {
-      padding-left: 1.7em;
-      margin-top: 1em;
-    }
-    li > ol, li > ul {
-      margin-top: 0;
-    }
-    blockquote {
-      margin: 1em 0 1em 1.7em;
-      padding-left: 1em;
-      border-left: 2px solid #e6e6e6;
-      color: #606060;
-    }
-    code {
-      white-space: pre-wrap;
-      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
-      font-size: 85%;
-      margin: 0;
-      hyphens: manual;
-    }
-    pre {
-      margin: 1em 0;
-      overflow: auto;
-    }
-    pre code {
-      padding: 0;
-      overflow: visible;
-      overflow-wrap: normal;
-    }
-    .sourceCode {
-     background-color: transparent;
-     overflow: visible;
-    }
-    hr {
-      border: none;
-      border-top: 1px solid #1a1a1a;
-      height: 1px;
-      margin: 1em 0;
-    }
-    table {
-      margin: 1em 0;
-      border-collapse: collapse;
-      width: 100%;
-      overflow-x: auto;
-      display: block;
-      font-variant-numeric: lining-nums tabular-nums;
-    }
-    table caption {
-      margin-bottom: 0.75em;
-    }
-    tbody {
-      margin-top: 0.5em;
-      border-top: 1px solid #1a1a1a;
-      border-bottom: 1px solid #1a1a1a;
-    }
-    th {
-      border-top: 1px solid #1a1a1a;
-      padding: 0.25em 0.5em 0.25em 0.5em;
-    }
-    td {
-      padding: 0.125em 0.5em 0.25em 0.5em;
-    }
-    header {
-      margin-bottom: 4em;
-      text-align: center;
-    }
-    #TOC li {
-      list-style: none;
-    }
-    #TOC ul {
-      padding-left: 1.3em;
-    }
-    #TOC > ul {
-      padding-left: 0;
-    }
-    #TOC a:not(:hover) {
-      text-decoration: none;
-    }
-    span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: min(4vw, 1.5em);}
-    div.column{flex: auto; overflow-x: auto;}
-    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-    /* The extra [class] is a hack that increases specificity enough to
-       override a similar rule in reveal.js */
-    ul.task-list[class]{list-style: none;}
-    ul.task-list li input[type="checkbox"] {
-      font-size: inherit;
-      width: 0.8em;
-      margin: 0 0.8em 0.2em -1.6em;
-      vertical-align: middle;
-    }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
-    /* CSS for syntax highlighting */
-    html { -webkit-text-size-adjust: 100%; }
-    pre > code.sourceCode { white-space: pre; position: relative; }
-    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-    pre > code.sourceCode > span:empty { height: 1.2em; }
-    .sourceCode { overflow: visible; }
-    code.sourceCode > span { color: inherit; text-decoration: inherit; }
-    div.sourceCode { margin: 1em 0; }
-    pre.sourceCode { margin: 0; }
-    @media screen {
-    div.sourceCode { overflow: auto; }
-    }
-    @media print {
-    pre > code.sourceCode { white-space: pre-wrap; }
-    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-    }
-    pre.numberSource code
-      { counter-reset: source-line 0; }
-    pre.numberSource code > span
-      { position: relative; left: -4em; counter-increment: source-line; }
-    pre.numberSource code > span > a:first-child::before
-      { content: counter(source-line);
-        position: relative; left: -1em; text-align: right; vertical-align: baseline;
-        border: none; display: inline-block;
-        -webkit-touch-callout: none; -webkit-user-select: none;
-        -khtml-user-select: none; -moz-user-select: none;
-        -ms-user-select: none; user-select: none;
-        padding: 0 4px; width: 4em;
-        color: #aaaaaa;
-      }
-    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
-    div.sourceCode
-      {   }
-    @media screen {
-    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-    }
-    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
-    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-    code span.at { color: #7d9029; } /* Attribute */
-    code span.bn { color: #40a070; } /* BaseN */
-    code span.bu { color: #008000; } /* BuiltIn */
-    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-    code span.ch { color: #4070a0; } /* Char */
-    code span.cn { color: #880000; } /* Constant */
-    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
-    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
-    code span.dt { color: #902000; } /* DataType */
-    code span.dv { color: #40a070; } /* DecVal */
-    code span.er { color: #ff0000; font-weight: bold; } /* Error */
-    code span.ex { } /* Extension */
-    code span.fl { color: #40a070; } /* Float */
-    code span.fu { color: #06287e; } /* Function */
-    code span.im { color: #008000; font-weight: bold; } /* Import */
-    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
-    code span.op { color: #666666; } /* Operator */
-    code span.ot { color: #007020; } /* Other */
-    code span.pp { color: #bc7a00; } /* Preprocessor */
-    code span.sc { color: #4070a0; } /* SpecialChar */
-    code span.ss { color: #bb6688; } /* SpecialString */
-    code span.st { color: #4070a0; } /* String */
-    code span.va { color: #19177c; } /* Variable */
-    code span.vs { color: #4070a0; } /* VerbatimString */
-    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-  </style>
+
+html {
+color: #1a1a1a;
+background-color: #fdfdfd;
+}
+body {
+margin: 0 auto;
+max-width: 36em;
+padding-left: 50px;
+padding-right: 50px;
+padding-top: 50px;
+padding-bottom: 50px;
+hyphens: auto;
+overflow-wrap: break-word;
+text-rendering: optimizeLegibility;
+font-kerning: normal;
+}
+@media (max-width: 600px) {
+body {
+font-size: 0.9em;
+padding: 12px;
+}
+h1 {
+font-size: 1.8em;
+}
+}
+@media print {
+html {
+background-color: white;
+}
+body {
+background-color: transparent;
+color: black;
+font-size: 12pt;
+}
+p, h2, h3 {
+orphans: 3;
+widows: 3;
+}
+h2, h3, h4 {
+page-break-after: avoid;
+}
+}
+p {
+margin: 1em 0;
+}
+a {
+color: #1a1a1a;
+}
+a:visited {
+color: #1a1a1a;
+}
+img {
+max-width: 100%;
+}
+svg {
+height: auto;
+max-width: 100%;
+}
+h1, h2, h3, h4, h5, h6 {
+margin-top: 1.4em;
+}
+h5, h6 {
+font-size: 1em;
+font-style: italic;
+}
+h6 {
+font-weight: normal;
+}
+ol, ul {
+padding-left: 1.7em;
+margin-top: 1em;
+}
+li > ol, li > ul {
+margin-top: 0;
+}
+blockquote {
+margin: 1em 0 1em 1.7em;
+padding-left: 1em;
+border-left: 2px solid #e6e6e6;
+color: #606060;
+}
+code {
+white-space: pre-wrap;
+font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+font-size: 85%;
+margin: 0;
+hyphens: manual;
+}
+pre {
+margin: 1em 0;
+overflow: auto;
+}
+pre code {
+padding: 0;
+overflow: visible;
+overflow-wrap: normal;
+}
+.sourceCode {
+background-color: transparent;
+overflow: visible;
+}
+hr {
+border: none;
+border-top: 1px solid #1a1a1a;
+height: 1px;
+margin: 1em 0;
+}
+table {
+margin: 1em 0;
+border-collapse: collapse;
+width: 100%;
+overflow-x: auto;
+display: block;
+font-variant-numeric: lining-nums tabular-nums;
+}
+table caption {
+margin-bottom: 0.75em;
+}
+tbody {
+margin-top: 0.5em;
+border-top: 1px solid #1a1a1a;
+border-bottom: 1px solid #1a1a1a;
+}
+th {
+border-top: 1px solid #1a1a1a;
+padding: 0.25em 0.5em 0.25em 0.5em;
+}
+td {
+padding: 0.125em 0.5em 0.25em 0.5em;
+}
+header {
+margin-bottom: 4em;
+text-align: center;
+}
+#TOC li {
+list-style: none;
+}
+#TOC ul {
+padding-left: 1.3em;
+}
+#TOC > ul {
+padding-left: 0;
+}
+#TOC a:not(:hover) {
+text-decoration: none;
+}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; }
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; }
+code span.at { color: #7d9029; }
+code span.bn { color: #40a070; }
+code span.bu { color: #008000; }
+code span.cf { color: #007020; font-weight: bold; }
+code span.ch { color: #4070a0; }
+code span.cn { color: #880000; }
+code span.co { color: #60a0b0; font-style: italic; }
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; }
+code span.do { color: #ba2121; font-style: italic; }
+code span.dt { color: #902000; }
+code span.dv { color: #40a070; }
+code span.er { color: #ff0000; font-weight: bold; }
+code span.ex { }
+code span.fl { color: #40a070; }
+code span.fu { color: #06287e; }
+code span.im { color: #008000; font-weight: bold; }
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; }
+code span.kw { color: #007020; font-weight: bold; }
+code span.op { color: #666666; }
+code span.ot { color: #007020; }
+code span.pp { color: #bc7a00; }
+code span.sc { color: #4070a0; }
+code span.ss { color: #bb6688; }
+code span.st { color: #4070a0; }
+code span.va { color: #19177c; }
+code span.vs { color: #4070a0; }
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; }
+</style>
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">任务清单：GPTBridge dot 增量兼容</h1>
+<h1 class="title">GPTBridge dot 任务清单</h1>
 </header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#任务清单gptbridge-dot-增量兼容" id="toc-任务清单gptbridge-dot-增量兼容">任务清单：GPTBridge dot
+增量兼容</a>
+<ul>
+<li><a href="#概述" id="toc-概述">概述</a></li>
+<li><a href="#交付物清单" id="toc-交付物清单">交付物清单</a></li>
+<li><a href="#数据库改动" id="toc-数据库改动">数据库改动</a></li>
+<li><a href="#接口与消息" id="toc-接口与消息">接口与消息</a></li>
+<li><a href="#全局配置改动" id="toc-全局配置改动">全局配置改动</a></li>
+<li><a href="#任务列表" id="toc-任务列表">任务列表</a>
+<ul>
+<li><a href="#阶段-1基线与所有权" id="toc-阶段-1基线与所有权">阶段
+1：基线与所有权</a></li>
+<li><a href="#阶段-2说明文档与宿主界面" id="toc-阶段-2说明文档与宿主界面">阶段 2：说明、文档与宿主界面</a></li>
+<li><a href="#阶段-3精确验证" id="toc-阶段-3精确验证">阶段
+3：精确验证</a></li>
+<li><a href="#阶段-4已授权提交本机构建与替换" id="toc-阶段-4已授权提交本机构建与替换">阶段
+4：已授权提交、本机构建与替换</a></li>
+</ul></li>
+<li><a href="#上线顺序与回滚" id="toc-上线顺序与回滚">上线顺序与回滚</a></li>
+<li><a href="#验证与回归" id="toc-验证与回归">验证与回归</a></li>
+<li><a href="#需求覆盖矩阵" id="toc-需求覆盖矩阵">需求覆盖矩阵</a></li>
+<li><a href="#文件变更清单" id="toc-文件变更清单">文件变更清单</a></li>
+<li><a href="#检查点" id="toc-检查点">检查点</a></li>
+<li><a href="#检查清单" id="toc-检查清单">检查清单</a></li>
+<li><a href="#本轮实际收口" id="toc-本轮实际收口">本轮实际收口</a></li>
+</ul></li>
+</ul>
+</nav>
 <h1 id="任务清单gptbridge-dot-增量兼容">任务清单：GPTBridge dot
 增量兼容</h1>
 <h2 id="概述">概述</h2>
@@ -314,8 +341,9 @@ SQLite、配置与恢复句柄沿用原路径。替换与回滚不得删除任�
 <h2 id="任务列表">任务列表</h2>
 <h3 id="阶段-1基线与所有权">阶段 1：基线与所有权</h3>
 <ul class="task-list">
-<li><label><input type="checkbox" />1.1 冻结 Git、运行实例、各模式目录与
-foreign diff，建立工具名/schema/annotations/暴露规则快照。</label>
+<li><label><input type="checkbox" checked></input>1.1 冻结
+Git、运行实例、各模式目录与 foreign
+diff，建立工具名/schema/annotations/暴露规则快照。</label>
 <ul>
 <li><strong>证据块</strong>：<code>registry.rs:input_schema/catalog_contract</code>；<code>mcp/gateway.rs:WorkspaceHub::new</code>
 给业务目录增加原有
@@ -329,7 +357,7 @@ foreign 片段。</li>
 </ul>
 <h3 id="阶段-2说明文档与宿主界面">阶段 2：说明、文档与宿主界面</h3>
 <ul class="task-list">
-<li><label><input type="checkbox" />2.1 增补可选
+<li><label><input type="checkbox" checked></input>2.1 增补可选
 direct_workspace，澄清原生工具和持久记账，只改审核过的说明文字。</label>
 <ul>
 <li><strong>证据块</strong>：<code>dispatch.rs:server_info</code>；<code>personal.rs:INSTRUCTIONS</code>；<code>workspace.rs:strict_reads/resolve_read_path</code>；<code>gateway.rs:restrict_reads_to_root</code>。</li>
@@ -338,7 +366,8 @@ direct_workspace，澄清原生工具和持久记账，只改审核过的说明�
 <li><em>需求: FR-1, FR-2, FR-5, FR-6</em> ｜ <em>设计: 数据模型、决策
 1、2</em></li>
 </ul></li>
-<li><label><input type="checkbox" />2.2 补双路径用户说明与真实 schema
+<li><label><input type="checkbox" checked></input>2.2
+补双路径用户说明与真实 schema
 示例，区分读取范围、刷新、未知结果和恢复。</label>
 <ul>
 <li><strong>证据块</strong>：<code>personal_schema.rs</code>；<code>registry.rs:input_schema</code>；<code>personal.rs:job_poll/job_output</code>；<code>jobs.rs:job_status</code>。</li>
@@ -348,7 +377,7 @@ direct_workspace，澄清原生工具和持久记账，只改审核过的说明�
 <li><em>需求: FR-2, FR-3, FR-4, FR-5, FR-6</em> ｜ <em>设计: API、决策
 3、4</em></li>
 </ul></li>
-<li><label><input type="checkbox" />2.3
+<li><label><input type="checkbox" checked></input>2.3
 在工作区详情同页实现指南、真实连接/任务观察与回执，不新增执行链。</label>
 <ul>
 <li><strong>证据块</strong>：原
@@ -360,8 +389,9 @@ JobLogDialog；创建目标不等于执行。</li>
 </ul>
 <h3 id="阶段-3精确验证">阶段 3：精确验证</h3>
 <ul class="task-list">
-<li><label><input type="checkbox" />3.1 运行规格结构检查、真实 schema
-示例检查和契约差分，仅接受说明/可选 metadata 白名单。</label>
+<li><label><input type="checkbox" checked></input>3.1
+运行规格结构检查、真实 schema 示例检查和契约差分，仅接受说明/可选
+metadata 白名单。</label>
 <ul>
 <li><strong>证据块</strong>：<code>.mcp-probe-kit/bin/probe schema check_spec</code>
 已确认只读工具，规格位于本目录。</li>
@@ -369,8 +399,9 @@ JobLogDialog；创建目标不等于执行。</li>
 <li><em>需求: FR-1, FR-2, FR-5, FR-6</em> ｜ <em>设计:
 测试策略</em></li>
 </ul></li>
-<li><label><input type="checkbox" />3.2 用单测试实例/临时工作区完成
-HTTP/MCP 直接闭环和反例，并运行原回归。</label>
+<li><label><input type="checkbox" checked></input>3.2
+用单测试实例/临时工作区完成 HTTP/MCP
+直接闭环和反例，并运行原回归。</label>
 <ul>
 <li><strong>证据块</strong>：<code>personal_tests.rs</code> 的
 two_tasks_same_file/repeated_patch/durable_dispatch；<code>gateway_tests.rs</code>
@@ -381,7 +412,7 @@ jobs/concurrency_recovery/output_paging 测试。</li>
 <li><em>需求: FR-1, FR-3, FR-4, FR-5, FR-6</em> ｜ <em>设计:
 测试策略、决策 3</em></li>
 </ul></li>
-<li><label><input type="checkbox" />3.3
+<li><label><input type="checkbox" checked></input>3.3
 前端类型/构建、状态测试、真实桌面/375px 截图和原生 UI 观察。</label>
 <ul>
 <li><strong>证据块</strong>：项目已有 check/build 脚本、真实 taskdock
@@ -389,8 +420,8 @@ jobs/concurrency_recovery/output_paging 测试。</li>
 <li><strong>涉及文件</strong>：截图/视觉评审和实际测试日志。</li>
 <li><em>需求: FR-7, FR-8</em> ｜ <em>设计: 决策 4、5</em></li>
 </ul></li>
-<li><label><input type="checkbox" />3.4 各自记录真实 dot/<span
-class="citation" data-cites="GPTBridge">@GPTBridge</span>
+<li><label><input type="checkbox" checked></input>3.4 各自记录真实
+dot/<span class="citation" data-cites="GPTBridge">@GPTBridge</span>
 目录刷新和读改运行调用；客户端不可用单列 NOT_VERIFIED。</label>
 <ul>
 <li><strong>证据块</strong>：tools.listChanged=false；SSE Accept GET
@@ -402,8 +433,9 @@ class="citation" data-cites="GPTBridge">@GPTBridge</span>
 <h3 id="阶段-4已授权提交本机构建与替换">阶段
 4：已授权提交、本机构建与替换</h3>
 <ul class="task-list">
-<li><label><input type="checkbox" />4.1 核 foreign 原字节、精确本轮 diff
-和 GitNexus 影响检查，通过后普通 commit/push 并回读远端 SHA。</label>
+<li><label><input type="checkbox" checked></input>4.1 核 foreign
+原字节、精确本轮 diff 和 GitNexus 影响检查，通过后普通 commit/push
+并回读远端 SHA。</label>
 <ul>
 <li><strong>证据块</strong>：本轮 frozen ownership/foreign.patch；主
 Goal 唯一协调者。</li>
@@ -411,8 +443,9 @@ Goal 唯一协调者。</li>
 broad-stage/force-push。</li>
 <li><em>需求: FR-8, NFR-4</em> ｜ <em>设计: 决策 5</em></li>
 </ul></li>
-<li><label><input type="checkbox" />4.2 从已推送源码干净导出构建
-App，核版本/架构/SHA/codesign，备份旧 App 和安装 manifest。</label>
+<li><label><input type="checkbox" checked></input>4.2
+从已推送源码干净导出构建 App，核版本/架构/SHA/codesign，备份旧 App
+和安装 manifest。</label>
 <ul>
 <li><strong>证据块</strong>：实际安装路径
 <code>/Users/didi/Applications/GPTBridge.app</code>、Tauri
@@ -421,7 +454,7 @@ productName/identifier 及活动 job 盘点；基线干净构建脚本由 root
 <li><strong>涉及文件</strong>：本轮制品、构建/备份回执，不迁移凭据或历史。</li>
 <li><em>需求: FR-8</em> ｜ <em>设计: 决策 5</em></li>
 </ul></li>
-<li><label><input type="checkbox" />4.3
+<li><label><input type="checkbox" checked></input>4.3
 安全替换并启动，回读安装字节、真实进程、HTTP 与
 UI；客户端缺项保留未知。</label>
 <ul>
@@ -431,7 +464,7 @@ UI；客户端缺项保留未知。</label>
 无法安全延续时停止此依赖步骤。</li>
 <li><em>需求: FR-8</em> ｜ <em>设计: 风险评估</em></li>
 </ul></li>
-<li><label><input type="checkbox" />4.4
+<li><label><input type="checkbox" checked></input>4.4
 盘点并精确清理本轮可重建缓存，保留当前/回滚制品与证据，报告未验证项。</label>
 <ul>
 <li><strong>证据块</strong>：路径、大小、制品身份、活动引用和保留制品
@@ -549,49 +582,49 @@ SHA；不泛化清理其他目录。</li>
 <td>FR-1</td>
 <td>API、决策 1</td>
 <td>1.1、2.1、3.1、3.2</td>
-<td>以实际报告为准</td>
+<td>已完成，见 delivery.md</td>
 </tr>
 <tr>
 <td>FR-2</td>
 <td>数据模型、决策 1/2</td>
 <td>2.1、2.2、3.1</td>
-<td>以实际报告为准</td>
+<td>已完成，见 delivery.md</td>
 </tr>
 <tr>
 <td>FR-3</td>
 <td>决策 3</td>
 <td>2.2、3.2</td>
-<td>以实际报告为准</td>
+<td>已完成，见 delivery.md</td>
 </tr>
 <tr>
 <td>FR-4</td>
 <td>决策 3</td>
 <td>2.2、3.2</td>
-<td>以实际报告为准</td>
+<td>已完成，见 delivery.md</td>
 </tr>
 <tr>
 <td>FR-5</td>
 <td>API、决策 2/3</td>
 <td>1.1、2.1、2.2、3.1、3.2</td>
-<td>以实际报告为准</td>
+<td>已完成，见 delivery.md</td>
 </tr>
 <tr>
 <td>FR-6</td>
 <td>决策 4</td>
 <td>1.1、2.1、2.2、3.1、3.2、3.4</td>
-<td>客户端未验不得 PASS</td>
+<td>服务端通过；客户端 NOT_VERIFIED</td>
 </tr>
 <tr>
 <td>FR-7</td>
 <td>架构、决策 4</td>
 <td>2.3、3.3</td>
-<td>以真实 UI 证据为准</td>
+<td>真实安装 UI 已回读，见 ui-evidence.json</td>
 </tr>
 <tr>
 <td>FR-8</td>
 <td>决策 5、风险评估</td>
 <td>1.1、3.3、4.1、4.2、4.3、4.4</td>
-<td>以安装和远端回读为准</td>
+<td>安装和远端回读通过，见 delivery.md</td>
 </tr>
 </tbody>
 </table>
@@ -601,25 +634,24 @@ SHA；不泛化清理其他目录。</li>
 和差分出具，foreign 原字节与未跟踪文件不并入。</p>
 <h2 id="检查点">检查点</h2>
 <ul class="task-list">
-<li><label><input
-type="checkbox" />原合同无非白名单漂移，真实只读/网关/恢复反例通过。</label></li>
-<li><label><input
-type="checkbox" />前端和原生构建成功、真实截图可追溯。</label></li>
-<li><label><input
-type="checkbox" />本轮提交、远端和安装制品完成独立回读。</label></li>
-<li><label><input
-type="checkbox" />客户端可用时各自签收；不可用时明确保留未知。</label></li>
+<li><label><input type="checkbox" checked></input>原合同无非白名单漂移，真实只读/网关/恢复反例通过。</label></li>
+<li><label><input type="checkbox" checked></input>前端和原生构建成功、真实截图可追溯。</label></li>
+<li><label><input type="checkbox" checked></input>本轮提交、远端和安装制品完成独立回读。</label></li>
+<li><label><input type="checkbox" checked></input>客户端可用时各自签收；不可用时明确保留未知。</label></li>
 </ul>
 <h2 id="检查清单">检查清单</h2>
 <ul class="task-list">
-<li><label><input type="checkbox"
-checked="" />数据库、接口/MQ和配置有准确事实或明确“无”。</label></li>
-<li><label><input type="checkbox"
-checked="" />每项任务有源码依据、需求与设计回链。</label></li>
-<li><label><input type="checkbox"
-checked="" />清单默认未完成语义，不伪造 SQL 或客户端通过。</label></li>
-<li><label><input type="checkbox" />根据本轮实际结果更新 Goal
+<li><label><input type="checkbox" checked></input>数据库、接口/MQ和配置有准确事实或明确“无”。</label></li>
+<li><label><input type="checkbox" checked></input>每项任务有源码依据、需求与设计回链。</label></li>
+<li><label><input type="checkbox" checked></input>清单默认未完成语义，不伪造 SQL 或客户端通过。</label></li>
+<li><label><input type="checkbox" checked></input>根据本轮实际结果更新 Goal
 与精确交付报告。</label></li>
 </ul>
+<h2 id="本轮实际收口">本轮实际收口</h2>
+<p>源码 4b2215386b175e97ffff5fb7bf31af6b5a43e6f7
+已提交推送，App0.4.2已构建替换并完成真实进程/OAuth/目录/原生UI回读。3.4
+勾选表示已评估可用入口并独立记录 NOT_VERIFIED，绝不表示真实 dot/<span class="citation" data-cites="GPTBridge">@GPTBridge</span>
+客户端调用通过。首次 macOS
+后台启动约束失败和保留的系统提示，以及精确缓存清理见 <a href="../../gptbridge/dot-compatibility/delivery.md">交付记录</a>。</p>
 </body>
 </html>

@@ -30,60 +30,60 @@
 
 ### 阶段 1：基线与所有权
 
-- [ ] 1.1 冻结 Git、运行实例、各模式目录与 foreign diff，建立工具名/schema/annotations/暴露规则快照。
+- [x] 1.1 冻结 Git、运行实例、各模式目录与 foreign diff，建立工具名/schema/annotations/暴露规则快照。
   - **证据块**：`registry.rs:input_schema/catalog_contract`；`mcp/gateway.rs:WorkspaceHub::new` 给业务目录增加原有 workspace_id；`server.rs:initialize_result` 保持 listChanged=false。
   - **涉及文件**：本轮 Goal、契约/ownership 证据；不修改 foreign 片段。
   - _需求: FR-1, FR-5, FR-6, FR-8_ ｜ _设计: 决策 1、5_
 
 ### 阶段 2：说明、文档与宿主界面
 
-- [ ] 2.1 增补可选 direct_workspace，澄清原生工具和持久记账，只改审核过的说明文字。
+- [x] 2.1 增补可选 direct_workspace，澄清原生工具和持久记账，只改审核过的说明文字。
   - **证据块**：`dispatch.rs:server_info`；`personal.rs:INSTRUCTIONS`；`workspace.rs:strict_reads/resolve_read_path`；`gateway.rs:restrict_reads_to_root`。
   - **涉及文件**：personal、dispatch、registry 精确片段、workspace 只读 getter、新增 dot_compatibility 测试。
   - _需求: FR-1, FR-2, FR-5, FR-6_ ｜ _设计: 数据模型、决策 1、2_
-- [ ] 2.2 补双路径用户说明与真实 schema 示例，区分读取范围、刷新、未知结果和恢复。
+- [x] 2.2 补双路径用户说明与真实 schema 示例，区分读取范围、刷新、未知结果和恢复。
   - **证据块**：`personal_schema.rs`；`registry.rs:input_schema`；`personal.rs:job_poll/job_output`；`jobs.rs:job_status`。
   - **涉及文件**：README 新增 dot 章、PERSONAL、shared-gateway、desktop-plugin README、dot-compatibility 用户指南和本规格。
   - _需求: FR-2, FR-3, FR-4, FR-5, FR-6_ ｜ _设计: API、决策 3、4_
-- [ ] 2.3 在工作区详情同页实现指南、真实连接/任务观察与回执，不新增执行链。
+- [x] 2.3 在工作区详情同页实现指南、真实连接/任务观察与回执，不新增执行链。
   - **证据块**：原 `commands/taskdock.rs`、taskdock 查询类型与 JobLogDialog；创建目标不等于执行。
   - **涉及文件**：工作区页面、指南/状态组件与专属测试、截图与视觉评审。
   - _需求: FR-7_ ｜ _设计: 架构、决策 4_
 
 ### 阶段 3：精确验证
 
-- [ ] 3.1 运行规格结构检查、真实 schema 示例检查和契约差分，仅接受说明/可选 metadata 白名单。
+- [x] 3.1 运行规格结构检查、真实 schema 示例检查和契约差分，仅接受说明/可选 metadata 白名单。
   - **证据块**：`.mcp-probe-kit/bin/probe schema check_spec` 已确认只读工具，规格位于本目录。
   - **涉及文件**：check-spec-result 与契约差分证据。
   - _需求: FR-1, FR-2, FR-5, FR-6_ ｜ _设计: 测试策略_
-- [ ] 3.2 用单测试实例/临时工作区完成 HTTP/MCP 直接闭环和反例，并运行原回归。
+- [x] 3.2 用单测试实例/临时工作区完成 HTTP/MCP 直接闭环和反例，并运行原回归。
   - **证据块**：`personal_tests.rs` 的 two_tasks_same_file/repeated_patch/durable_dispatch；`gateway_tests.rs` 的 cross_repository_absolute_path/no_default/readonly_member；runtime jobs/concurrency_recovery/output_paging 测试。
   - **涉及文件**：测试与脱敏 HTTP/worker 回执，禁止在用户业务库制造样本。
   - _需求: FR-1, FR-3, FR-4, FR-5, FR-6_ ｜ _设计: 测试策略、决策 3_
-- [ ] 3.3 前端类型/构建、状态测试、真实桌面/375px 截图和原生 UI 观察。
+- [x] 3.3 前端类型/构建、状态测试、真实桌面/375px 截图和原生 UI 观察。
   - **证据块**：项目已有 check/build 脚本、真实 taskdock 数据源；参考原型不当生产证据。
   - **涉及文件**：截图/视觉评审和实际测试日志。
   - _需求: FR-7, FR-8_ ｜ _设计: 决策 4、5_
-- [ ] 3.4 各自记录真实 dot/@GPTBridge 目录刷新和读改运行调用；客户端不可用单列 NOT_VERIFIED。
+- [x] 3.4 各自记录真实 dot/@GPTBridge 目录刷新和读改运行调用；客户端不可用单列 NOT_VERIFIED。
   - **证据块**：tools.listChanged=false；SSE Accept GET 405；服务端目录检查不证明客户端刷新。
   - **涉及文件**：客户端验收/限制回执，无缓存伪造或强制重启。
   - _需求: FR-6_ ｜ _设计: 决策 4_
 
 ### 阶段 4：已授权提交、本机构建与替换
 
-- [ ] 4.1 核 foreign 原字节、精确本轮 diff 和 GitNexus 影响检查，通过后普通 commit/push 并回读远端 SHA。
+- [x] 4.1 核 foreign 原字节、精确本轮 diff 和 GitNexus 影响检查，通过后普通 commit/push 并回读远端 SHA。
   - **证据块**：本轮 frozen ownership/foreign.patch；主 Goal 唯一协调者。
   - **涉及文件**：仅本轮 owned 片段，禁止 broad-stage/force-push。
   - _需求: FR-8, NFR-4_ ｜ _设计: 决策 5_
-- [ ] 4.2 从已推送源码干净导出构建 App，核版本/架构/SHA/codesign，备份旧 App 和安装 manifest。
+- [x] 4.2 从已推送源码干净导出构建 App，核版本/架构/SHA/codesign，备份旧 App 和安装 manifest。
   - **证据块**：实际安装路径 `/Users/didi/Applications/GPTBridge.app`、Tauri productName/identifier 及活动 job 盘点；基线干净构建脚本由 root 核对。
   - **涉及文件**：本轮制品、构建/备份回执，不迁移凭据或历史。
   - _需求: FR-8_ ｜ _设计: 决策 5_
-- [ ] 4.3 安全替换并启动，回读安装字节、真实进程、HTTP 与 UI；客户端缺项保留未知。
+- [x] 4.3 安全替换并启动，回读安装字节、真实进程、HTTP 与 UI；客户端缺项保留未知。
   - **证据块**：旧 App SHA/回滚目录、新 App 实际签名/进程路径/服务目录/截图。
   - **涉及文件**：安装回执；活动 job 无法安全延续时停止此依赖步骤。
   - _需求: FR-8_ ｜ _设计: 风险评估_
-- [ ] 4.4 盘点并精确清理本轮可重建缓存，保留当前/回滚制品与证据，报告未验证项。
+- [x] 4.4 盘点并精确清理本轮可重建缓存，保留当前/回滚制品与证据，报告未验证项。
   - **证据块**：路径、大小、制品身份、活动引用和保留制品 SHA；不泛化清理其他目录。
   - **涉及文件**：清理回执与最终交付报告。
   - _需求: FR-8, NFR-4_ ｜ _设计: 决策 5_
@@ -127,14 +127,14 @@ cargo test --manifest-path personal-runtime/Cargo.toml
 
 | 需求ID | 设计章节 | 任务编号 | 状态 |
 | --- | --- | --- | --- |
-| FR-1 | API、决策 1 | 1.1、2.1、3.1、3.2 | 以实际报告为准 |
-| FR-2 | 数据模型、决策 1/2 | 2.1、2.2、3.1 | 以实际报告为准 |
-| FR-3 | 决策 3 | 2.2、3.2 | 以实际报告为准 |
-| FR-4 | 决策 3 | 2.2、3.2 | 以实际报告为准 |
-| FR-5 | API、决策 2/3 | 1.1、2.1、2.2、3.1、3.2 | 以实际报告为准 |
-| FR-6 | 决策 4 | 1.1、2.1、2.2、3.1、3.2、3.4 | 客户端未验不得 PASS |
-| FR-7 | 架构、决策 4 | 2.3、3.3 | 以真实 UI 证据为准 |
-| FR-8 | 决策 5、风险评估 | 1.1、3.3、4.1、4.2、4.3、4.4 | 以安装和远端回读为准 |
+| FR-1 | API、决策 1 | 1.1、2.1、3.1、3.2 | 已完成，见 delivery.md |
+| FR-2 | 数据模型、决策 1/2 | 2.1、2.2、3.1 | 已完成，见 delivery.md |
+| FR-3 | 决策 3 | 2.2、3.2 | 已完成，见 delivery.md |
+| FR-4 | 决策 3 | 2.2、3.2 | 已完成，见 delivery.md |
+| FR-5 | API、决策 2/3 | 1.1、2.1、2.2、3.1、3.2 | 已完成，见 delivery.md |
+| FR-6 | 决策 4 | 1.1、2.1、2.2、3.1、3.2、3.4 | 服务端通过；客户端 NOT_VERIFIED |
+| FR-7 | 架构、决策 4 | 2.3、3.3 | 真实安装 UI 已回读，见 ui-evidence.json |
+| FR-8 | 决策 5、风险评估 | 1.1、3.3、4.1、4.2、4.3、4.4 | 安装和远端回读通过，见 delivery.md |
 
 ## 文件变更清单
 
@@ -142,14 +142,18 @@ cargo test --manifest-path personal-runtime/Cargo.toml
 
 ## 检查点
 
-- [ ] 原合同无非白名单漂移，真实只读/网关/恢复反例通过。
-- [ ] 前端和原生构建成功、真实截图可追溯。
-- [ ] 本轮提交、远端和安装制品完成独立回读。
-- [ ] 客户端可用时各自签收；不可用时明确保留未知。
+- [x] 原合同无非白名单漂移，真实只读/网关/恢复反例通过。
+- [x] 前端和原生构建成功、真实截图可追溯。
+- [x] 本轮提交、远端和安装制品完成独立回读。
+- [x] 客户端可用时各自签收；不可用时明确保留未知。
 
 ## 检查清单
 
 - [x] 数据库、接口/MQ和配置有准确事实或明确“无”。
 - [x] 每项任务有源码依据、需求与设计回链。
 - [x] 清单默认未完成语义，不伪造 SQL 或客户端通过。
-- [ ] 根据本轮实际结果更新 Goal 与精确交付报告。
+- [x] 根据本轮实际结果更新 Goal 与精确交付报告。
+
+## 本轮实际收口
+
+源码 4b2215386b175e97ffff5fb7bf31af6b5a43e6f7 已提交推送，App0.4.2已构建替换并完成真实进程/OAuth/目录/原生UI回读。3.4 勾选表示已评估可用入口并独立记录 NOT_VERIFIED，绝不表示真实 dot/@GPTBridge 客户端调用通过。首次 macOS 后台启动约束失败和保留的系统提示，以及精确缓存清理见 [交付记录](../../gptbridge/dot-compatibility/delivery.md)。

@@ -41,5 +41,24 @@
     "shared_build_cache": "build and .svelte-kit left for root release coordinator; no other author caches removed"
   },
   "final_component_sha256": "7f8d0e2915c0f011f21f371a673d5179c81cc627e62479c17f0010cb9fe0abf2",
-  "post_screenshot_change": "Clear detail/job on same-task refresh failure or ownership mismatch; layout unchanged. Screenshot source hashes retained."
+  "post_screenshot_change": "Clear detail/job on same-task refresh failure or ownership mismatch; layout unchanged. Screenshot source hashes retained.",
+  "installed_native_app": {
+    "observed_at_utc": "2026-10-09T04:26:34Z",
+    "source_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+    "version": "0.4.2",
+    "app_path": "/Users/didi/Applications/GPTBridge.app",
+    "gui_pid": 90327,
+    "screenshot": "docs/gptbridge/dot-compatibility/screenshots/installed-desktop.png",
+    "screenshot_sha256": "0296d8c02a8eb083b06409e00b14cdbb8fbcf9ef278209a90bb2b9e670b6ed5d",
+    "capture": "OS window-specific capture; excludes separate UserNotificationCenter system dialog",
+    "real_profile": true,
+    "mocked_ipc": false,
+    "real_tasks_and_receipts_visible": true,
+    "readonly_job_output_opened": true,
+    "output_bytes_range": "0 -> 227",
+    "output_error_visible": false,
+    "output_dialog_closed": true,
+    "client_auth_catalog_route_verified_in_ui": false,
+    "system_first_launch_notice": "separate notice retained; Computer Use policy blocks its owner app"
+  }
 }

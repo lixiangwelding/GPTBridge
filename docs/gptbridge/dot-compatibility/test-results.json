@@ -5,35 +5,61 @@
     "cargo-full-tests": {
       "log_sha256": "534a80a2c3112b80c00d784e5917d7f50c6c46b4b1f4fd6364301c86eecd3822",
       "passed": 466,
-      "status": "PASS"
+      "status": "PASS",
+      "command": "cargo test --manifest-path src-tauri/Cargo.toml -- --test-threads=4",
+      "exit_code": 0
     },
     "runtime-full-tests": {
       "log_sha256": "9010870d5bd47042016dd4c26b0637b18c60f234ca74fa1a4b88839b42763cc1",
       "passed": 74,
-      "status": "PASS"
+      "status": "PASS",
+      "command": "cargo test --manifest-path personal-runtime/Cargo.toml",
+      "exit_code": 0
     },
     "frontend-tests": {
       "log_sha256": "906965dd79f23e30c8bae1b7a03f94ba8cf6955e701183b065f4b923a93a32f4",
       "passed": 22,
-      "status": "PASS"
+      "status": "PASS",
+      "command": "node --test tests/*.test.mjs",
+      "exit_code": 0
     },
     "candidate-check": {
       "log_sha256": "faf15b2460926eb59af1b7d9a73d20cd52f66ecace0bbc12a780ab610f707161",
       "passed": null,
-      "status": "PASS"
+      "status": "PASS",
+      "command": "npm run check",
+      "exit_code": 0
     },
     "candidate-vite": {
       "log_sha256": "e054ba33c527770c8fa9e07c97b65689dea09ff454c6b2d0c2d1f5f47d0c9aef",
       "passed": null,
-      "status": "PASS"
+      "status": "PASS",
+      "command": "npm run build",
+      "exit_code": 0
     },
     "dot-protocol-tests": {
       "log_sha256": "bf9fca9c6cd8dde3bff94bbe0d5280151439182326aebd0bc7fe94b7630adf87",
       "passed": 6,
-      "status": "PASS"
+      "status": "PASS",
+      "command": "cargo test --manifest-path src-tauri/Cargo.toml --test dot_compatibility",
+      "exit_code": 0
     }
   },
   "frontend_check": "0 errors / 0 warnings",
   "source_catalog": "four profiles, complete schemas and annotations unchanged",
-  "client_dot_acceptance": "NOT_VERIFIED"
+  "client_dot_acceptance": "NOT_VERIFIED",
+  "validated_source_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+  "source_commit_assignment": "tests ran in the frozen clean candidate; committed production/test bytes match that candidate",
+  "isolated_http": {
+    "status": "PASS",
+    "steps": 16,
+    "receipt": "isolated-http-evidence.json",
+    "scope": "same-source debug fixture; no installed workspace task writes"
+  },
+  "installed_oauth_readonly": {
+    "status": "PASS",
+    "tool_count": 39,
+    "runtime_version": "0.4.2",
+    "receipt": "installed-after-catalog.json"
+  }
 }

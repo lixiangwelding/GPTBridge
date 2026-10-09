@@ -1,0 +1,134 @@
+{
+  "source_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+  "upgrade": {
+    "version": "0.4.2",
+    "previous_version": "0.4.1",
+    "target_app": "/Users/didi/Applications/GPTBridge.app",
+    "configuration": "/Users/didi/Library/Application Support/coding-tools-mcp-personal/data/profiles.json",
+    "configuration_sha256": "e216c77330c329fcadb674f00f284fb96e5c2a081eb3f50b16f1862362debea8",
+    "source_app_digest": "91acfc945a1c94b97390c162fb73b1a617564ea9024c8ca989faa8462337fe06",
+    "previous_app_digest": "d76d1335d067a4695f9df884a8c3af5f5c1c85f7daa8e95154294c625e85a907",
+    "legacy_modified": false,
+    "configuration_written": false,
+    "services_stopped": false,
+    "services_started": false,
+    "running_process_restarted": false,
+    "client_catalog_synchronized": null,
+    "live_service_version_verified": false,
+    "status": "installed_app_files",
+    "backup": "/Users/didi/Library/Application Support/coding-tools-mcp-personal-backups/20261009T041200Z-1791519120089246000",
+    "receipt": "/Users/didi/Library/Application Support/coding-tools-mcp-personal-backups/20261009T041200Z-1791519120089246000/upgrade.json",
+    "staging_app": "/Users/didi/Applications/.personal-upgrade-20261009T041200Z-1791519120089246000.app",
+    "exact_configuration_preserved": true,
+    "native_check": {
+      "version": "0.4.2",
+      "profiles": 1,
+      "tool_count": 39,
+      "schema_sha256": "c583f1cb6495d072509c9beef953f21c80a448aadc2d111f7cc737cd3d5d7cad",
+      "services_started": false,
+      "configuration_written": false,
+      "native_deserialization": true,
+      "codesign_verified": true,
+      "source_contract_match": true
+    },
+    "executable_sha256": "d94e9aa7c0f4b39aa2dff1de7aff1b90f03e95db126c573f843136e31645799d"
+  },
+  "candidate_check": {
+    "version": "0.4.2",
+    "profiles": 1,
+    "tool_count": 39,
+    "schema_sha256": "c583f1cb6495d072509c9beef953f21c80a448aadc2d111f7cc737cd3d5d7cad",
+    "services_started": false,
+    "configuration_written": false,
+    "native_deserialization": true,
+    "codesign_verified": true,
+    "source_contract_match": true
+  },
+  "old_service_pid": 1199,
+  "new_service_pid": 95384,
+  "live_health": {
+    "name": "coding-tools-mcp",
+    "protocolVersion": "2025-06-18",
+    "version": "0.4.2"
+  },
+  "configuration_frozen_sha256": "97f5345848d68c5e94e76c33a33e79775ea55655cec2c6840429a32be222d7a6",
+  "plist_sha256": "b8951624fba00ed311ee7af291d2cf4777650bca1957a298da120626839abeb4",
+  "configuration_preserved": true,
+  "configuration_semantics_preserved": true,
+  "configuration_serialization_changed_after_gui_start": true,
+  "configuration_exact_at_install_sha256": "e216c77330c329fcadb674f00f284fb96e5c2a081eb3f50b16f1862362debea8",
+  "plist_preserved": true,
+  "applied": true,
+  "foreign_jobs_cancelled": false,
+  "frpc_restarted": false,
+  "idle_read_method": "three independently frozen no-WAL snapshots; immutable flag used only on removed temporary copies",
+  "idle_snapshots": [
+    {
+      "observed_at_ms": 1791519652064,
+      "source_sha256": "8df52d8c0dd5bd1148724698d9b62579011c1247f419fda4219192b0a5c2c814",
+      "source_sidecars_absent": true,
+      "source_stable_before_after": true,
+      "active_count": 0,
+      "source_written": false,
+      "snapshot_removed": true
+    },
+    {
+      "observed_at_ms": 1791519652092,
+      "source_sha256": "8df52d8c0dd5bd1148724698d9b62579011c1247f419fda4219192b0a5c2c814",
+      "source_sidecars_absent": true,
+      "source_stable_before_after": true,
+      "active_count": 0,
+      "source_written": false,
+      "snapshot_removed": true
+    },
+    {
+      "observed_at_ms": 1791519652409,
+      "source_sha256": "8df52d8c0dd5bd1148724698d9b62579011c1247f419fda4219192b0a5c2c814",
+      "source_sidecars_absent": true,
+      "source_stable_before_after": true,
+      "active_count": 0,
+      "source_written": false,
+      "snapshot_removed": true
+    },
+    {
+      "observed_at_ms": 1791519652722,
+      "source_sha256": "8df52d8c0dd5bd1148724698d9b62579011c1247f419fda4219192b0a5c2c814",
+      "source_sidecars_absent": true,
+      "source_stable_before_after": true,
+      "active_count": 0,
+      "source_written": false,
+      "snapshot_removed": true
+    }
+  ],
+  "active_jobs_before_restart": [],
+  "rpc_idle_before_restart": true,
+  "warmup_version_verified_before_reload_guard": "0.4.2",
+  "guard_retry_note": "first post-install reload guard encountered read-only SQLite CANTOPEN and preserved old listener; later three successful idle samples allowed exact reload",
+  "recorded_at_utc": "2026-10-09T04:20:57Z",
+  "first_launch_attempt": {
+    "pid": 95319,
+    "procName": "coding-tools-mcp-personal",
+    "captureTime": "2026-10-09 12:20:52.9146 +0800",
+    "exception": {
+      "codes": "0x0000000000000000, 0x0000000000000000",
+      "rawCodes": [
+        0,
+        0
+      ],
+      "type": "EXC_CRASH",
+      "signal": "SIGKILL (Code Signature Invalid)"
+    },
+    "termination": {
+      "flags": 66,
+      "code": 4,
+      "namespace": "CODESIGNING",
+      "indicator": "Launch Constraint Violation"
+    },
+    "recovered_by_existing_keepalive": true,
+    "system_dialog_remaining": "UserNotificationCenter observation/control blocked by Computer Use safety policy; no report sent"
+  },
+  "post_restart_observed_at_utc": "2026-10-09T04:24:17Z",
+  "frpc_pid_unchanged": true,
+  "gui_pid": 90327,
+  "service_pid_still_running": true
+}

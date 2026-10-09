@@ -1,0 +1,12 @@
+{
+  "observed_at_utc": "2026-10-09T04:26:34Z",
+  "app_tree_sha256": "91acfc945a1c94b97390c162fb73b1a617564ea9024c8ca989faa8462337fe06",
+  "binary_sha256": "d94e9aa7c0f4b39aa2dff1de7aff1b90f03e95db126c573f843136e31645799d",
+  "codesign_exit_code": 0,
+  "metadata_version": "0.4.2",
+  "service_pid": 95384,
+  "gui_pid": 90327,
+  "frpc_pid": 1207,
+  "all_three_processes_present": true,
+  "mapped_service_image": "/Users/didi/Applications/GPTBridge.app/Contents/MacOS/coding-tools-mcp-personal"
+}

@@ -1,183 +1,192 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Executable Goal Prompt: GPTBridge dot 增量兼容与本机交付</title>
+  <title>GPTBridge dot 可执行目标</title>
   <style>
-    /* Default styles provided by pandoc.
-    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
-    */
-    html {
-      color: #1a1a1a;
-      background-color: #fdfdfd;
-    }
-    body {
-      margin: 0 auto;
-      max-width: 36em;
-      padding-left: 50px;
-      padding-right: 50px;
-      padding-top: 50px;
-      padding-bottom: 50px;
-      hyphens: auto;
-      overflow-wrap: break-word;
-      text-rendering: optimizeLegibility;
-      font-kerning: normal;
-    }
-    @media (max-width: 600px) {
-      body {
-        font-size: 0.9em;
-        padding: 12px;
-      }
-      h1 {
-        font-size: 1.8em;
-      }
-    }
-    @media print {
-      html {
-        background-color: white;
-      }
-      body {
-        background-color: transparent;
-        color: black;
-        font-size: 12pt;
-      }
-      p, h2, h3 {
-        orphans: 3;
-        widows: 3;
-      }
-      h2, h3, h4 {
-        page-break-after: avoid;
-      }
-    }
-    p {
-      margin: 1em 0;
-    }
-    a {
-      color: #1a1a1a;
-    }
-    a:visited {
-      color: #1a1a1a;
-    }
-    img {
-      max-width: 100%;
-    }
-    svg {
-      height: auto;
-      max-width: 100%;
-    }
-    h1, h2, h3, h4, h5, h6 {
-      margin-top: 1.4em;
-    }
-    h5, h6 {
-      font-size: 1em;
-      font-style: italic;
-    }
-    h6 {
-      font-weight: normal;
-    }
-    ol, ul {
-      padding-left: 1.7em;
-      margin-top: 1em;
-    }
-    li > ol, li > ul {
-      margin-top: 0;
-    }
-    blockquote {
-      margin: 1em 0 1em 1.7em;
-      padding-left: 1em;
-      border-left: 2px solid #e6e6e6;
-      color: #606060;
-    }
-    code {
-      white-space: pre-wrap;
-      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
-      font-size: 85%;
-      margin: 0;
-      hyphens: manual;
-    }
-    pre {
-      margin: 1em 0;
-      overflow: auto;
-    }
-    pre code {
-      padding: 0;
-      overflow: visible;
-      overflow-wrap: normal;
-    }
-    .sourceCode {
-     background-color: transparent;
-     overflow: visible;
-    }
-    hr {
-      border: none;
-      border-top: 1px solid #1a1a1a;
-      height: 1px;
-      margin: 1em 0;
-    }
-    table {
-      margin: 1em 0;
-      border-collapse: collapse;
-      width: 100%;
-      overflow-x: auto;
-      display: block;
-      font-variant-numeric: lining-nums tabular-nums;
-    }
-    table caption {
-      margin-bottom: 0.75em;
-    }
-    tbody {
-      margin-top: 0.5em;
-      border-top: 1px solid #1a1a1a;
-      border-bottom: 1px solid #1a1a1a;
-    }
-    th {
-      border-top: 1px solid #1a1a1a;
-      padding: 0.25em 0.5em 0.25em 0.5em;
-    }
-    td {
-      padding: 0.125em 0.5em 0.25em 0.5em;
-    }
-    header {
-      margin-bottom: 4em;
-      text-align: center;
-    }
-    #TOC li {
-      list-style: none;
-    }
-    #TOC ul {
-      padding-left: 1.3em;
-    }
-    #TOC > ul {
-      padding-left: 0;
-    }
-    #TOC a:not(:hover) {
-      text-decoration: none;
-    }
-    span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: min(4vw, 1.5em);}
-    div.column{flex: auto; overflow-x: auto;}
-    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-    /* The extra [class] is a hack that increases specificity enough to
-       override a similar rule in reveal.js */
-    ul.task-list[class]{list-style: none;}
-    ul.task-list li input[type="checkbox"] {
-      font-size: inherit;
-      width: 0.8em;
-      margin: 0 0.8em 0.2em -1.6em;
-      vertical-align: middle;
-    }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
-  </style>
+
+html {
+color: #1a1a1a;
+background-color: #fdfdfd;
+}
+body {
+margin: 0 auto;
+max-width: 36em;
+padding-left: 50px;
+padding-right: 50px;
+padding-top: 50px;
+padding-bottom: 50px;
+hyphens: auto;
+overflow-wrap: break-word;
+text-rendering: optimizeLegibility;
+font-kerning: normal;
+}
+@media (max-width: 600px) {
+body {
+font-size: 0.9em;
+padding: 12px;
+}
+h1 {
+font-size: 1.8em;
+}
+}
+@media print {
+html {
+background-color: white;
+}
+body {
+background-color: transparent;
+color: black;
+font-size: 12pt;
+}
+p, h2, h3 {
+orphans: 3;
+widows: 3;
+}
+h2, h3, h4 {
+page-break-after: avoid;
+}
+}
+p {
+margin: 1em 0;
+}
+a {
+color: #1a1a1a;
+}
+a:visited {
+color: #1a1a1a;
+}
+img {
+max-width: 100%;
+}
+svg {
+height: auto;
+max-width: 100%;
+}
+h1, h2, h3, h4, h5, h6 {
+margin-top: 1.4em;
+}
+h5, h6 {
+font-size: 1em;
+font-style: italic;
+}
+h6 {
+font-weight: normal;
+}
+ol, ul {
+padding-left: 1.7em;
+margin-top: 1em;
+}
+li > ol, li > ul {
+margin-top: 0;
+}
+blockquote {
+margin: 1em 0 1em 1.7em;
+padding-left: 1em;
+border-left: 2px solid #e6e6e6;
+color: #606060;
+}
+code {
+white-space: pre-wrap;
+font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+font-size: 85%;
+margin: 0;
+hyphens: manual;
+}
+pre {
+margin: 1em 0;
+overflow: auto;
+}
+pre code {
+padding: 0;
+overflow: visible;
+overflow-wrap: normal;
+}
+.sourceCode {
+background-color: transparent;
+overflow: visible;
+}
+hr {
+border: none;
+border-top: 1px solid #1a1a1a;
+height: 1px;
+margin: 1em 0;
+}
+table {
+margin: 1em 0;
+border-collapse: collapse;
+width: 100%;
+overflow-x: auto;
+display: block;
+font-variant-numeric: lining-nums tabular-nums;
+}
+table caption {
+margin-bottom: 0.75em;
+}
+tbody {
+margin-top: 0.5em;
+border-top: 1px solid #1a1a1a;
+border-bottom: 1px solid #1a1a1a;
+}
+th {
+border-top: 1px solid #1a1a1a;
+padding: 0.25em 0.5em 0.25em 0.5em;
+}
+td {
+padding: 0.125em 0.5em 0.25em 0.5em;
+}
+header {
+margin-bottom: 4em;
+text-align: center;
+}
+#TOC li {
+list-style: none;
+}
+#TOC ul {
+padding-left: 1.3em;
+}
+#TOC > ul {
+padding-left: 0;
+}
+#TOC a:not(:hover) {
+text-decoration: none;
+}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">Executable Goal Prompt: GPTBridge dot
-增量兼容与本机交付</h1>
+<h1 class="title">GPTBridge dot 可执行目标</h1>
 </header>
-<h1
-id="executable-goal-prompt-gptbridge-dot-增量兼容与本机交付">Executable
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#executable-goal-prompt-gptbridge-dot-增量兼容与本机交付" id="toc-executable-goal-prompt-gptbridge-dot-增量兼容与本机交付">Executable
+Goal Prompt: GPTBridge dot 增量兼容与本机交付</a>
+<ul>
+<li><a href="#执行身份事实与授权" id="toc-执行身份事实与授权">执行身份、事实与授权</a></li>
+<li><a href="#总目标与非目标" id="toc-总目标与非目标">总目标与非目标</a></li>
+<li><a href="#ownedpaths-与并行职责" id="toc-ownedpaths-与并行职责">ownedPaths 与并行职责</a></li>
+<li><a href="#依赖步骤与验证" id="toc-依赖步骤与验证">依赖步骤与验证</a></li>
+<li><a href="#完成停止与回滚" id="toc-完成停止与回滚">完成、停止与回滚</a></li>
+<li><a href="#最终报告与当前状态" id="toc-最终报告与当前状态">最终报告与当前状态</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="executable-goal-prompt-gptbridge-dot-增量兼容与本机交付">Executable
 Goal Prompt: GPTBridge dot 增量兼容与本机交付</h1>
 <p>在
 <code>/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal</code>
@@ -348,13 +357,22 @@ dirty。客户端目录缓存可能需要其支持的刷新或新会话。</p>
 SHA、owned
 files、foreignDirtyPreserved、契约差分、测试退出码、截图/视觉分、安装与运行版本/SHA、旧包回滚路径、客户端刷新/实际
 dot 验收状态和未验证项。</p>
-<p>当前：executionBackend=native-goal-tool，goalRegistered=true；实现与源码验证完成。干净候选
-Rust 466/466、personal-runtime 74/74、前端 22/22 通过，check 0 errors/0
-warnings，四档完整 schema/annotations
-无变化，静态/实际组件视觉证据已交付。commit/push、release
-App、安装/运行回读尚待执行；外部 dot/<span class="citation"
-data-cites="GPTBridge">@GPTBridge</span> 客户端验收仍
-NOT_VERIFIED。使用可用原生 Goal
-工具启动后更新本节。精确入口：<code>/goal /Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/docs/goals/gptbridge-dot-compatibility-goal.md</code>。</p>
+<p>当前：executionBackend=native-goal-tool，goalRegistered=true；本轮交付已完成。干净候选
+Rust 466/466、personal-runtime 74/74、前端 22/22、check 0 errors/0
+warnings 和四档完整合同通过；隔离 HTTP/MCP 16 步通过。源码
+<code>4b2215386b175e97ffff5fb7bf31af6b5a43e6f7</code>
+已普通推送并独立回读。该提交构建的 arm64 0.4.2 App 已安装在
+<code>/Users/didi/Applications/GPTBridge.app</code>；binary SHA
+<code>d94e9aa7c0f4b39aa2dff1de7aff1b90f03e95db126c573f843136e31645799d</code>，严格签名、真实
+GUI、正常 OAuth/目录/能力与服务 PID 95384 回读通过。foreign
+工作及原任务保留，FRPC PID 1207 未重启，旧 0.4.1 App
+可恢复。本轮构建缓存按精确路径清理，正式证据与制品保留。</p>
+<p>真实 dot/<span class="citation" data-cites="GPTBridge">@GPTBridge</span> 平台客户端验收为
+NOT_VERIFIED；macOS 首次后台启动曾触发 Launch Constraint
+Violation，KeepAlive 重试成功，系统独立提示因 CUA
+安全限制仍留在桌面。它们按事实记录，不冒称客户端通过。详细结果见
+<code>docs/gptbridge/dot-compatibility/delivery.md</code> 及同名
+HTML。本轮最终文档收口提交不改变 App
+源码归属。精确入口：<code>/goal /Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/docs/goals/gptbridge-dot-compatibility-goal.md</code>。</p>
 </body>
 </html>

@@ -1,0 +1,564 @@
+{
+  "status": "PASS",
+  "transport": "real_loopback_HTTP_MCP",
+  "auth": "bearer_ephemeral_test_token",
+  "source_commit": "4b22153",
+  "client_acceptance": "NOT_VERIFIED",
+  "steps": [
+    {
+      "name": "authentication_rejection",
+      "status": "PASS",
+      "unauthenticated_http_status": 401
+    },
+    {
+      "name": "initialize",
+      "status": "PASS",
+      "version": "0.4.2",
+      "tools_list_changed": false,
+      "native_instructions_present": true
+    },
+    {
+      "name": "GET_SSE",
+      "status": "PASS",
+      "http_status": 405
+    },
+    {
+      "name": "tools_list",
+      "status": "PASS",
+      "count": 39,
+      "names": [
+        "server_info",
+        "history_session_bootstrap",
+        "history_session_checkpoint",
+        "history_session_validate",
+        "history_session_search",
+        "history_session_read",
+        "check_exec_environment",
+        "get_default_cwd",
+        "set_default_cwd",
+        "read_file",
+        "list_dir",
+        "list_files",
+        "search_text",
+        "grep_text",
+        "apply_patch",
+        "exec_command",
+        "write_stdin",
+        "kill_session",
+        "read_output",
+        "git_status",
+        "git_diff",
+        "git_log",
+        "git_show",
+        "git_blame",
+        "request_permissions",
+        "view_image",
+        "task_open",
+        "task_status",
+        "task_checkpoint",
+        "apply_skill_patch",
+        "list_skills",
+        "search_skills",
+        "read_skill",
+        "invoke_skill",
+        "list_skill_write_roots",
+        "check_command",
+        "tool_catalog_check",
+        "read_files",
+        "stat_path"
+      ],
+      "catalog_sha256": "e4af48656b53cfe2b84515e82622ad2894185cd8179337aa65f55260185354d6"
+    },
+    {
+      "name": "server_info",
+      "status": "PASS",
+      "version": "0.4.2",
+      "auth_type": "bearer",
+      "direct_workspace": {
+        "catalog_refresh": "client_dependent_no_list_changed_notification",
+        "durable_bookkeeping": "existing_task_and_request_lifecycle",
+        "execution_path": "native_tools",
+        "external_agent_required": false,
+        "security": {
+          "execution_isolation": "policy_only",
+          "read_scope": "explicit_external_paths_allowed",
+          "sandbox_enforced": false
+        },
+        "version": 1
+      },
+      "contract": {
+        "client_catalog_synchronized": null,
+        "input_fields": {
+          "apply_patch": [
+            "confirm",
+            "dry_run",
+            "expected_hashes",
+            "patch",
+            "reason",
+            "request_id",
+            "task_id"
+          ],
+          "apply_skill_patch": [
+            "confirm",
+            "dry_run",
+            "expected_hashes",
+            "patch",
+            "reason",
+            "request_id",
+            "root_id",
+            "task_id"
+          ],
+          "check_command": [
+            "arguments"
+          ],
+          "check_exec_environment": [],
+          "exec_command": [
+            "cmd",
+            "confirm",
+            "durable",
+            "filesystem_scope",
+            "max_output_bytes",
+            "mode",
+            "reason",
+            "request_id",
+            "resources",
+            "stdin",
+            "task_id",
+            "timeout_ms",
+            "tty",
+            "workdir",
+            "yield_time_ms"
+          ],
+          "get_default_cwd": [],
+          "git_blame": [
+            "end_line",
+            "max_lines",
+            "path",
+            "rev",
+            "start_line"
+          ],
+          "git_diff": [
+            "context_lines",
+            "max_bytes",
+            "paths",
+            "repo_path",
+            "staged",
+            "unstaged"
+          ],
+          "git_log": [
+            "max_count",
+            "path",
+            "ref",
+            "skip"
+          ],
+          "git_show": [
+            "context_lines",
+            "include_diff",
+            "max_bytes",
+            "path",
+            "paths",
+            "rev"
+          ],
+          "git_status": [
+            "include_untracked",
+            "max_entries",
+            "path"
+          ],
+          "grep_text": [
+            "case_sensitive",
+            "context_lines",
+            "exclude_globs",
+            "glob",
+            "include_globs",
+            "include_ignored",
+            "max_file_bytes",
+            "max_preview_bytes",
+            "max_results",
+            "max_visited_entries",
+            "path",
+            "query",
+            "regex"
+          ],
+          "history_session_bootstrap": [
+            "create_if_missing",
+            "history_dir",
+            "initial_user_input",
+            "session_key",
+            "title",
+            "workspace_root"
+          ],
+          "history_session_checkpoint": [
+            "decisions",
+            "expected_path",
+            "files_changed",
+            "findings",
+            "history_dir",
+            "next_actions",
+            "notes",
+            "raw_user_input",
+            "remaining_issues",
+            "runtime_state",
+            "session_key",
+            "tests",
+            "timestamp",
+            "turn_id",
+            "user_intent",
+            "workspace_root"
+          ],
+          "history_session_read": [
+            "cursor",
+            "expected_hash",
+            "history_dir",
+            "max_bytes",
+            "number",
+            "path",
+            "workspace_root"
+          ],
+          "history_session_search": [
+            "cursor",
+            "history_dir",
+            "limit",
+            "query",
+            "workspace_root"
+          ],
+          "history_session_validate": [
+            "history_dir",
+            "repair",
+            "workspace_root"
+          ],
+          "invoke_skill": [
+            "query",
+            "skill_id"
+          ],
+          "kill_session": [
+            "max_output_bytes",
+            "session_id",
+            "signal",
+            "wait_ms"
+          ],
+          "list_dir": [
+            "include_hidden",
+            "include_ignored",
+            "max_depth",
+            "max_entries",
+            "path",
+            "recursive"
+          ],
+          "list_files": [
+            "exclude_patterns",
+            "glob",
+            "include_hidden",
+            "include_ignored",
+            "max_results",
+            "max_visited_entries",
+            "path",
+            "patterns"
+          ],
+          "list_skill_write_roots": [],
+          "list_skills": [
+            "automatic_only",
+            "cursor",
+            "limit",
+            "query"
+          ],
+          "read_file": [
+            "end_line",
+            "max_bytes",
+            "path",
+            "start_line"
+          ],
+          "read_files": [
+            "end_line",
+            "max_bytes_per_file",
+            "max_total_bytes",
+            "paths",
+            "start_index",
+            "start_line"
+          ],
+          "read_output": [
+            "limit",
+            "offset",
+            "output_ref",
+            "stream"
+          ],
+          "read_skill": [
+            "expected_sha256",
+            "file",
+            "max_bytes",
+            "offset",
+            "skill_id"
+          ],
+          "request_permissions": [
+            "arguments",
+            "permission",
+            "reason",
+            "scope",
+            "tool_name",
+            "ttl_seconds"
+          ],
+          "search_skills": [
+            "automatic_only",
+            "cursor",
+            "limit",
+            "query"
+          ],
+          "search_text": [
+            "case_sensitive",
+            "context_lines",
+            "exclude_globs",
+            "glob",
+            "include_globs",
+            "include_ignored",
+            "max_file_bytes",
+            "max_preview_bytes",
+            "max_results",
+            "max_visited_entries",
+            "path",
+            "query",
+            "regex"
+          ],
+          "server_info": [],
+          "set_default_cwd": [
+            "path"
+          ],
+          "stat_path": [
+            "path"
+          ],
+          "task_checkpoint": [
+            "checkpoint",
+            "expected_revision",
+            "raw_user_input",
+            "request_id",
+            "state",
+            "task_id"
+          ],
+          "task_open": [
+            "goal",
+            "new_task",
+            "raw_user_input",
+            "request_id",
+            "task_id"
+          ],
+          "task_status": [
+            "cursor",
+            "events_after",
+            "include_passed",
+            "job_id",
+            "limit",
+            "task_id"
+          ],
+          "tool_catalog_check": [
+            "client_schema_sha256",
+            "client_tools",
+            "complete"
+          ],
+          "view_image": [
+            "auto_resize",
+            "max_bytes",
+            "max_height",
+            "max_width",
+            "output",
+            "path"
+          ],
+          "write_stdin": [
+            "chars",
+            "max_output_bytes",
+            "session_id",
+            "yield_time_ms"
+          ]
+        },
+        "non_dry_patch_required": [
+          "patch",
+          "request_id",
+          "expected_hashes"
+        ],
+        "profile": "core",
+        "refresh_hint": "Compare this catalog with client-visible tools/fields. Fewer tools or missing request_id/expected_hashes means the client catalog must be refreshed; restarting the server alone cannot prove synchronization.",
+        "schema_sha256": "c583f1cb6495d072509c9beef953f21c80a448aadc2d111f7cc737cd3d5d7cad",
+        "tool_count": 39,
+        "version": "0.4.2"
+      }
+    },
+    {
+      "name": "task_open",
+      "status": "PASS",
+      "task_id": "3ec6865f-297f-4e9b-8e15-99d53b5e719e",
+      "revision": 0
+    },
+    {
+      "name": "read_file",
+      "status": "PASS",
+      "path": "owned.txt",
+      "file_sha256": "9160d4be34c8695bd172a76c7c7966587ea5a4d991ad22c87b2b91af54aa9ebb"
+    },
+    {
+      "name": "apply_patch_and_dedup",
+      "status": "PASS",
+      "task_id": "3ec6865f-297f-4e9b-8e15-99d53b5e719e",
+      "request_id": "http-patch-once",
+      "change_id": "02473c569ce34c1d83116acd89ddf98a",
+      "before_hashes": {
+        "owned.txt": "9160d4be34c8695bd172a76c7c7966587ea5a4d991ad22c87b2b91af54aa9ebb"
+      },
+      "after_hashes": {
+        "owned.txt": "7b9a72466d3960eb2aacccfc848939453490db0678bd4725def3f789b891c919"
+      },
+      "duplicate_receipt_reused": true
+    },
+    {
+      "name": "stale_hash_rejection",
+      "status": "PASS",
+      "error_code": "STALE_FILE",
+      "patch_applied": false
+    },
+    {
+      "name": "exec_command",
+      "status": "PASS",
+      "task_id": "3ec6865f-297f-4e9b-8e15-99d53b5e719e",
+      "request_id": "http-exec-once",
+      "job_id": "530adc6f-597b-4ec6-8247-5c6414a6dd21",
+      "session_id": "job-530adc6f-597b-4ec6-8247-5c6414a6dd21",
+      "initial_status": "queued",
+      "execution_mode": "durable_worker"
+    },
+    {
+      "name": "original_job_poll",
+      "status": "PASS",
+      "polls": 1,
+      "job_id": "530adc6f-597b-4ec6-8247-5c6414a6dd21",
+      "session_id": "job-530adc6f-597b-4ec6-8247-5c6414a6dd21",
+      "task_id": "3ec6865f-297f-4e9b-8e15-99d53b5e719e",
+      "status_value": "exited",
+      "exit_code": 0,
+      "command_ok": true,
+      "output_refs": {
+        "stderr": "job:530adc6f-597b-4ec6-8247-5c6414a6dd21:stderr",
+        "stdout": "job:530adc6f-597b-4ec6-8247-5c6414a6dd21:stdout"
+      }
+    },
+    {
+      "name": "read_output",
+      "status": "PASS",
+      "output_ref": "job:530adc6f-597b-4ec6-8247-5c6414a6dd21:stdout",
+      "output_sha256": "c8d4390089fce0fbde6b23a8b68a2bc39d291395bbd5014419aef1cc1f39b63e",
+      "output": "verified-native-http",
+      "pages": [
+        {
+          "offset": 0,
+          "bytes_read": 8,
+          "next_offset": 8,
+          "may_be_truncated": false
+        },
+        {
+          "offset": 8,
+          "bytes_read": 8,
+          "next_offset": 16,
+          "may_be_truncated": false
+        },
+        {
+          "offset": 16,
+          "bytes_read": 5,
+          "next_offset": null,
+          "may_be_truncated": false
+        }
+      ],
+      "complete": true
+    },
+    {
+      "name": "command_dedup",
+      "status": "PASS",
+      "job_id": "530adc6f-597b-4ec6-8247-5c6414a6dd21",
+      "original_request_id": "http-exec-once",
+      "duplicate_receipt_reused": true,
+      "side_effect_count": 1
+    },
+    {
+      "name": "task_checkpoint",
+      "status": "PASS",
+      "task_id": "3ec6865f-297f-4e9b-8e15-99d53b5e719e",
+      "request_id": "http-checkpoint-once",
+      "revision": 1,
+      "state": "completed"
+    },
+    {
+      "name": "readonly_rejection",
+      "status": "PASS",
+      "profile": "read-only",
+      "catalog_hides_mutation_tools": true,
+      "rpc_error_code": -32602,
+      "reason": "unknown_tool",
+      "file_created": false
+    },
+    {
+      "name": "configuration_preserved",
+      "status": "PASS",
+      "before_sha256": "6d257372f095a234c07a04012455daf8fe4c737bf26b5ff429209c65fb0a3733",
+      "after_sha256": "6d257372f095a234c07a04012455daf8fe4c737bf26b5ff429209c65fb0a3733"
+    }
+  ],
+  "cleanup": {
+    "owned_processes": [
+      {
+        "profile": "dot-readonly",
+        "pid": 89027,
+        "port": 49737,
+        "process_exited": true,
+        "exit_code": -15
+      },
+      {
+        "profile": "dot-http",
+        "pid": 89024,
+        "port": 49712,
+        "process_exited": true,
+        "exit_code": -15
+      }
+    ],
+    "remaining_active_jobs": 0,
+    "allowed_after_jobs_finished": true,
+    "owned_paths": [
+      {
+        "path": "/Users/didi/Library/Application Support/coding-tools-mcp/harness/personal-runtime/shared-write-roots/locks/b15599a7410d08a2ed0ab71a07cb0dafa03e27a2d7cbffa1968138e891a50c3e.lock",
+        "created": true,
+        "absent_after": true
+      },
+      {
+        "path": "/Users/didi/Library/Application Support/coding-tools-mcp/harness/workspaces/e1c7be3f3d24ea2b6fcd77313e85eeee",
+        "created": false,
+        "absent_after": true
+      },
+      {
+        "path": "/Users/didi/Library/Application Support/coding-tools-mcp/harness/personal-runtime/e1c7be3f3d24ea2b6fcd77313e85eeee63a1baa80d7e803cdc2346b4a4098f0a",
+        "created": true,
+        "absent_after": true
+      }
+    ],
+    "active_job_verification": "only launched original job exited with code 0; completed task checkpoint gate rejected unresolved jobs; exact owned database and lock had no open file references",
+    "sqlite_independent_readback": "NOT_VERIFIED: Python read-only URI returned unable to open database file",
+    "open_file_references": false,
+    "temporary_root_absent_after": true
+  },
+  "preflight_note": {
+    "unrecognized_help_started_GUI": true,
+    "stopped_exit_code": 130,
+    "default_configuration_reads_may_have_occurred": true,
+    "no_configuration_or_task_operation_was_sent": true
+  },
+  "artifact": {
+    "binary": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/coding-tools-mcp-personal",
+    "binary_sha256": "03c98be7099928d152d17155339ebe388c42e33f3f65b20c9cdc23a9e3a5ad21",
+    "worker": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/coding-tools-personal-worker",
+    "worker_sha256": "1661a1ae75d5b48035b82e88baa7444d16cc98ca411faa2b6d687a4fd56fd3e3"
+  },
+  "isolation": {
+    "temporary_root": "/private/var/folders/5q/qw_xwc9s2s327r7m3b5b48gw0000ks/T/gptbridge-dot-http-nf0hhtyp",
+    "workspace_sha256": "e1c7be3f3d24ea2b6fcd77313e85eeee63a1baa80d7e803cdc2346b4a4098f0a",
+    "profile_and_audit_home": "/private/var/folders/5q/qw_xwc9s2s327r7m3b5b48gw0000ks/T/gptbridge-dot-http-nf0hhtyp/personal-home",
+    "unique_runtime_directory": "/Users/didi/Library/Application Support/coding-tools-mcp/harness/personal-runtime/e1c7be3f3d24ea2b6fcd77313e85eeee63a1baa80d7e803cdc2346b4a4098f0a",
+    "unique_legacy_state_directory": "/Users/didi/Library/Application Support/coding-tools-mcp/harness/workspaces/e1c7be3f3d24ea2b6fcd77313e85eeee",
+    "unique_canonical_lock": "/Users/didi/Library/Application Support/coding-tools-mcp/harness/personal-runtime/shared-write-roots/locks/b15599a7410d08a2ed0ab71a07cb0dafa03e27a2d7cbffa1968138e891a50c3e.lock",
+    "owned_paths_absent_before_start": true,
+    "existing_task_directories_accessed": false,
+    "HOME_changed": false
+  },
+  "recorded_at": "2026-10-09T12:11:40.506049+08:00"
+}

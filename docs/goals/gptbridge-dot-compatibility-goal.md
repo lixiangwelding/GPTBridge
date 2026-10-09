@@ -65,4 +65,6 @@ CodeGraph status 实际落到父仓库索引，且包含中断未解析边和大
 
 报告包含 mode、executionBackend、goalRegistered、base/head/remote SHA、owned files、foreignDirtyPreserved、契约差分、测试退出码、截图/视觉分、安装与运行版本/SHA、旧包回滚路径、客户端刷新/实际 dot 验收状态和未验证项。
 
-当前：executionBackend=native-goal-tool，goalRegistered=true；实现与源码验证完成。干净候选 Rust 466/466、personal-runtime 74/74、前端 22/22 通过，check 0 errors/0 warnings，四档完整 schema/annotations 无变化，静态/实际组件视觉证据已交付。commit/push、release App、安装/运行回读尚待执行；外部 dot/@GPTBridge 客户端验收仍 NOT_VERIFIED。使用可用原生 Goal 工具启动后更新本节。精确入口：`/goal /Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/docs/goals/gptbridge-dot-compatibility-goal.md`。
+当前：executionBackend=native-goal-tool，goalRegistered=true；本轮交付已完成。干净候选 Rust 466/466、personal-runtime 74/74、前端 22/22、check 0 errors/0 warnings 和四档完整合同通过；隔离 HTTP/MCP 16 步通过。源码 `4b2215386b175e97ffff5fb7bf31af6b5a43e6f7` 已普通推送并独立回读。该提交构建的 arm64 0.4.2 App 已安装在 `/Users/didi/Applications/GPTBridge.app`；binary SHA `d94e9aa7c0f4b39aa2dff1de7aff1b90f03e95db126c573f843136e31645799d`，严格签名、真实 GUI、正常 OAuth/目录/能力与服务 PID 95384 回读通过。foreign 工作及原任务保留，FRPC PID 1207 未重启，旧 0.4.1 App 可恢复。本轮构建缓存按精确路径清理，正式证据与制品保留。
+
+真实 dot/@GPTBridge 平台客户端验收为 NOT_VERIFIED；macOS 首次后台启动曾触发 Launch Constraint Violation，KeepAlive 重试成功，系统独立提示因 CUA 安全限制仍留在桌面。它们按事实记录，不冒称客户端通过。详细结果见 `docs/gptbridge/dot-compatibility/delivery.md` 及同名 HTML。本轮最终文档收口提交不改变 App 源码归属。精确入口：`/goal /Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/docs/goals/gptbridge-dot-compatibility-goal.md`。

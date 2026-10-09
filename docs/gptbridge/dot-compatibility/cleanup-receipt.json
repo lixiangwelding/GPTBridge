@@ -1,0 +1,272 @@
+{
+  "observed_at_utc": "2026-10-09T04:27:22Z",
+  "source_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+  "purpose": "remove this execution's rebuildable source exports, dependencies and compilation caches; preserve exact App bundle and frozen HTTP-test executables",
+  "lsof_recursive_exit_code": 1,
+  "lsof_stdout_stderr_empty": true,
+  "removed": [
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/candidate",
+      "bytes_before": 14970880,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-source",
+      "bytes_before": 132272128,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/.rustc_info.json",
+      "bytes_before": 4096,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/CACHEDIR.TAG",
+      "bytes_before": 4096,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/.fingerprint",
+      "bytes_before": 8810496,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/incremental",
+      "bytes_before": 0,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/.cargo-build-lock",
+      "bytes_before": 0,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/.cargo-lock",
+      "bytes_before": 0,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/examples",
+      "bytes_before": 0,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/deps",
+      "bytes_before": 1040236544,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/coding-tools-mcp-personal",
+      "bytes_before": 24244224,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/coding-tools-mcp-personal.d",
+      "bytes_before": 45056,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/build",
+      "bytes_before": 166809600,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/.cargo-artifact-lock",
+      "bytes_before": 0,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/baseline",
+      "bytes_before": 12455936,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/.rustc_info.json",
+      "bytes_before": 4096,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/CACHEDIR.TAG",
+      "bytes_before": 4096,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/tmp",
+      "bytes_before": 0,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/.fingerprint",
+      "bytes_before": 8724480,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/incremental",
+      "bytes_before": 0,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/libcoding_tools_mcp_desktop_lib.dylib",
+      "bytes_before": 495616,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/libcoding_tools_mcp_desktop_lib.d",
+      "bytes_before": 20480,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/.cargo-build-lock",
+      "bytes_before": 0,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/.cargo-lock",
+      "bytes_before": 0,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/examples",
+      "bytes_before": 0,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/deps",
+      "bytes_before": 1512685568,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/libcoding_tools_mcp_desktop_lib.rlib",
+      "bytes_before": 47689728,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/coding-tools-mcp-personal.d",
+      "bytes_before": 20480,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/build",
+      "bytes_before": 192811008,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/coding-tools-personal-worker.d",
+      "bytes_before": 4096,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/libcoding_tools_mcp_desktop_lib.a",
+      "bytes_before": 168628224,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/.cargo-artifact-lock",
+      "bytes_before": 0,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/runtime-test-target",
+      "bytes_before": 138514432,
+      "git_tracked": false,
+      "source_rebuild_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+      "exists_after": false
+    }
+  ],
+  "preserved": [
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/bundle/macos/GPTBridge.app",
+      "sha256": "91acfc945a1c94b97390c162fb73b1a617564ea9024c8ca989faa8462337fe06"
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/coding-tools-mcp-personal",
+      "sha256": "03c98be7099928d152d17155339ebe388c42e33f3f65b20c9cdc23a9e3a5ad21"
+    },
+    {
+      "path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/test-target/debug/coding-tools-personal-worker",
+      "sha256": "1661a1ae75d5b48035b82e88baa7444d16cc98ca411faa2b6d687a4fd56fd3e3"
+    },
+    {
+      "path": "/Users/didi/Library/Application Support/coding-tools-mcp-personal-backups/20261009T041200Z-1791519120089246000/previous.app",
+      "sha256": "d76d1335d067a4695f9df884a8c3af5f5c1c85f7daa8e95154294c625e85a907"
+    },
+    {
+      "path": "/Users/didi/Applications/GPTBridge.app",
+      "sha256": "91acfc945a1c94b97390c162fb73b1a617564ea9024c8ca989faa8462337fe06"
+    }
+  ],
+  "bytes_removed": 3469455360,
+  "retained_app_sha_readback_pass": true,
+  "MCP_process_report": {
+    "snapshot": "/Users/didi/.codex/mcp-clean-snapshots/20261009-113309-gptbridge-dot-20261009.json",
+    "report_run": true,
+    "unknown_owner_groups_terminated": false,
+    "reason": "snapshot delta contains groups whose current ownership is not established; read-only report only",
+    "owned_isolated_http_processes_stopped": true,
+    "owned_browser_test_sessions_closed": true
+  }
+}

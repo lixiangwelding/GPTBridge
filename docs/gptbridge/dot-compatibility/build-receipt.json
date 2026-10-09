@@ -1,0 +1,17 @@
+{
+  "recorded_at_utc": "2026-10-09T04:11:18Z",
+  "source_commit": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+  "remote_main_readback": "4b2215386b175e97ffff5fb7bf31af6b5a43e6f7",
+  "build_command": "CARGO_TARGET_DIR=.artifacts/dot-compatibility/release-target CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0 npm run desktop:build -- --bundles app",
+  "build_source": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-source",
+  "build_exit_code": 0,
+  "app_path": "/Users/didi/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.artifacts/dot-compatibility/release-target/release/bundle/macos/GPTBridge.app",
+  "version": "0.4.2",
+  "bundle_identifier": "com.lixiangwelding.codingtools.personal",
+  "architecture": "arm64",
+  "signature": "adhoc",
+  "codesign_verify_exit_code": 0,
+  "executable_sha256": "d94e9aa7c0f4b39aa2dff1de7aff1b90f03e95db126c573f843136e31645799d",
+  "app_tree_sha256": "91acfc945a1c94b97390c162fb73b1a617564ea9024c8ca989faa8462337fe06",
+  "build_log_sha256": "3aa9699af2ab409903e12e8ef0d0e945ced10d38ef881db65973ae0a47b2df47"
+}
