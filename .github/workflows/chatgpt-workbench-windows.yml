@@ -1,0 +1,39 @@
+name: ChatGPT workbench Windows candidate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-candidate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npm run check
+      - run: node --test tests/chatgpt-tasks.test.mjs tests/chatgpt-session-prompt-layout.test.mjs tests/gptbridge-brand.test.mjs
+      - run: python -m unittest discover -s tests -p test_chatgpt_scheduler.py -v
+      - name: Validate Windows UIAutomation script syntax without running it
+        shell: powershell
+        run: |
+          $parseErrors=$null; $tokens=$null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'src-tauri/scripts/chatgpt-dispatch.ps1'),[ref]$tokens,[ref]$parseErrors) | Out-Null
+          if($parseErrors.Count){ $parseErrors | ForEach-Object { Write-Error $_.Message }; exit 1 }
+      - run: cargo build --manifest-path personal-runtime/Cargo.toml --target-dir src-tauri/target --bin coding-tools-personal-worker
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --no-run
+      - run: npm run tauri -- build --bundles nsis
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gptbridge-chatgpt-workbench-windows-candidate
+          path: src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error

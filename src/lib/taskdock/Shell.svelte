@@ -1,13 +1,13 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { page } from "$app/stores";
-  import { LayoutDashboard, Folder, Sparkles, Settings2, Plus, Menu, X, Plug } from "@lucide/svelte";
+  import { LayoutDashboard, Folder, Sparkles, Settings2, Plus, Menu, X, Plug, ListChecks } from "@lucide/svelte";
   import { workspaces } from "$lib/stores/app";
   import { addProjectOpen, appInfo, compact, connectionProject } from "./state";
   let { children }: { children: Snippet } = $props();
   let menuOpen = $state(false);
   let side = $state<HTMLElement>();
-  const entries = [{ path: "/", title: "工作台", icon: LayoutDashboard }, { path: "/projects", title: "项目", icon: Folder }, { path: "/workspace/", title: "MCP 连接", icon: Plug }, { path: "/skills", title: "工具与技能", icon: Sparkles }, { path: "/settings", title: "设置", icon: Settings2 }];
+  const entries = [{ path: "/", title: "工作台", icon: LayoutDashboard }, { path: "/chatgpt-tasks", title: "ChatGPT 任务", icon: ListChecks }, { path: "/projects", title: "项目", icon: Folder }, { path: "/workspace/", title: "MCP 连接", icon: Plug }, { path: "/skills", title: "工具与技能", icon: Sparkles }, { path: "/settings", title: "设置", icon: Settings2 }];
   const active = (path: string) => path === "/" ? $page.url.pathname === "/" : $page.url.pathname.startsWith(path);
   const title = $derived(entries.find(item => active(item.path))?.title ?? "高级配置");
   const scope = $derived($page.url.searchParams.get("workspace"));

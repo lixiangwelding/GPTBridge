@@ -1,0 +1,12 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GPTBridge ChatGPT task workbench</title><style>body{max-width:1000px;margin:50px auto;padding:0 24px;font:16px/1.9 system-ui;color:#243b30}a{color:#28614c}pre{overflow:auto;background:#f3f6f4;padding:20px}img{max-width:100%}code{font-size:.9em}h1,h2{line-height:1.4}</style><h1>ChatGPT 任务工作台</h1>
+<p>2026-10-22。用户要求在 GPTBridge 内单独新增界面，把三个已交付聊天的后续工作整理为 20 个任务；默认面向 Windows 原生 ChatGPT，提供网页目标选择。Mac 连接不改。Codex 只开发、静态验证和本机界面测试，不调用 GPTBridge，不通过 ChatGPT 代发。</p>
+<ul>
+<li>FR-1：新增 <code>/chatgpt-tasks</code> 路由和独立导航，旧工作台保留。</li>
+<li>FR-2：载入真实交接对应的 20 个草稿，编辑、搜索、依赖导航、JSON 导入导出、本地保存及完整提示词复制。</li>
+<li>FR-3：桌面与网页目标可选；模型/强度是请求偏好，必须由适配器核真实选项，不能由选择框宣称客户端已选择。</li>
+<li>FR-4：检查、填入、发送分开；填入不发送，内容须回读；唯一请求与准确窗口/提示词绑定。</li>
+<li>FR-5：发送前写 UNKNOWN；重复请求拒绝，异常不自动重发/切换网页，任务发送不等于业务完成。</li>
+<li>FR-6：原生自动化命令仅供 Windows 桌面界面主动调用，不加入 MCP 工具目录。Mac 和 Linux 返回不支持。</li>
+</ul>
+<p>当前范围：任务草稿与本地队列、独立 Windows 所有者启动、依赖派发、结果 nonce 与产物/日志 SHA 核对、暂停/停止及未发送时网页回落。任意需求的拆分由 Codex 生成任务包；只有 ChatGPT 调用 GPTBridge。Windows 原生编译、安装及真实 ChatGPT 控件/发送尚未验证，不宣称已无人值守完成业务。</p>
+</html>

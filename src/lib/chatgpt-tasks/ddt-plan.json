@@ -1,0 +1,538 @@
+{
+  "schemaVersion": 1,
+  "title": "弹弹堂 · 三线接续 / 20 个任务",
+  "workspace": "/home/lixiang/my-project-java/codeVerifyRe0",
+  "connector": "GPTBridge Windows",
+  "requestedModel": "Pro",
+  "requestedEffort": "深入思考",
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "冻结三线接续基线",
+      "version": "六版",
+      "inputs": [
+        "docs/project/clients/ddt-debug-handoff-20261022.md",
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md",
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/HANDOFF.md"
+      ],
+      "dependsOn": [],
+      "goal": "核实三条交付的实际源码、清单和外部依赖，形成后续任务唯一输入。",
+      "steps": [
+        "核对本机 master、脏文件与三个交接报告，不拉起旧 Goal。",
+        "逐版读取知识入口；核共享工作台与 V2/V7 候选正式后继，冻结路径及 SHA。",
+        "列出每版本地 SQL、资源、原端宿主的可用与缺失项，不连接生产。"
+      ],
+      "acceptance": [
+        "六版分别有来源/能力/未知项记录；旧报告与当前差异可追踪。",
+        "缺失依赖单列，不修改旧 manifest 让校验通过。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T02",
+      "title": "修复 Windows 工作台启动",
+      "version": "工作台",
+      "inputs": [
+        "docs/project/clients/ddt-debug-handoff-20261022.md",
+        "docs/project/clients/ddt-signin-wire-workbench-20261022.md"
+      ],
+      "dependsOn": [
+        "T01"
+      ],
+      "goal": "复现并修复 0.23 Windows 候选启动失败，使用户能进入独立本地工作台。",
+      "steps": [
+        "读失败回执，核实际 EXE、ASAR 与源码 SHA。",
+        "定位启动参数、资源路径或初始化故障，补最小修复与相应回归。",
+        "独占启动新包，确认业务工作台可见，保存脱敏日志与桌面/手机截图。"
+      ],
+      "acceptance": [
+        "启动进程和窗口真实可用；无未处理初始化异常。",
+        "明确新包身份，不用浏览器页面替代 Windows EXE 启动通过。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T03",
+      "title": "固化 Windows 可重建交付",
+      "version": "工作台",
+      "inputs": [
+        "docs/project/clients/ddt-debug-handoff-20261022.md",
+        "docs/project/clients/ddt-debug-master-delivery-20261022.md"
+      ],
+      "dependsOn": [
+        "T02"
+      ],
+      "goal": "把已修复工作台整理为可复核构建与安装候选。",
+      "steps": [
+        "核工具链、资源输入与外部依赖清单。",
+        "按既有构建入口生成单一候选和 SHA 回执。",
+        "隔离安装/更新并启动；保留正在使用与回滚制品，清理仅本次可重建中间物。"
+      ],
+      "acceptance": [
+        "源码、制品、安装和运行四层身份可对应。",
+        "无生产发布，无对 Mac 安装和连接的改动。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T04",
+      "title": "接入 V2 最终联合候选",
+      "version": "V2",
+      "inputs": [
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md",
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/master-delivery-r27/evidence/joint-candidate-r27-r2.json"
+      ],
+      "dependsOn": [
+        "T01",
+        "T02"
+      ],
+      "goal": "将基于 0.19 的 V2 适配按当前工作台语义接入，保留同版成组准入。",
+      "steps": [
+        "核 R27 R2 组及源清单，不盲套旧 patch。",
+        "核当前 registry/manager/host 消费者，适配 45 文件交付中的有效改动。",
+        "冻结同组后端/前端/配置/资源，测试拒绝错版、错 SHA 与旧 epoch。"
+      ],
+      "acceptance": [
+        "共享工作台实际登记 V2 组，文件准入和运行准入独立记录。",
+        "V7 守卫和其他聊天改动保持。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T05",
+      "title": "核验 V2 原端装载身份",
+      "version": "V2",
+      "inputs": [
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md"
+      ],
+      "dependsOn": [
+        "T04"
+      ],
+      "goal": "在独占本地 V2 环境核准真实 CLR/JIT、配置消费者及候选装载。",
+      "steps": [
+        "检查保护载体 analysis-only、deployable=false 等现有限制，未满足不得当原端启动。",
+        "复用正式 host 准备运行；核本地 SQL 目标与准确成员。",
+        "独立回读 CLR 模块与启动日志，缺权限保留 UNKNOWN。"
+      ],
+      "acceptance": [
+        "准确运行装载身份有证据或明确阻塞。",
+        "不把 API 编译通过当完整原端通过。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T06",
+      "title": "处理 V2 已知回调风险",
+      "version": "V2",
+      "inputs": [
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md",
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/master-delivery-r27/evidence/callback155/next-actions-source-risks.json"
+      ],
+      "dependsOn": [
+        "T04"
+      ],
+      "goal": "按交接清单逐项验证并修复已列出的回调源码风险。",
+      "steps": [
+        "逐项核 16302、AC30002、9100010、7001/60001 与超时空对象风险的原方法。",
+        "先复现组件条件再补最小修正，保留原机制与真实未复现项。",
+        "合并同一基线一次构建，记录新候选后继，不覆盖旧回执。"
+      ],
+      "acceptance": [
+        "风险逐项有原方法、复现条件、修复或证伪证据。",
+        "源码通过不升级为 child AI/整机制全部通过。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T07",
+      "title": "核对 V2 特殊入口映射",
+      "version": "V2",
+      "inputs": [
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md"
+      ],
+      "dependsOn": [
+        "T04"
+      ],
+      "goal": "补查报告中 14 个特殊精确映射缺口，沿原入口保留未知。",
+      "steps": [
+        "按同版来源核 41/43/44/45/101/105/111/30001/80001–80005/90000。",
+        "对照入口、房型、Game/Mission 和事件生产者，禁止邻版硬套。",
+        "仅修复有准确证据的映射，设计方案与原机制分列。"
+      ],
+      "acceptance": [
+        "14 项逐项有结论或缺口。",
+        "30004 Simple 的静态链证据不扩写为全部特殊玩法通过。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T08",
+      "title": "补查 V2 迷宫与 Crypt",
+      "version": "V2",
+      "inputs": [
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md"
+      ],
+      "dependsOn": [
+        "T04"
+      ],
+      "goal": "保持迷宫、Crypt 和普通四档的不同规则，补本版已有消费者缺口。",
+      "steps": [
+        "核 50 迷宫记录，区分 401 Simple 已证与其余未知。",
+        "核 440/450 Type4、Ordering0 与 Type12 守卫，不修改身份绕拒绝。",
+        "核 Crypt 五档原定义与新增 Nightmare 设计分离；检查完整小关推进。"
+      ],
+      "acceptance": [
+        "每类规则和来源独立，未证明的原生产者保留未知。",
+        "不能用普通菜单或直接 Boss 代替原特殊入口。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T09",
+      "title": "核验 V2 资源消费者",
+      "version": "V2",
+      "inputs": [
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md"
+      ],
+      "dependsOn": [
+        "T04"
+      ],
+      "goal": "将 V2 资源清单落实到实际创建和 VM 消费层。",
+      "steps": [
+        "按冻结组提取预加载与实际创建依赖，分母分别统计。",
+        "核字节格式、符号、路径大小写与原调用者。",
+        "在隔离环境验证代表性原页面/场景，记录缺字节及 Flash VM 拒绝。"
+      ],
+      "acceptance": [
+        "资源有路径/SHA/消费者证据。",
+        "HTTP 200、预加载成功和实际创建成功分别记录。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T10",
+      "title": "建立 V2 逐关验收批次",
+      "version": "V2",
+      "inputs": [
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md"
+      ],
+      "dependsOn": [
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09"
+      ],
+      "goal": "用同一冻结候选建立 190 行、1140 槽的后续验收账本并执行首个可用全本。",
+      "steps": [
+        "读原 190 行账本，选准确具备输入的普通副本作首批。",
+        "逐难度从第一小关到末关，核失败/重试/终局边界。",
+        "独立本地角色核翻牌和持久化回读，未实现不伪造成功；保留下一批范围。"
+      ],
+      "acceptance": [
+        "首批逐关证据完整，其余 190 目标状态明确。",
+        "不将首批成功写成 190/1140 全部完成。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T11",
+      "title": "核验 V7 准确 CLR 装载",
+      "version": "V7",
+      "inputs": [
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/HANDOFF.md"
+      ],
+      "dependsOn": [
+        "T01",
+        "T02"
+      ],
+      "goal": "解决 V7 准确 Server/Logic 候选装载身份仍 UNKNOWN 的缺口。",
+      "steps": [
+        "按 R116/R85 正式清单核 pair 与配置消费者。",
+        "复用独占本地原端 host，记录 Run、进程及准确模块。",
+        "权限拒绝或不可见时保留 UNKNOWN，并研究可审阅的无侵入取证方式。"
+      ],
+      "acceptance": [
+        "启动、监听与 CLR 装载身份分别列出。",
+        "不以进入主城替代候选已装载。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T12",
+      "title": "补齐 V7 资源缺口",
+      "version": "V7",
+      "inputs": [
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/HANDOFF.md",
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/Resources/evidence-r29"
+      ],
+      "dependsOn": [
+        "T01"
+      ],
+      "goal": "按 V7 R29 图处理 247 缺本地字节与 36 拒绝项。",
+      "steps": [
+        "冻结 881 键图，2800 静态未知独立保留。",
+        "对准确已有输入核格式/符号/Tile/Loading 消费者；不扩大服务器取材。",
+        "对可恢复项生成后继资源组和差异回执，其余列明确所缺输入。"
+      ],
+      "acceptance": [
+        "881 键分类守恒，334 历史缓存不冒充资源闭包。",
+        "不从同名邻版资源替换缺失字节。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T13",
+      "title": "核验 V7 小关与四档",
+      "version": "V7",
+      "inputs": [
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/HANDOFF.md",
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/handoff/progress-209.json"
+      ],
+      "dependsOn": [
+        "T11",
+        "T12"
+      ],
+      "goal": "从现有 128 部分编译候选中选准确可运行首批，补连续小关与普通四档验收。",
+      "steps": [
+        "按同版 PveID 和 reviewed chain 查重，已有蚂蚁实现复用。",
+        "普通简单/普通/困难/英雄四档顺序推进，训练与塔层保留原状态机。",
+        "核超时、重复结束、epoch 与 UNKNOWN，逐难度记录真实通过或阻塞。"
+      ],
+      "acceptance": [
+        "首关到末关按真实顺序，不跳 Boss 冒充完整全本。",
+        "209 分类与新增完整通关数按实际更新。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T14",
+      "title": "闭合 V7 VIP 与费用",
+      "version": "V7",
+      "inputs": [
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/HANDOFF.md"
+      ],
+      "dependsOn": [
+        "T11",
+        "T13"
+      ],
+      "goal": "按准确原权益和费用写入者补齐独立 Boss 入场与防重链。",
+      "steps": [
+        "核原 94/2 意图、VIP 权益、免费次数、费用与全部实际写入者。",
+        "本地事务/并发测试验证同意图只扣一次，异常 UNKNOWN 查原请求。",
+        "独立 Boss 只能准确末关，不能获得前关/首通权益；未知默认保持关闭。"
+      ],
+      "acceptance": [
+        "权益、费用、失败与重复请求有独立回读。",
+        "不凭合成 ADO 通过声明原服经济链通过。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T15",
+      "title": "闭合 V7 奖励到账",
+      "version": "V7",
+      "inputs": [
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/HANDOFF.md"
+      ],
+      "dependsOn": [
+        "T11",
+        "T13",
+        "T14"
+      ],
+      "goal": "核原掉落、翻牌及奖励持久化，限制独立 Boss 的奖励范围。",
+      "steps": [
+        "核 68 计划/69 模板/136 预览与原掉落身份，核准确物品有效期。",
+        "本地独占角色执行终局与翻牌，区分库存、邮件和未确认请求。",
+        "独立数据库回读与原客户端展示对照，保留真实玩家验收未做部分。"
+      ],
+      "acceptance": [
+        "每次奖励有原 requestId、来源、写入与独立回读。",
+        "预览或模板存在不等于到账。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T16",
+      "title": "执行 V7 首批完整本",
+      "version": "V7",
+      "inputs": [
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/HANDOFF.md"
+      ],
+      "dependsOn": [
+        "T13",
+        "T14",
+        "T15"
+      ],
+      "goal": "把 V7 首批可运行副本的原 UI、逐关与奖励串成一次闭环。",
+      "steps": [
+        "沿现有 Playwright 业务索引和 V7 driver，测试静音且仅占用本任务会话。",
+        "记录选图/四档/VIP/独立Boss及完整小关的准确动作与截图。",
+        "关闭仅本次 host 和连接；更新 209 台账与实际新增完整通关。"
+      ],
+      "acceptance": [
+        "原 UI、Run 身份和奖励回读对应同一次批次。",
+        "不把历史主城/大厅记录继承为本批通过。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T17",
+      "title": "补 V1 与 V4 调试接线",
+      "version": "V1 / V4",
+      "inputs": [
+        "docs/project/clients/ddt-debug-handoff-20261022.md"
+      ],
+      "dependsOn": [
+        "T01",
+        "T02"
+      ],
+      "goal": "逐版核 V1/V4 已有 Debug 能力，为准确可用副本建立同版适配入口。",
+      "steps": [
+        "分别读两版当前来源、后端/Flash/SQL/修复正文。",
+        "对每版独立核 registry、host、配置和资源消费者，复用已有实现。",
+        "只补实际缺失接线与针对性测试；缺原件保留该版阻塞，不借另一版证明。"
+      ],
+      "acceptance": [
+        "两版分别交付输入、实现、测试、运行未知项。",
+        "不是六版通用界面存在即宣称两版已闭环。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T18",
+      "title": "补 V8 与 V9 调试接线",
+      "version": "V8 / V9",
+      "inputs": [
+        "docs/project/clients/ddt-debug-handoff-20261022.md"
+      ],
+      "dependsOn": [
+        "T01",
+        "T02"
+      ],
+      "goal": "逐版核 V8/V9 已有 Debug 能力并补准确候选准入。",
+      "steps": [
+        "分别读两版来源；命中战前加载时先按根规则读对应强校验。",
+        "核受保护方法、部分导出与 ABI/CLR 兼容，不将占位桩当原实现。",
+        "按每版实际 host/资源/数据库消费者补缺，保留独立拒绝和未验状态。"
+      ],
+      "acceptance": [
+        "V8、V9 各有独立能力与缺口矩阵。",
+        "原始 PARTIAL/INCOMPLETE 不因复制类或 UI 接线升级。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T19",
+      "title": "补齐签到原图与数据对照",
+      "version": "V7 / 工作台",
+      "inputs": [
+        "docs/project/clients/ddt-debug-handoff-20261022.md",
+        "docs/project/clients/ddt-signin-wire-workbench-20261022.md"
+      ],
+      "dependsOn": [
+        "T02"
+      ],
+      "goal": "完成原签到奖励图标及已交付 wire 查询的准确资源与数据消费者核验。",
+      "steps": [
+        "核原前端 Manager、handler/codec 和图标实际依赖，不手绘替代原资源。",
+        "核 F0B0/F1B0/F0B1/F1B1 各 Run 初态是否实际恢复并保留数据来源。",
+        "验证查询显示及失败状态；领取未知保留原请求，不扩大为生产领取。"
+      ],
+      "acceptance": [
+        "图标实际渲染截图与资源 SHA 可对应。",
+        "原方法执行、替身、注册分派和持久化分开报告。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    },
+    {
+      "id": "T20",
+      "title": "六版整合与交接",
+      "version": "六版",
+      "inputs": [
+        "docs/project/clients/ddt-debug-handoff-20261022.md",
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md",
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/HANDOFF.md"
+      ],
+      "dependsOn": [
+        "T03",
+        "T10",
+        "T16",
+        "T17",
+        "T18",
+        "T19"
+      ],
+      "goal": "将本轮实际完成候选整理为六版可复核交付并保留未完成项。",
+      "steps": [
+        "先同版合并源码，一版一次构建；共享 manifest 和消费副本唯一写入者生成。",
+        "核独立本地回归、Windows 包和实际源码/运行身份，页面真实截图。",
+        "更新正式知识、修复索引和逐版矩阵，精确列后续任务，不自动推送/部署。"
+      ],
+      "acceptance": [
+        "六版分别列源码/编译/运行/逐关/奖励/未验层级。",
+        "不使用统一百分比掩盖缺口，不改 Mac，不宣称一次20任务完成所有副本。"
+      ],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": ""
+    }
+  ]
+}

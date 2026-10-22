@@ -1,0 +1,63 @@
+{
+  "capturedAt": "2026-10-22T08:36:36.901953+00:00",
+  "route": "/chatgpt-tasks",
+  "actualUrl": "http://127.0.0.1:1437/chatgpt-tasks",
+  "environment": "actual locally built Svelte frontend; native Tauri service unavailable in browser preview",
+  "gameVersion": "not-applicable; prepared task drafts cover six versions",
+  "gitHead": "8e0aae116060db2202d63d9bfe4c1c9c2a78436e",
+  "dirty": true,
+  "sourceSha256": {
+    "src/routes/chatgpt-tasks/+page.svelte": "913bd76fda5c7847de559bdc4c3c723d2526460b5f9458625527d51d86d49b41",
+    "src/lib/taskdock/Shell.svelte": "bb28ebdf6fef50742b7d2f6a7db4123a8c388e87a6e3b14c3d54b0d5d207854c",
+    "src/lib/chatgpt-tasks/model.ts": "db1fd5cedf6e2f5e7f74e77fc8d33e53ac8a66a966a1f6202e844a8e141a8ea4",
+    "src/lib/chatgpt-tasks/ddt-plan.json": "fa0178e29f7bfc0c7c4ff11b0898c9494f299686d9ff10aed675f23f230ac48c",
+    "src-tauri/src/commands/chatgpt_tasks.rs": "baf151ade8d8cfc5018e05b3044331540d6a1af2ab9c03ed9cd50bd67cad968f",
+    "src-tauri/src/commands/chatgpt_scheduler.rs": "c1707c076ee2641610df318ded1bc5a519415e5d5f5210d35838194386316caf",
+    "src-tauri/scripts/chatgpt-dispatch.ps1": "4567975250f0e191aca6dd7f10087a0552a0aef7569c4ddec7ae4da36078f8b8",
+    "scripts/chatgpt-tasks/scheduler.py": "d32a66bad03121687740d0c9bd6d2bd96d4f209e3c88c70869ee4218d8412a53",
+    "scripts/chatgpt-tasks/submit_queue.py": "422d4c70efc8babc5eb516247221f0922bd24a15c527b8823febc528cb050f03"
+  },
+  "buildVersion": {
+    "version": "1792657942401"
+  },
+  "screenshots": {
+    "desktop.png": {
+      "sha256": "fe30bb3e79e71eb292ee79b9350d3ce5ad8a7e0262322a91964dd7113643825a",
+      "viewport": {
+        "width": 1440,
+        "height": 1100
+      },
+      "fullPage": true
+    },
+    "mobile.png": {
+      "sha256": "016186eb61d8b2b8dc68f4aee75b20f9bf6b8f92b1358ee4e91ec46084966add",
+      "viewport": {
+        "width": 375,
+        "height": 844
+      },
+      "fullPage": true
+    }
+  },
+  "checks": {
+    "svelteErrors": 0,
+    "svelteWarnings": 0,
+    "frontendBuild": "passed",
+    "nodeTestsPassed": 18,
+    "offlineSchedulerTestsPassed": 10,
+    "powerShellSyntax": "passed; dispatch script not executed",
+    "taskRows": 20,
+    "mobileHorizontalOverflow": false,
+    "consoleErrors": 0,
+    "nativeWindowsRustCompile": "pending GitHub CI",
+    "actualChatGPTUIAutomation": "not run by Codex",
+    "chatgptMessagesSent": 0,
+    "gptbridgeToolCalls": 0,
+    "macModified": false
+  },
+  "queue": {
+    "batchId": "ddt-three-lines-20261022-01a16250",
+    "tasksSubmitted": 20,
+    "ownerEnabled": false,
+    "dispatched": false
+  }
+}

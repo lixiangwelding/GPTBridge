@@ -75,6 +75,7 @@ pub fn personal_cli() -> Option<i32> {
 
 use app_state::AppState;
 use commands::{
+    chatgpt_task_dispatch, chatgpt_queue_control,
     taskdock_snapshot,taskdock_task,taskdock_create,taskdock_job_output,taskdock_add_project,taskdock_connections,
     taskdock_skills,taskdock_skill_read,taskdock_skill_preference,
     taskdock_start_service,taskdock_app_info,
@@ -232,6 +233,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            chatgpt_task_dispatch, chatgpt_queue_control,
             taskdock_snapshot,taskdock_task,taskdock_create,taskdock_job_output,taskdock_add_project,taskdock_connections,
             taskdock_skills,taskdock_skill_read,taskdock_skill_preference,
             taskdock_start_service,taskdock_app_info,
