@@ -52,6 +52,15 @@ function Confirm-ChatGPTMode($Window,[string]$HostKind,[string]$Action) {
   $nodes=@($Window.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition))
   $chat=@($nodes|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $_.Current.Name -in @('聊天','Chat')})
   $work=@($nodes|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $_.Current.Name -in @('工作','Work')})
+  if($null -ne $script:diagnostics){$script:diagnostics.modeChatCount=$chat.Count;$script:diagnostics.modeWorkCount=$work.Count}
+  if($chat.Count -eq 0 -and $work.Count -eq 0 -and (Get-ChatGPTModeSnapshot $Window).mode -eq 'ChatGPT'){
+    # Existing pure ChatGPT conversations may omit the new-chat Chat/Work pair.
+    # Require the exact chat composer and model selector; never infer from sidebar alone.
+    $chatInputs=@($nodes|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.IsEnabled -and $_.Current.ControlType -in @([System.Windows.Automation.ControlType]::Edit,[System.Windows.Automation.ControlType]::Document) -and $_.Current.Name -in @('询问 ChatGPT','Message ChatGPT','Ask anything')})
+    $chatModels=@($nodes|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $_.Current.Name -in @('选择 ChatGPT 模型','Choose ChatGPT model')})
+    $workPermissions=@($nodes|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.Name -in @('更改权限','Change permissions')})
+    if($chatInputs.Count -eq 1 -and $chatModels.Count -eq 1 -and $workPermissions.Count -eq 0){return @{ready=$true;detail='已核对纯 ChatGPT 聊天输入框与模型选择器；该页面没有聊天/工作切换'}}
+  }
   if($chat.Count -ne 1 -or $work.Count -ne 1){return @{ready=$false;detail='无法唯一核对聊天/工作选项；未填入或发送'}}
   $cp=$null;$wp=$null
   if(-not $chat[0].TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern,[ref]$cp) -or -not $work[0].TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern,[ref]$wp)){return @{ready=$false;detail='聊天/工作选中状态不可核对'}}
@@ -352,7 +361,7 @@ public class ChatGPTTextInput {
       Result 'busy' 'ChatGPT 仍在处理上一条消息；未创建新聊天、未填入或发送。' $ref
     }
   }
-  if($req.action -eq 'stage' -and $hostKind -eq 'unified'){
+  if($req.action -in @('stage','query_preparation') -and $hostKind -eq 'unified'){
     $activation=Confirm-ChatGPTForeground $window 'stage'
     $script:diagnostics.foregroundAttempts=$activation.attempts
     $script:diagnostics.foregroundConfirmed=[bool]$activation.ready
@@ -436,7 +445,7 @@ public class ChatGPTTextInput {
     $expectedText=[string]$proof.mentionPrefix+[string]$req.prompt
   }
   if($req.action -eq 'query_preparation'){
-    # Read-only: no activation, menus, new chat, mention attachment or input.
+    # Read-only content query after verified activation: no menus, new chat, attachment or input.
     $script:diagnostics.phase='query_preparation'
     $posted=@($all|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Text -and $_.Current.Name.Contains([string]$req.requestId)})
     if($hostKind -ne 'unified' -or -not $richMention -or $value.Current.Value -notmatch '^\s*GPTBridge Windows\s*$' -or $posted.Count -gt 0){Result 'blocked' '原窗口不是只有插件标记的未发送草稿；保留原请求。' $ref}

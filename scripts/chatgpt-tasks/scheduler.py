@@ -32,7 +32,7 @@ def diagnostic_event(queue, event, **fields):
                    'exitCode','errorType','stdoutBytes','stderrBytes','stderrSha256',
                    'pid','hostKind','mode','busyButtonCount','busyButtonNames',
                    'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes',
-                   'reasonCode','foregroundAttempts','foregroundConfirmed','activationErrorTypes','retryCount','retryAfterSeconds','workStopCount','phase','errorType','innerErrorType','scriptLine','focusErrorType'}
+                   'reasonCode','foregroundAttempts','foregroundConfirmed','activationErrorTypes','retryCount','retryAfterSeconds','workStopCount','phase','errorType','innerErrorType','scriptLine','focusErrorType','modeChatCount','modeWorkCount'}
         record = dict(at=time.time(), event=event, **{k:v for k,v in fields.items() if k in allowed})
         with path.open('a', encoding='utf-8') as output:
             output.write(json.dumps(record, ensure_ascii=False) + '\n')
@@ -398,7 +398,7 @@ class WindowsAdapter:
                              **{k:v for k,v in (result.get('diagnostics') or {}).items()
                                 if k in ('hostKind','mode','busyButtonCount','busyButtonNames',
                                          'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes',
-                                         'foregroundAttempts','foregroundConfirmed','activationErrorTypes','workStopCount','phase','errorType','innerErrorType','scriptLine','focusErrorType')})
+                                         'foregroundAttempts','foregroundConfirmed','activationErrorTypes','workStopCount','phase','errorType','innerErrorType','scriptLine','focusErrorType','modeChatCount','modeWorkCount')})
             atomic_json(attempt, result)
             return result
         except Exception as error:

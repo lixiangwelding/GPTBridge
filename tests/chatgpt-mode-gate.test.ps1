@@ -195,3 +195,28 @@ Assert ($rangeMoves -eq 1 -and $rangeSelections -eq 1) 'Caret not selected at do
 $composerFixture.Current.HasKeyboardFocus=$false
 Assert (-not (Append-TaskAfterMention $null $composerFixture '')) 'Failed composer focus was accepted'
 Write-Output 'MENTION_APPEND_RANGE_CASES_PASSED=3; SENDINPUT_NOT_CALLED'
+
+# Pure ChatGPT existing-conversation variant has no new-chat Chat/Work toggle pair.
+function Reset-PureChatFixture([int]$composers=1,[int]$models=1,[int]$permissions=0){
+ $script:pureCounts=@{composers=$composers;models=$models;permissions=$permissions}
+ $script:pureWindow=[pscustomobject]@{}
+ $script:pureWindow|Add-Member ScriptMethod FindAll {
+  $nodes=@([pscustomobject]@{Current=[pscustomobject]@{Name='切换模式，当前模式：ChatGPT';ControlType=[Windows.Automation.ControlType]::Button;IsOffscreen=$false;IsEnabled=$true}})
+  for($i=0;$i -lt $script:pureCounts.composers;$i++){$nodes+=,[pscustomobject]@{Current=[pscustomobject]@{Name='询问 ChatGPT';ControlType=[Windows.Automation.ControlType]::Edit;IsOffscreen=$false;IsEnabled=$true}}}
+  for($i=0;$i -lt $script:pureCounts.models;$i++){$nodes+=,[pscustomobject]@{Current=[pscustomobject]@{Name='选择 ChatGPT 模型';ControlType=[Windows.Automation.ControlType]::Button;IsOffscreen=$false;IsEnabled=$true}}}
+  for($i=0;$i -lt $script:pureCounts.permissions;$i++){$nodes+=,[pscustomobject]@{Current=[pscustomobject]@{Name='更改权限';ControlType=[Windows.Automation.ControlType]::Button;IsOffscreen=$false;IsEnabled=$true}}}
+  return $nodes
+ }
+}
+Reset-PureChatFixture
+Assert ((Confirm-ChatGPTMode $pureWindow 'unified' 'query_preparation').ready) 'Pure ChatGPT query rejected'
+Assert ((Confirm-ChatGPTMode $pureWindow 'unified' 'send').ready) 'Pure ChatGPT send gate rejected'
+Reset-PureChatFixture 0 1 0
+Assert (-not (Confirm-ChatGPTMode $pureWindow 'unified' 'query_preparation').ready) 'Missing chat composer accepted'
+Reset-PureChatFixture 1 0 0
+Assert (-not (Confirm-ChatGPTMode $pureWindow 'unified' 'query_preparation').ready) 'Missing chat model accepted'
+Reset-PureChatFixture 1 1 1
+Assert (-not (Confirm-ChatGPTMode $pureWindow 'unified' 'query_preparation').ready) 'Work permission context accepted'
+Reset-PureChatFixture 2 1 0
+Assert (-not (Confirm-ChatGPTMode $pureWindow 'unified' 'query_preparation').ready) 'Ambiguous composers accepted'
+Write-Output 'PURE_CHAT_MODE_CASES_PASSED=6; SENDINPUT_NOT_CALLED'
