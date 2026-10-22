@@ -1,0 +1,93 @@
+{
+  "readAt": "2026-10-22T21:50:36.199724+08:00",
+  "threadReadMethod": "native codex_app read_thread; latest delivery/status messages extracted; commands not executed",
+  "threads": [
+    {
+      "threadId": "01a1594e-02b1-78e0-b3be-ab7182d19dd5",
+      "hostId": "remote-ssh-discovered:wsl",
+      "taskId": "D01"
+    },
+    {
+      "threadId": "01a15c9a-1daa-7360-86fb-cc1709c23932",
+      "hostId": "remote-ssh-discovered:wsl",
+      "taskId": "D02"
+    },
+    {
+      "threadId": "01a15832-18a0-73d0-a692-d929f169072e",
+      "hostId": "remote-ssh-discovered:wsl",
+      "taskId": "D03"
+    }
+  ],
+  "formalFiles": [
+    {
+      "path": "ddt-repairs/shared/dungeon-map-delivery/README.md",
+      "exists": true,
+      "sha256": "e7c29e00ba7a5f74927053c9233b1359c53428f6bdc00fc807d7cc9b86dabdfc"
+    },
+    {
+      "path": "ddt-repairs/shared/dungeon-map-delivery/dungeon-index.md",
+      "exists": true,
+      "sha256": "565ce549d78bf0ab8d3b894a5032b6045128e3d37a25cb14e04f70e48e29000e"
+    },
+    {
+      "path": "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md",
+      "exists": true,
+      "sha256": "9db9eb8466ed8e52ccd2bfe285f47db0a7f25578abb86807bc11354abd523367"
+    },
+    {
+      "path": "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-PUSH-RECEIPT.md",
+      "exists": true,
+      "sha256": "c1d879eb6cea69ab622743ad5d3df4aa01928348d38ebf7f9684d0dd0fc84ad4"
+    },
+    {
+      "path": "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/master-delivery-r27/evidence/joint-candidate-r27-r2.json",
+      "exists": true,
+      "sha256": "cf693487e030e9ceea865ccf493425926603544493f8f268e9888e70f1ae4fdc"
+    },
+    {
+      "path": "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/master-delivery-r27/source-manifest.json",
+      "exists": true,
+      "sha256": "baeaf4a37ace21ff5746ff361bd5455eb6a0573683e53965d341564d477d6335"
+    },
+    {
+      "path": "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/HANDOFF.md",
+      "exists": true,
+      "sha256": "3906a0da153adc4b6634c79c0fc3bb1090d0d6a82b70cecb7c5f62d083dd944a"
+    },
+    {
+      "path": "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/handoff/accurate-source-missing-41.json",
+      "exists": true,
+      "sha256": "2e02217f2cfe6dea5061a43e0439d4afa630164c85d6c00de3f3ba1333fe19c5"
+    },
+    {
+      "path": "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/handoff/progress-209.json",
+      "exists": true,
+      "sha256": "4ba06c25100000573f44d18340dae4ce97e65b3d88d44db0879c963c09c7c638"
+    },
+    {
+      "path": "docs/ddt-knowledge/shared/topics/map-dungeon-content-index.md",
+      "exists": true,
+      "sha256": "9bbf8acd375f196e682d288c42d1faf58e21f13a6c50626cfe6f4f9c8c2ac9b5"
+    },
+    {
+      "path": "docs/project/clients/ddt-debug-handoff-20261022.md",
+      "exists": true,
+      "sha256": "38cf01439ccbd657957d318bd841749cb2a4f82631b9a288929ce4a44588594d"
+    },
+    {
+      "path": "docs/project/clients/ddt-debug-master-delivery-20261022.md",
+      "exists": true,
+      "sha256": "83cb5d80616ffeb233aae9ff784c9b1d24c65df53bee8ba64ede551398bf053d"
+    },
+    {
+      "path": "docs/project/clients/ddt-signin-wire-workbench-20261022.md",
+      "exists": true,
+      "sha256": "9690fc1463ad7a5040ffb12509d14e819d4e56e444f9e583564501fca8c228b9"
+    }
+  ],
+  "previousBatchId": "ddt-three-lines-20261022-01a16250",
+  "replacementBatchId": "ddt-three-tasks-20261022-01a16250",
+  "taskCount": 3,
+  "queueFormatUnchanged": true,
+  "originalPausedGoalsNotAutomaticallyStarted": true
+}

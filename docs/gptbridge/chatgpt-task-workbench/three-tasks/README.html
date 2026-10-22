@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>README</title><style>body{font:16px/1.8 system-ui;max-width:1000px;margin:36px auto;padding:0 24px;color:#172132}a{color:#075ea6}pre{overflow:auto;background:#eef3f8;padding:16px}td,th{border:1px solid #ccd5df;padding:8px}table{border-collapse:collapse}</style></head><body><h1>弹弹堂三条开发线 · 3 个任务</h1>
+<p>2026-10-22，用户明确将原20项调整为3项，一条引用聊天对应一个任务。已实际读取三条聊天最新交付并核正式交接文件；本轮只通过文件队列交接，不使用Computer Use，不直接调用GPTBridge，Mac不动。</p>
+<table>
+<thead>
+<tr>
+<th>顺序</th>
+<th>任务</th>
+<th>主要目标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><a href="prompts/D01.md">D01 · Windows全版本Debug客户端</a></td>
+<td>先修当前Windows启动，再续接共享工作台、既有功能和六版能力记录</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="prompts/D02.md">D02 · V2副本小关补全</a></td>
+<td>190目录/1140槽、R27后继、当前Debug适配及逐关合同；缺原件与新设计独立</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="prompts/D03.md">D03 · 全版本副本地图闭环</a></td>
+<td>V7为现有重点，续接209项与四档/小关/VIP/奖励，并分别补其他版；V2由D02负责</td>
+</tr>
+</tbody>
+</table>
+<p>调度器按任务顺序处理；没有强制完成依赖，前一项业务blocked时可推进后一项独立工作。共享文件按归属交接，不重复覆盖。模型/强度偏好沿用GPT-6/Pro，真正派发仍须独立调度器核对。</p>
+<p><a href="tasks.json">可导入任务包</a> 同时包含三份完整customPrompt；<a href="sources.json">来源清单</a>绑定本轮正式文件SHA。原20任务的输入移出活动inbox并存入superseded，原state、requestId、attempts和日志全部保留；只有停止且已证实未发送才能替换，sent/unknown/prepared或已有回执都会拒绝。提交只写文件，不启用发送器。</p>
+<p>实际提交与执行状态见 <a href="submission.json">submission.json</a>。提交成功不等于ChatGPT已收到或业务已完成。当前独立调度器如仍stopped，需要由Windows所有者在原任务页恢复；Codex不通过后台脚本启动。页面localStorage草稿可能仍保留历史20项，本任务包可用既有导入入口查看；不在运行中直接改写WebView私有存储。</p>
+<p>本批不连接生产、不部署、不提交推送业务改动。代码审查/组件/Windows运行/逐关与奖励分别验收；未完成必须给本次blocked结果和精确接续输入，不能把三个大任务的拆分写成全部副本已完成。</p></body></html>

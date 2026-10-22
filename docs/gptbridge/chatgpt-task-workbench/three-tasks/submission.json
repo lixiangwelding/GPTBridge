@@ -1,0 +1,36 @@
+{
+  "verifiedAt": "2026-10-22T21:51:50.275016+08:00",
+  "submitted": true,
+  "batchId": "ddt-three-tasks-20261022-01a16250",
+  "taskCount": 3,
+  "taskIds": [
+    "D01",
+    "D02",
+    "D03"
+  ],
+  "batchSha256": "84840334d515639a50b5f18a115a4944163dc590818e639c8e521394529eeb75",
+  "activeInboxBatches": 1,
+  "previousBatchId": "ddt-three-lines-20261022-01a16250",
+  "previousInputSha256": "5cfb6c9719847bc3dee56a631491a00b626804aba91e4dfe950dfec6d523a52b",
+  "oldBatchArchived": true,
+  "oldStateAndRequestPreserved": true,
+  "oldAttemptsPreserved": true,
+  "sendMarkers": 0,
+  "resultReceipts": 0,
+  "schedulerStatus": "stopped",
+  "dispatched": false,
+  "computerUseCalled": false,
+  "bridgeCalledByCodex": false,
+  "senderStartedByCodex": false,
+  "macModified": false,
+  "tests": {
+    "queueSupersessionPassed": 9,
+    "schedulerRegressionPassed": 19,
+    "environment": "WSL Python file handoff; actual target queue is Windows AppData; installed Windows sender unchanged",
+    "taskEditorImportValidator": "passed",
+    "fullCustomPrompts": "passed"
+  },
+  "installedWindowsSource": "955a22306bbfd3cfe52ecc170c3c710e20c76c85",
+  "nativeUiDraft": "Existing localStorage plan not modified; import tasks.json to view three-task editor",
+  "handoffCliSha256": "6ef04fa2d0bbc262122fe32994ad419586bab577d8779c056117d950216ca6fd"
+}

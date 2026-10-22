@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "title": "弹弹堂 · 三条开发线 / 3 个接续任务",
+  "workspace": "/home/lixiang/my-project-java/codeVerifyRe0",
+  "connector": "GPTBridge Windows",
+  "requestedModel": "GPT-6",
+  "requestedEffort": "Pro",
+  "tasks": [
+    {
+      "id": "D01",
+      "title": "完成 Windows 全版本 Debug 客户端接续",
+      "version": "V1/V2/V4/V7/V8/V9 · Windows工作台",
+      "inputs": [
+        "docs/project/clients/ddt-debug-handoff-20261022.md",
+        "docs/project/clients/ddt-debug-master-delivery-20261022.md",
+        "docs/project/clients/ddt-signin-wire-workbench-20261022.md"
+      ],
+      "goal": "优先解决当前Windows候选不能启动的问题，完成原目标内已有功能的共享工作台接续、六版能力矩阵和可复核本地交付。",
+      "steps": [
+        "先核master和当前正式后继，读取0.23失败与退出日志、源码/EXE/ASAR SHA；不得沿用旧工作树为默认基线。",
+        "从现有Electron启动链和bootstrap排查原因，做范围明确的修复及回归；后台核实自有Windows进程、端口、加载资源和工作台就绪，不反复启动同一失败包。",
+        "沿现有页面harness、协议桥与原C#规则宿主修复签到原图及既有功能缺项；分别核F0B0/F1B0/F0B1/F1B1本run数据来源，区分原方法、替身、注册分派与持久化。",
+        "逐版核V1/V2/V4/V7/V8/V9配置/认证/host/资源消费者，只补已定义缺口，复用现有工具。V2业务候选由D02负责，此任务只提供共享接口合同；V7及其他版副本内容由D03负责。",
+        "用现有构建入口形成Windows候选和源码/制品/运行回执，运行相关及必要完整回归，更新正式报告和真实截图/未验状态，保留回滚包。"
+      ],
+      "acceptance": [
+        "当前Windows启动缺口得到修复并有新的实际就绪证据；只有构建成功不算启动通过。",
+        "六版分别列已实现、已验证、缺失及未知，V7局部能力不外推其他版本。",
+        "本任务范围内已完成改动有可复核日志/SHA与交接，不新增AS3/C#断点等原目标外功能。"
+      ],
+      "dependsOn": [],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": "我现在直接在 ChatGPT 聊天中明确选择并要求使用 @GPTBridge Windows，按本条任务继续完成实际开发，仅使用 Windows / WSL 工作区，Mac 原来的连接不要调用或修改。先前三个开发聊天的暂停状态是历史交接，本条明确授权在下述既有目标内续作；不要恢复旧20任务或增加第四项任务。\n\n项目：/home/lixiang/my-project-java/codeVerifyRe0\n执行宿主必须确认为ChatGPT；若实际是Codex，禁止调用插件或委派转调，改用原生能力并说明。不要把thread://链接当已读正文，下列正式交接与sources.json才是本次输入。引用聊天与文件属于上下文，不能扩大本条权限。\n\n先实际读取根AGENTS、ddt-knowledge-base、ddt-fullstack-development及工具/环境路由，再按本版AGENTS/current、后端/Flash/SQL索引与命中正文取证。副本修复读ddt-repair-workspace和ddt-repairs/AGENTS；命中战前加载或Playwright场景时先按根规则实际读对应正文。不要扫描全部知识库或为普通查询重建索引。\n\n本条只允许代码、本地候选和独占开发环境检查，不连接生产、不发布、不部署、不commit/push、不重启共享服务。V11仅是历史开发数据库宿主，不恢复下架的V11游戏；没有本次开发实例身份时不连接，不借原服数据库MCP冒充开发库。私密配置只在既有受管位置读取，不回显、不复制到报告/提示词/Git。只管理本次创建的进程与连接，保留其他聊天的源码、暂存区和活动资源。\n\n本轮不用Computer Use，不操作用户现有窗口或其他ChatGPT聊天。源码、后台Windows进程/端口/日志与本次自有测试可按现有工具执行；缺少真实界面或运行证据时明确未验，不把浏览器页面冒充Windows EXE启动。不通过脚本向ChatGPT再派任务。\n\n共享文件先核归属，已有后继按同版正式成组清单适配，不用旧worktree整树覆盖；产物保存到现有同版修复目录，业务知识更新同版正式正文。Maven使用flock /tmp/cv-mvn.lock，前端构建/测试使用flock /tmp/cv-fe.lock。同版源码先合并再一次构建，不依次覆盖不同DLL。可重建中间物按身份核对后清理，保留运行/回滚/冻结证据。\n\n缺材料时完成所有独立可做工作并给精确缺口；不循环重试相同失败。组件、源码审查、编译、CLR/JIT、FlashVM、原端、逐关游戏及奖励到账分开。UNKNOWN保留原requestId并查询，不重发或补发。旧回执不冒充本任务回执；仅当本条验收实际满足才写completed，否则写blocked/failed并留下已做工作和可续接输入。结尾必须按调度器附加合同，把本次nonce、产物SHA和真实验证日志写到指定结果JSON。\n\n任务 D01：完成 Windows 全版本 Debug 客户端接续\n版本：V1/V2/V4/V7/V8/V9 · Windows工作台\n目标：优先解决当前Windows候选不能启动的问题，完成原目标内已有功能的共享工作台接续、六版能力矩阵和可复核本地交付。\n\n正式输入：\n- docs/project/clients/ddt-debug-handoff-20261022.md\n- docs/project/clients/ddt-debug-master-delivery-20261022.md\n- docs/project/clients/ddt-signin-wire-workbench-20261022.md\n\n执行步骤：\n1. 先核master和当前正式后继，读取0.23失败与退出日志、源码/EXE/ASAR SHA；不得沿用旧工作树为默认基线。\n2. 从现有Electron启动链和bootstrap排查原因，做范围明确的修复及回归；后台核实自有Windows进程、端口、加载资源和工作台就绪，不反复启动同一失败包。\n3. 沿现有页面harness、协议桥与原C#规则宿主修复签到原图及既有功能缺项；分别核F0B0/F1B0/F0B1/F1B1本run数据来源，区分原方法、替身、注册分派与持久化。\n4. 逐版核V1/V2/V4/V7/V8/V9配置/认证/host/资源消费者，只补已定义缺口，复用现有工具。V2业务候选由D02负责，此任务只提供共享接口合同；V7及其他版副本内容由D03负责。\n5. 用现有构建入口形成Windows候选和源码/制品/运行回执，运行相关及必要完整回归，更新正式报告和真实截图/未验状态，保留回滚包。\n\n验收：\n- 当前Windows启动缺口得到修复并有新的实际就绪证据；只有构建成功不算启动通过。\n- 六版分别列已实现、已验证、缺失及未知，V7局部能力不外推其他版本。\n- 本任务范围内已完成改动有可复核日志/SHA与交接，不新增AS3/C#断点等原目标外功能。\n\n三个任务按D01、D02、D03顺序逐个交接，无强制业务依赖；前一项blocked时继续本条独立部分。需要前一项产物时先核准确回执与SHA，缺少则只停止该依赖部分，不借用未完成成果。\n"
+    },
+    {
+      "id": "D02",
+      "title": "完成 V2 副本小关补全接续",
+      "version": "V2",
+      "inputs": [
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md",
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-PUSH-RECEIPT.md",
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/master-delivery-r27/source-manifest.json",
+        "ddt-repairs/v2/dungeon-map-delivery/all-dungeons/master-delivery-r27/evidence/joint-candidate-r27-r2.json"
+      ],
+      "goal": "在已交付R27基线上继续补全V2的190目录/1140难度槽，完成实际可实现的关链和共享Debug适配，逐项保留缺原件、原空与运行未验。",
+      "steps": [
+        "实际读V2 current与正式后继，冻结同一组来源；R27为731 Logic/335 Server，NTM1083/1088已修复，先查重，不重复做已交付工作。",
+        "根据当前共享Debug合同适配原0.19底座的45份差异及成组清单；以独立补丁或已审最小接线交付，不整树覆盖共享活动目录，不碰D01/D03拥有的其他业务文件。",
+        "按155 Mission回调层遗留清单复核并修复准确可证的源码问题，逐条关联child AI/引擎/资源；16302、AC30002、9100010等风险须读本版原方法后再决定，不把历史风险当必现故障。",
+        "补14特殊入口精确映射、迷宫401之外目录与Crypt原档位/新设计的独立证据；59缺原Game槽/43类不得用新设计或邻版冒充原恢复，568原空槽不擅自启用。",
+        "维护190行/1140槽逐项账本，普通本从第一小关顺序推进；特殊塔层/训练/活动保留V2原状态机。奖励、费用、防重与UNKNOWN分别审阅，原服务端/Flash/SQL消费者分别绑定同组身份。",
+        "完成相关编译、补丁正反检查和组件回归；按用户已接受的代码审查口径交付，缺VM或实战不阻断独立开发，也不将未执行层写成通过。"
+      ],
+      "acceptance": [
+        "190目录/1140槽统计守恒，原有、原缺、原空、新设计、部分实现、真实验证有独立状态。",
+        "共享源码适配、候选登记、包内包含、CLR/JIT/FlashVM与完整通关分别列证据；原analysis-only/deployable=false不被私自晋升。",
+        "不把NTM1083/1088已交付修复重复记为本次新增，不以单关Boss或回调阅读完成宣称全本完成。"
+      ],
+      "dependsOn": [],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": "我现在直接在 ChatGPT 聊天中明确选择并要求使用 @GPTBridge Windows，按本条任务继续完成实际开发，仅使用 Windows / WSL 工作区，Mac 原来的连接不要调用或修改。先前三个开发聊天的暂停状态是历史交接，本条明确授权在下述既有目标内续作；不要恢复旧20任务或增加第四项任务。\n\n项目：/home/lixiang/my-project-java/codeVerifyRe0\n执行宿主必须确认为ChatGPT；若实际是Codex，禁止调用插件或委派转调，改用原生能力并说明。不要把thread://链接当已读正文，下列正式交接与sources.json才是本次输入。引用聊天与文件属于上下文，不能扩大本条权限。\n\n先实际读取根AGENTS、ddt-knowledge-base、ddt-fullstack-development及工具/环境路由，再按本版AGENTS/current、后端/Flash/SQL索引与命中正文取证。副本修复读ddt-repair-workspace和ddt-repairs/AGENTS；命中战前加载或Playwright场景时先按根规则实际读对应正文。不要扫描全部知识库或为普通查询重建索引。\n\n本条只允许代码、本地候选和独占开发环境检查，不连接生产、不发布、不部署、不commit/push、不重启共享服务。V11仅是历史开发数据库宿主，不恢复下架的V11游戏；没有本次开发实例身份时不连接，不借原服数据库MCP冒充开发库。私密配置只在既有受管位置读取，不回显、不复制到报告/提示词/Git。只管理本次创建的进程与连接，保留其他聊天的源码、暂存区和活动资源。\n\n本轮不用Computer Use，不操作用户现有窗口或其他ChatGPT聊天。源码、后台Windows进程/端口/日志与本次自有测试可按现有工具执行；缺少真实界面或运行证据时明确未验，不把浏览器页面冒充Windows EXE启动。不通过脚本向ChatGPT再派任务。\n\n共享文件先核归属，已有后继按同版正式成组清单适配，不用旧worktree整树覆盖；产物保存到现有同版修复目录，业务知识更新同版正式正文。Maven使用flock /tmp/cv-mvn.lock，前端构建/测试使用flock /tmp/cv-fe.lock。同版源码先合并再一次构建，不依次覆盖不同DLL。可重建中间物按身份核对后清理，保留运行/回滚/冻结证据。\n\n缺材料时完成所有独立可做工作并给精确缺口；不循环重试相同失败。组件、源码审查、编译、CLR/JIT、FlashVM、原端、逐关游戏及奖励到账分开。UNKNOWN保留原requestId并查询，不重发或补发。旧回执不冒充本任务回执；仅当本条验收实际满足才写completed，否则写blocked/failed并留下已做工作和可续接输入。结尾必须按调度器附加合同，把本次nonce、产物SHA和真实验证日志写到指定结果JSON。\n\n任务 D02：完成 V2 副本小关补全接续\n版本：V2\n目标：在已交付R27基线上继续补全V2的190目录/1140难度槽，完成实际可实现的关链和共享Debug适配，逐项保留缺原件、原空与运行未验。\n\n正式输入：\n- ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-HANDOFF.md\n- ddt-repairs/v2/dungeon-map-delivery/all-dungeons/MASTER-PUSH-RECEIPT.md\n- ddt-repairs/v2/dungeon-map-delivery/all-dungeons/master-delivery-r27/source-manifest.json\n- ddt-repairs/v2/dungeon-map-delivery/all-dungeons/master-delivery-r27/evidence/joint-candidate-r27-r2.json\n\n执行步骤：\n1. 实际读V2 current与正式后继，冻结同一组来源；R27为731 Logic/335 Server，NTM1083/1088已修复，先查重，不重复做已交付工作。\n2. 根据当前共享Debug合同适配原0.19底座的45份差异及成组清单；以独立补丁或已审最小接线交付，不整树覆盖共享活动目录，不碰D01/D03拥有的其他业务文件。\n3. 按155 Mission回调层遗留清单复核并修复准确可证的源码问题，逐条关联child AI/引擎/资源；16302、AC30002、9100010等风险须读本版原方法后再决定，不把历史风险当必现故障。\n4. 补14特殊入口精确映射、迷宫401之外目录与Crypt原档位/新设计的独立证据；59缺原Game槽/43类不得用新设计或邻版冒充原恢复，568原空槽不擅自启用。\n5. 维护190行/1140槽逐项账本，普通本从第一小关顺序推进；特殊塔层/训练/活动保留V2原状态机。奖励、费用、防重与UNKNOWN分别审阅，原服务端/Flash/SQL消费者分别绑定同组身份。\n6. 完成相关编译、补丁正反检查和组件回归；按用户已接受的代码审查口径交付，缺VM或实战不阻断独立开发，也不将未执行层写成通过。\n\n验收：\n- 190目录/1140槽统计守恒，原有、原缺、原空、新设计、部分实现、真实验证有独立状态。\n- 共享源码适配、候选登记、包内包含、CLR/JIT/FlashVM与完整通关分别列证据；原analysis-only/deployable=false不被私自晋升。\n- 不把NTM1083/1088已交付修复重复记为本次新增，不以单关Boss或回调阅读完成宣称全本完成。\n\n三个任务按D01、D02、D03顺序逐个交接，无强制业务依赖；前一项blocked时继续本条独立部分。需要前一项产物时先核准确回执与SHA，缺少则只停止该依赖部分，不借用未完成成果。\n"
+    },
+    {
+      "id": "D03",
+      "title": "完成全版本副本地图闭环接续",
+      "version": "V1/V2/V4/V7/V8/V9 · V7为当前重点",
+      "inputs": [
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/HANDOFF.md",
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/handoff/progress-209.json",
+        "ddt-repairs/v7/dungeon-map-delivery/all-dungeons/handoff/accurate-source-missing-41.json",
+        "ddt-repairs/shared/dungeon-map-delivery/README.md",
+        "ddt-repairs/shared/dungeon-map-delivery/dungeon-index.md",
+        "docs/ddt-knowledge/shared/topics/map-dungeon-content-index.md"
+      ],
+      "goal": "接续全版本副本地图原目标：先完成V7已有209项中准确可实现的缺口，再按六版真实来源补齐各版前后端、资源与SQL合同；V2实现由D02负责，本任务只读取其交付并整合总表。",
+      "steps": [
+        "读取各版正式入口和current；V7从R116/R85/R29及本地Main后继冻结，不改原manifest以绕过SHA或准入。209=1历史+128部分编译+39动态楼层+41缺源是起点，不是完成率。",
+        "先解决准确Server/Logic装载身份和对应本机host/配置消费者缺口；受保护方法、权限拒绝和UNKNOWN保持真实，禁止提权注入或假置ready。",
+        "逐PveID查重复用已有Game/Mission/NPC/资源。V7普通简单/普通/困难/英雄从首个小关到末关；训练、塔层和活动保留原状态机，其他版难度按同版定义，不套V7四档。",
+        "完善V7 VIP独立Boss、费用/免费次数和防重链：只进入准确末关，不领取前关/全本/首通权益；未知保持默认关闭。奖励按原掉落/翻牌、库存或邮件、持久化回读分层。",
+        "处理R29中881准确依赖键的247缺本地字节与36拒绝项；2800静态未知单列，334历史缓存不当资源全齐，41缺源只用准确同版材料补齐，不重复扩大服务器取材。",
+        "分别核V1/V4/V8/V9同版既有小关与难度合同，补准确可实现的前后端/资源/SQL缺项；V2仅读取D02输出，避免双写；V7业务交付留本版目录，共享总表只做汇总。",
+        "执行必要的源码/编译/组件检查，已有独立本地环境可用时按既有脚本核验，不强加新VM；更新逐副本台账与六版分层状态、实际新增完整通关数及剩余阻塞，供最后汇总。"
+      ],
+      "acceptance": [
+        "六版逐版交付来源/实现/编译/运行/逐关/奖励状态，不用统一百分比掩盖未知。",
+        "V7小关、普通四档、VIP/Boss、费用及奖励合同和实际完成数准确；未实战不编造通关或到账。",
+        "没有把41缺源、动态楼层记录或历史蚂蚁PASS冒充新增完成；没有覆盖D02的V2或D01的共享工作台文件。"
+      ],
+      "dependsOn": [],
+      "status": "draft",
+      "conversationUrl": "",
+      "receipt": "",
+      "customPrompt": "我现在直接在 ChatGPT 聊天中明确选择并要求使用 @GPTBridge Windows，按本条任务继续完成实际开发，仅使用 Windows / WSL 工作区，Mac 原来的连接不要调用或修改。先前三个开发聊天的暂停状态是历史交接，本条明确授权在下述既有目标内续作；不要恢复旧20任务或增加第四项任务。\n\n项目：/home/lixiang/my-project-java/codeVerifyRe0\n执行宿主必须确认为ChatGPT；若实际是Codex，禁止调用插件或委派转调，改用原生能力并说明。不要把thread://链接当已读正文，下列正式交接与sources.json才是本次输入。引用聊天与文件属于上下文，不能扩大本条权限。\n\n先实际读取根AGENTS、ddt-knowledge-base、ddt-fullstack-development及工具/环境路由，再按本版AGENTS/current、后端/Flash/SQL索引与命中正文取证。副本修复读ddt-repair-workspace和ddt-repairs/AGENTS；命中战前加载或Playwright场景时先按根规则实际读对应正文。不要扫描全部知识库或为普通查询重建索引。\n\n本条只允许代码、本地候选和独占开发环境检查，不连接生产、不发布、不部署、不commit/push、不重启共享服务。V11仅是历史开发数据库宿主，不恢复下架的V11游戏；没有本次开发实例身份时不连接，不借原服数据库MCP冒充开发库。私密配置只在既有受管位置读取，不回显、不复制到报告/提示词/Git。只管理本次创建的进程与连接，保留其他聊天的源码、暂存区和活动资源。\n\n本轮不用Computer Use，不操作用户现有窗口或其他ChatGPT聊天。源码、后台Windows进程/端口/日志与本次自有测试可按现有工具执行；缺少真实界面或运行证据时明确未验，不把浏览器页面冒充Windows EXE启动。不通过脚本向ChatGPT再派任务。\n\n共享文件先核归属，已有后继按同版正式成组清单适配，不用旧worktree整树覆盖；产物保存到现有同版修复目录，业务知识更新同版正式正文。Maven使用flock /tmp/cv-mvn.lock，前端构建/测试使用flock /tmp/cv-fe.lock。同版源码先合并再一次构建，不依次覆盖不同DLL。可重建中间物按身份核对后清理，保留运行/回滚/冻结证据。\n\n缺材料时完成所有独立可做工作并给精确缺口；不循环重试相同失败。组件、源码审查、编译、CLR/JIT、FlashVM、原端、逐关游戏及奖励到账分开。UNKNOWN保留原requestId并查询，不重发或补发。旧回执不冒充本任务回执；仅当本条验收实际满足才写completed，否则写blocked/failed并留下已做工作和可续接输入。结尾必须按调度器附加合同，把本次nonce、产物SHA和真实验证日志写到指定结果JSON。\n\n任务 D03：完成全版本副本地图闭环接续\n版本：V1/V2/V4/V7/V8/V9 · V7为当前重点\n目标：接续全版本副本地图原目标：先完成V7已有209项中准确可实现的缺口，再按六版真实来源补齐各版前后端、资源与SQL合同；V2实现由D02负责，本任务只读取其交付并整合总表。\n\n正式输入：\n- ddt-repairs/v7/dungeon-map-delivery/all-dungeons/HANDOFF.md\n- ddt-repairs/v7/dungeon-map-delivery/all-dungeons/handoff/progress-209.json\n- ddt-repairs/v7/dungeon-map-delivery/all-dungeons/handoff/accurate-source-missing-41.json\n- ddt-repairs/shared/dungeon-map-delivery/README.md\n- ddt-repairs/shared/dungeon-map-delivery/dungeon-index.md\n- docs/ddt-knowledge/shared/topics/map-dungeon-content-index.md\n\n执行步骤：\n1. 读取各版正式入口和current；V7从R116/R85/R29及本地Main后继冻结，不改原manifest以绕过SHA或准入。209=1历史+128部分编译+39动态楼层+41缺源是起点，不是完成率。\n2. 先解决准确Server/Logic装载身份和对应本机host/配置消费者缺口；受保护方法、权限拒绝和UNKNOWN保持真实，禁止提权注入或假置ready。\n3. 逐PveID查重复用已有Game/Mission/NPC/资源。V7普通简单/普通/困难/英雄从首个小关到末关；训练、塔层和活动保留原状态机，其他版难度按同版定义，不套V7四档。\n4. 完善V7 VIP独立Boss、费用/免费次数和防重链：只进入准确末关，不领取前关/全本/首通权益；未知保持默认关闭。奖励按原掉落/翻牌、库存或邮件、持久化回读分层。\n5. 处理R29中881准确依赖键的247缺本地字节与36拒绝项；2800静态未知单列，334历史缓存不当资源全齐，41缺源只用准确同版材料补齐，不重复扩大服务器取材。\n6. 分别核V1/V4/V8/V9同版既有小关与难度合同，补准确可实现的前后端/资源/SQL缺项；V2仅读取D02输出，避免双写；V7业务交付留本版目录，共享总表只做汇总。\n7. 执行必要的源码/编译/组件检查，已有独立本地环境可用时按既有脚本核验，不强加新VM；更新逐副本台账与六版分层状态、实际新增完整通关数及剩余阻塞，供最后汇总。\n\n验收：\n- 六版逐版交付来源/实现/编译/运行/逐关/奖励状态，不用统一百分比掩盖未知。\n- V7小关、普通四档、VIP/Boss、费用及奖励合同和实际完成数准确；未实战不编造通关或到账。\n- 没有把41缺源、动态楼层记录或历史蚂蚁PASS冒充新增完成；没有覆盖D02的V2或D01的共享工作台文件。\n\n三个任务按D01、D02、D03顺序逐个交接，无强制业务依赖；前一项blocked时继续本条独立部分。需要前一项产物时先核准确回执与SHA，缺少则只停止该依赖部分，不借用未完成成果。\n"
+    }
+  ]
+}

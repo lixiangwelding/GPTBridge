@@ -1,5 +1,7 @@
 # ChatGPT 任务工作台 · 独立自动调度
 
+> **当前接续改为3个任务（2026-10-22）：** [三任务入口](three-tasks/README.md) · [可导入任务包](three-tasks/tasks.json) · [提交回执](three-tasks/submission.json)。旧20项已核实未发送并退出活动inbox，原请求与审计归档保留；本批已提交，独立调度器仍为stopped，尚未派发。下文20项是历史拆分与交付记录。
+
 2026-10-22。GPTBridge 新增 `/chatgpt-tasks` 独立页面。三条正式交接已整理成 20 个可执行任务与依赖。Codex 只提交文件队列，由用户独立启用的 Windows 调度器控制 ChatGPT，只有 ChatGPT 调用 GPTBridge Windows；Mac 不调用、不修改。
 
 ## Windows 统一应用的 ChatGPT 模式
