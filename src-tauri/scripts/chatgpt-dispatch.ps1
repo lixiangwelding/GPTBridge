@@ -214,6 +214,30 @@ function Get-PromptSha([string]$Text) {
   $sha=[Security.Cryptography.SHA256]::Create()
   try{return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Text)))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
 }
+function Test-WorkStopCanRemainRunning([string]$Mode,[string]$Action,[bool]$NewChat,[string]$ComposerClass,
+  [int]$PermissionControls,[int]$ChatModelControls,[int]$ChatComposers) {
+  # Sidebar mode is distinct from the current conversation. An existing Codex
+  # Work job may continue while the owner scheduler creates a new ChatGPT chat.
+  return $Mode -eq 'ChatGPT' -and $Action -eq 'stage' -and $NewChat -and
+    $ComposerClass -match '^_ComposerLayoutBody_[A-Za-z0-9_]+$' -and
+    $PermissionControls -eq 1 -and $ChatModelControls -eq 0 -and $ChatComposers -eq 0
+}
+function Get-WorkStopContext($StopButton) {
+  $parent=[System.Windows.Automation.TreeWalker]::RawViewWalker.GetParent($StopButton)
+  if(-not $parent -or $parent.Current.ClassName -notmatch '^_ComposerLayoutBody_[A-Za-z0-9_]+$'){
+    return @{composerClass='';permissionControls=0;chatModelControls=0;chatComposers=0}
+  }
+  # Find via the Stop button's raw parent: this layout is absent from the root's
+  # control-view traversal in the supported desktop build. Do not read transcript.
+  $nodes=@($parent.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)|Where-Object {-not $_.Current.IsOffscreen})
+  $buttons=@($nodes|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button})
+  return @{
+    composerClass=$parent.Current.ClassName
+    permissionControls=@($buttons|Where-Object {$_.Current.IsEnabled -and $_.Current.Name -in @('更改权限','Change permissions')}).Count
+    chatModelControls=@($buttons|Where-Object {$_.Current.Name -in @('选择 ChatGPT 模型','Choose ChatGPT model')}).Count
+    chatComposers=@($nodes|Where-Object {$_.Current.ControlType -in @([System.Windows.Automation.ControlType]::Edit,[System.Windows.Automation.ControlType]::Document) -and $_.Current.Name -in @('询问 ChatGPT','Message ChatGPT','Ask anything','向 ChatGPT 发送消息')}).Count
+  }
+}
 function Confirm-ChatGPTForeground($Window,[string]$Action,
   [scriptblock]$ReadForeground={ [ChatGPTMenuCleanup]::GetForegroundWindow() },
   [scriptblock]$Activate={param($Target)
@@ -303,9 +327,17 @@ public class ChatGPTTextInput {
   $script:diagnostics.hostKind=$hostKind
   $script:diagnostics.mode=(Get-ChatGPTModeSnapshot $window).mode
   if($req.action -eq 'stage') {
-    $busyButtons=@($window.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button))|Where-Object {$_.Current.Name -in @('Stop generating','Stop streaming','停止生成','停止响应','停止','停止任务') -and -not $_.Current.IsOffscreen})
+    $stopButtons=@($window.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button))|Where-Object {$_.Current.Name -in @('Stop generating','Stop streaming','停止生成','停止响应','停止','停止任务') -and -not $_.Current.IsOffscreen})
+    $busyButtons=@();$workStops=0
+    foreach($stopButton in $stopButtons){
+      $context=Get-WorkStopContext $stopButton
+      if($hostKind -eq 'unified' -and (Test-WorkStopCanRemainRunning $script:diagnostics.mode $req.action ([bool]$req.newChat) $context.composerClass $context.permissionControls $context.chatModelControls $context.chatComposers)){
+        $workStops++
+      }else{$busyButtons+=,$stopButton}
+    }
+    $script:diagnostics.workStopCount=$workStops
+    $script:diagnostics.busyButtonCount=$busyButtons.Count
     if($busyButtons.Count -gt 0){
-      $script:diagnostics.busyButtonCount=$busyButtons.Count
       $script:diagnostics.busyButtonNames=@($busyButtons|Select-Object -First 8|ForEach-Object {$_.Current.Name})
       Result 'busy' 'ChatGPT 仍在处理上一条消息；未创建新聊天、未填入或发送。' $ref
     }

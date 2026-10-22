@@ -166,6 +166,7 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(result.returncode,0,(result.stdout+result.stderr).decode('utf-8',errors='replace'))
         self.assertIn(b'FOREGROUND_FIXTURE_CASES_PASSED=9',result.stdout)
         self.assertIn(b'MODE_CASES_PASSED=19',result.stdout)
+        self.assertIn(b'WORK_STOP_ORIGIN_CASES_PASSED=11',result.stdout)
         self.assertIn(b'SENDINPUT_NOT_CALLED',result.stdout)
 
     def block_preparation(self):

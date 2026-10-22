@@ -96,6 +96,20 @@ Assert (-not(Confirm-ChatGPTEntryMode $window 'unified' 'inspect' $true).ready) 
 Assert (-not(Confirm-ChatGPTEntryMode $window 'unified' 'stage' $false).ready) 'Stage without new chat deferred composer guard'
 'MODE_CASES_PASSED=19'
 
+# Proven Work-origin Stop may keep running only while preparing a NEW ChatGPT chat.
+Assert (Test-WorkStopCanRemainRunning 'ChatGPT' 'stage' $true '_ComposerLayoutBody_5est5_2' 1 0 0) 'Live Work composer signature did not permit new ChatGPT chat'
+Assert (-not(Test-WorkStopCanRemainRunning 'Codex' 'stage' $true '_ComposerLayoutBody_5est5_2' 1 0 0)) 'Codex mode bypassed busy guard'
+Assert (-not(Test-WorkStopCanRemainRunning 'unknown' 'stage' $true '_ComposerLayoutBody_5est5_2' 1 0 0)) 'Unknown mode bypassed busy guard'
+Assert (-not(Test-WorkStopCanRemainRunning 'ChatGPT' 'send' $true '_ComposerLayoutBody_5est5_2' 1 0 0)) 'Send bypassed busy guard'
+Assert (-not(Test-WorkStopCanRemainRunning 'ChatGPT' 'inspect' $true '_ComposerLayoutBody_5est5_2' 1 0 0)) 'Inspect bypassed busy guard'
+Assert (-not(Test-WorkStopCanRemainRunning 'ChatGPT' 'stage' $false '_ComposerLayoutBody_5est5_2' 1 0 0)) 'Existing-chat stage bypassed busy guard'
+Assert (-not(Test-WorkStopCanRemainRunning 'ChatGPT' 'stage' $true 'unverified-parent' 1 0 0)) 'Unknown composer bypassed busy guard'
+Assert (-not(Test-WorkStopCanRemainRunning 'ChatGPT' 'stage' $true '_ComposerLayoutBody_5est5_2' 0 0 0)) 'Chat Stop without Work permission proof was ignored'
+Assert (-not(Test-WorkStopCanRemainRunning 'ChatGPT' 'stage' $true '_ComposerLayoutBody_5est5_2' 2 0 0)) 'Ambiguous Work signature was accepted'
+Assert (-not(Test-WorkStopCanRemainRunning 'ChatGPT' 'stage' $true '_ComposerLayoutBody_5est5_2' 1 1 0)) 'Chat model control Stop was ignored'
+Assert (-not(Test-WorkStopCanRemainRunning 'ChatGPT' 'stage' $true '_ComposerLayoutBody_5est5_2' 1 0 1)) 'Chat composer Stop was ignored'
+'WORK_STOP_ORIGIN_CASES_PASSED=11'
+
 # Foreground fixtures inject every OS action; no actual window is read or activated.
 function Reset-ForegroundFixture {
  $script:foreground=[IntPtr]7;$script:activations=0;$script:polls=0
