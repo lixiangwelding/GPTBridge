@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { validatePlan, promptFor, nextReady, transition, isConversationUrl } from '../src/lib/chatgpt-tasks/model.ts';
 const seed = JSON.parse(fs.readFileSync(new URL('../src/lib/chatgpt-tasks/ddt-plan.json',import.meta.url)));
 test('20 tasks are valid, versioned, and dependency ordered',()=>{
@@ -38,4 +39,18 @@ test('native dispatcher is not an MCP tool and uses unique send attempt barrier'
  assert.match(rs,/create_new\(true\)/);assert.match(rs,/UNKNOWN/);assert.match(rs,/kill_on_drop\(true\)/);
  assert.match(ps,/Remove GPTBridge Windows/);assert.match(ps,/ValuePattern/);assert.match(ps,/Result 'unknown'/);
  const registry=fs.readFileSync(new URL('../src-tauri/src/tools/registry.rs',import.meta.url),'utf8');assert.ok(!registry.includes('chatgpt_task_dispatch'));
+});
+
+test('Windows desktop image check rejects Codex embedded ChatGPT before UI actions',{skip:process.platform!=='win32'},()=>{
+ const ps=fs.readFileSync(new URL('../src-tauri/scripts/chatgpt-dispatch.ps1',import.meta.url),'utf8');
+ const helper=ps.match(/function Test-IndependentChatGPTImage\([^]*?\r?\n}/)?.[0];assert.ok(helper);
+ const cases=[
+  [String.raw`C:\Program Files\WindowsApps\OpenAI.Codex_26.1013_x64__id\app\ChatGPT.exe`,false],
+  [String.raw`C:\Users\me\AppData\Local\Programs\Codex\ChatGPT.exe`,false],
+  [String.raw`C:\Program Files\WindowsApps\OpenAI.ChatGPT_1_x64__id\ChatGPT.exe`,true],
+  ['',false], [String.raw`C:\Apps\Other.exe`,false]
+ ];
+ const body=helper+'\n'+cases.map(([path,expected])=>`if((Test-IndependentChatGPTImage '${path.replaceAll("'","''")}') -ne $${expected}){throw 'wrong image classification'}`).join('\n');
+ const result=spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(body,'utf16le').toString('base64')],{encoding:'utf8'});
+ assert.equal(result.status,0,result.stderr);
 });

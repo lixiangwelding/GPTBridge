@@ -2,17 +2,23 @@
 $ErrorActionPreference='Stop'
 [Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false)
 function Result($status,$detail,$ref='') { @{status=$status;detail=$detail;windowRef=$ref;requestId=$req.requestId}|ConvertTo-Json -Compress;exit 0 }
+# Process names are shared by Codex's embedded ChatGPT host; verify its image too.
+function Test-IndependentChatGPTImage([string]$ImagePath) {
+  if([string]::IsNullOrWhiteSpace($ImagePath)){return $false}
+  if($ImagePath -match '(?i)(^|[\\/])(OpenAI\.Codex_[^\\/]+|Codex)([\\/]|$)'){return $false}
+  return [IO.Path]::GetFileName($ImagePath) -ieq 'ChatGPT.exe'
+}
 try {
   $req=Get-Content -LiteralPath $RequestPath -Raw -Encoding UTF8|ConvertFrom-Json
   Add-Type -AssemblyName UIAutomationClient
   Add-Type -AssemblyName UIAutomationTypes
   $root=[System.Windows.Automation.AutomationElement]::RootElement
   $windows=@($root.FindAll([System.Windows.Automation.TreeScope]::Children,[System.Windows.Automation.Condition]::TrueCondition))
-  $targets=@()
+  $targets=@();$codexHosts=0
   foreach($w in $windows) {
     try {
       $proc=Get-Process -Id $w.Current.ProcessId
-      if($req.client -eq 'desktop' -and $proc.ProcessName -eq 'ChatGPT'){$targets+=,$w}
+      if($req.client -eq 'desktop' -and $proc.ProcessName -eq 'ChatGPT'){if(Test-IndependentChatGPTImage $proc.Path){$targets+=,$w}else{$codexHosts++}}
       if($req.client -eq 'web' -and $proc.ProcessName -in @('msedge','chrome') -and $w.Current.Name -match 'ChatGPT') {
         $edits=$w.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Edit))
         foreach($edit in $edits) {
@@ -25,6 +31,7 @@ try {
       }
     } catch { }
   }
+  if($req.client -eq 'desktop' -and $targets.Count -eq 0 -and $codexHosts -gt 0){Result 'blocked' '检测到 Codex 内置 ChatGPT，不能作为独立聊天客户端。请打开独立 Windows ChatGPT 或选择 chatgpt.com 网页；没有填入或发送。'}
   if($targets.Count -ne 1){Result 'blocked' '请只打开一个目标 ChatGPT 窗口；网页端还需要可核对 chatgpt.com 地址栏。'}
   $window=$targets[0];$ref="$($window.Current.ProcessId):$($window.Current.NativeWindowHandle)"
   if($req.windowRef -and $req.windowRef -ne $ref){Result 'blocked' '目标窗口已变化，请重新检查并填入任务。' $ref}
