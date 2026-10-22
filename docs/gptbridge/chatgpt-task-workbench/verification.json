@@ -42,13 +42,13 @@
     "svelteErrors": 0,
     "svelteWarnings": 0,
     "frontendBuild": "passed",
-    "nodeTestsPassed": 18,
+    "nodeTestsPassed": 19,
     "offlineSchedulerTestsPassed": 12,
     "powerShellSyntax": "passed; dispatch script not executed",
     "taskRows": 20,
     "mobileHorizontalOverflow": false,
     "consoleErrors": 0,
-    "nativeWindowsRustCompile": "passed in final Windows CI; test targets compiled, not executed",
+    "nativeWindowsRustCompile": "passed; 3 Windows mapping tests executed; full Rust suite not run",
     "actualChatGPTUIAutomation": "not run by Codex",
     "chatgptMessagesSent": 0,
     "gptbridgeToolCalls": 0,
@@ -61,5 +61,6 @@
     "dispatched": false
   },
   "delivery": "delivery.json",
-  "nativeWindowsScreenshot": "windows-native.png"
+  "nativeWindowsScreenshot": "windows-native.png",
+  "currentDeliverySourceCommit": "167ed873c2a1e2e924b34119ffbdbe9b10d712b9"
 }

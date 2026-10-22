@@ -2,6 +2,12 @@
 
 2026-10-22。GPTBridge 新增 `/chatgpt-tasks` 独立页面。三条正式交接已整理成 20 个可执行任务与依赖。Codex 只提交文件队列，由用户独立启用的 Windows 调度器控制 ChatGPT，只有 ChatGPT 调用 GPTBridge Windows；Mac 不调用、不修改。
 
+## 本机启动问题与入口澄清
+
+用户点击启用后，旧候选因 `Ubuntu-24.04` 中的点号被错误拒绝，原生界面显示 WSL 项目错误，未留下调度器心跳或任务状态。新候选已修复并安装，原队列保留，Codex 没有代为重新启用。
+
+本机可见的 `ChatGPT.exe` 属于 `OpenAI.Codex` 安装目录，不能只按进程名当成独立客户端。适配器现在先排除 Codex 宿主，再检查模型/思考强度/Windows 插件和输入框。Codex 左上角的 ChatGPT 模式不解除本机插件禁令；使用独立 ChatGPT 客户端，或在 Edge/Chrome 中打开 chatgpt.com。只有用户独立启用后才开始发送，缺失选项会阻塞。
+
 ## 预期使用方式
 
 一次在 Windows GPTBridge 中选定项目、桌面客户端/网页、模型与思考强度，启用独立调度器。以后在 Codex 中交代工作，由 Codex 生成任务包和完整提示词，提交本地队列；调度器自动建新聊天、核对选项和 Windows 插件、填入并发送，等待本次结果回执后推进依赖任务。Codex 只读取本地状态和产物，不运行发送器。
@@ -13,9 +19,9 @@
 ## 当前实际交付状态
 
 - 新页面、20 任务包、完整提示词、文件提交 CLI、独立队列引擎、Windows 桌面与 Chrome/Edge 网页的 UIAutomation 候选已写入源码。
-- Node 相关 18 项测试、Python 调度 12 项离线测试通过；Svelte 检查与前端生产构建通过；Windows PowerShell 语法检查通过。
+- Node 相关 19 项测试、Python 调度 12 项离线测试通过；Svelte 检查与前端生产构建通过；Windows PowerShell 语法检查通过。
 - 20 个任务已实际提交到 Windows 配置目录下 inbox，batchId 为 `ddt-three-lines-20261022-01a16250`。独立调度器未启用，实际发送 0。
-- **Windows 最终候选已构建并安装。** 源码 `fbf40195f2dc217df13787e48c58c20f35e253fd`，GitHub Windows 工作流 [39752886336](https://github.com/lixiangwelding/GPTBridge/actions/runs/39752886336) 成功；Rust 测试目标完成编译（未运行 Rust 测试），NSIS 安装退出 0，新进程正常。安装时原项目配置 SHA 未变；原生启动服务后的 JSON 格式重写已核对逐字段等价，FRP 保留，Windows MCP 本机界面显示正在监听 38766。
+- **Windows 最终候选已构建并安装。** 源码 `167ed873c2a1e2e924b34119ffbdbe9b10d712b9`，GitHub Windows 工作流 [39757521093](https://github.com/lixiangwelding/GPTBridge/actions/runs/39757521093) 成功；Rust 测试目标完成编译，3 项 WSL 路径测试实际运行通过（非全量 Rust 测试），NSIS 安装退出 0，新进程正常。安装时原项目配置 SHA 未变；原生启动服务后的 JSON 格式重写已核对逐字段等价，FRP 保留，Windows MCP 本机界面显示正在监听 38766。
 - 原生新页面已打开、载入 20 草稿并自动识别同一批队列，状态 `not_started`；见 [Windows 实机截图](windows-native.png) 和 [交付回执](delivery.json)。**真实 ChatGPT 控件、选项、发送与整链路执行仍未验证，不能宣称已可无人值守跑完。**
 - 候选脚本按严格的可访问性名称选择模型、思考强度和插件，并校验唯一目标窗口及输入框 ValuePattern。不同客户端名称、Pro 与思考强度组合或可访问性模式缺失都会停止，须在独立 Windows 客户端验收后适配，不能去掉检查或改为坐标盲点。
 - 当前没有内置另一套 AI 拆解服务；拆任务由 Codex 完成。没有绕过 Codex 禁令的 MCP/HTTP 调度入口。

@@ -1,38 +1,39 @@
 {
-  "verifiedAt": "2026-10-22T09:19:27.396215+00:00",
-  "sourceCommit": "fbf40195f2dc217df13787e48c58c20f35e253fd",
+  "verifiedAt": "2026-10-22T09:53:35.532881+00:00",
+  "sourceCommit": "167ed873c2a1e2e924b34119ffbdbe9b10d712b9",
   "ci": {
-    "runId": 39752886336,
-    "url": "https://github.com/lixiangwelding/GPTBridge/actions/runs/39752886336",
+    "runId": 39757521093,
+    "url": "https://github.com/lixiangwelding/GPTBridge/actions/runs/39757521093",
     "conclusion": "success",
     "windowsOnly": true,
     "releasePublished": false,
-    "nodeTestsPassed": 18,
+    "nodeTestsPassed": 19,
     "pythonTestsPassed": 12,
     "rustTestTargetsCompiled": true,
-    "rustTestsExecuted": false,
-    "nsisBuild": "passed"
+    "rustTestsExecuted": true,
+    "nsisBuild": "passed",
+    "rustTestsPassed": 3,
+    "rustTestsScope": "workspace_mapping_tests only; full Rust suite not executed"
   },
   "artifact": {
-    "runId": 39752886336,
-    "sourceCommit": "fbf40195f2dc217df13787e48c58c20f35e253fd",
-    "artifactId": 12414219309,
-    "artifactSha256": "02af8a9ae2410034c462159400d8456dcf74f24ac0f78be7bfe2ca03440dee8b",
-    "installer": "/mnt/c/Users/99321/Downloads/GPTBridge_0.4.3_chatgpt-tasks_fbf4019_x64-setup.exe",
-    "installerSha256": "722208e2cb3f842d3137d8286a264a96a1c1766253ae5ec1c319823735e1516c",
-    "installerBytes": 6925899
+    "sourceCommit": "167ed873c2a1e2e924b34119ffbdbe9b10d712b9",
+    "runId": 39757521093,
+    "artifactId": 12416323880,
+    "artifactSha256": "e356a6b10680efe47c6a187b864790b1f9b96c2b3f0c67d2c5fddebf495667a2",
+    "installerSha256": "3ae096ae81e191311f804b018fc4b37120773715c249f6c634fc7a6e07bd6e08",
+    "installer": "/mnt/c/Users/99321/Downloads/GPTBridge_0.4.3_chatgpt-tasks_167ed87_x64-setup.exe"
   },
   "installation": {
     "installerExit": 0,
     "installedPath": "C:\\Users\\99321\\AppData\\Local\\Programs\\GPTBridge\\coding-tools-mcp-personal.exe",
-    "installedSha256": "b42f675068af90bfffa8e8a364a66acc1be1a319fa1c40c0c0ade8057e8f19d7",
-    "pid": 39732,
-    "profilesBeforeSha256": "73fca2f1d8f9675d419f23ffddf3fb52a525301ff92ed2b1c70216b9c81fa008",
-    "profilesSha256": "73fca2f1d8f9675d419f23ffddf3fb52a525301ff92ed2b1c70216b9c81fa008",
+    "installedSha256": "df2a4f3ff8dfb1011be035b94c9da3877f24d3e5057906f05ef2c6d6956d0811",
+    "pid": 40368,
+    "profilesBeforeSha256": "46295281ebd52e920cdc60625b97821d23257db5e33c94b792867e3e6e98fbf1",
+    "profilesSha256": "46295281ebd52e920cdc60625b97821d23257db5e33c94b792867e3e6e98fbf1",
     "schedulerStarted": false,
     "macModified": false,
     "frpcPids": [
-      35296
+      12020
     ]
   },
   "nativeUi": {
@@ -42,14 +43,14 @@
     "workspace": "Windows·弹弹堂开发全集",
     "schedulerStatus": "not_started",
     "screenshot": "windows-native.png",
-    "screenshotSha256": "483cbe668231d68b5a7d21c5b5d1d46fbb856217b75848ef7f9415733716716f"
+    "screenshotSha256": "2701505ee4f8791470ee77bd1a36cc627f9554f864b2938f5382f321acd3342e"
   },
   "windowsConnection": {
     "localPort": 38766,
     "nativeUiStatus": "当前实例运行中",
     "endpoint": "https://gptbridge-b.ssh.ddtgm.lol/mcp",
     "protocolOrToolProbeByCodex": false,
-    "profilesFinalSha256": "46295281ebd52e920cdc60625b97821d23257db5e33c94b792867e3e6e98fbf1",
+    "profilesFinalSha256": "8dc1ecb69b93b512aa343f79e4993f22121254de9e18909e1f813fcf17e4e316",
     "profilesSemanticallyUnchanged": true,
     "formattingRewrittenByNativeServiceStart": true
   },
@@ -73,9 +74,26 @@
   },
   "macModified": false,
   "notVerified": [
-    "Real ChatGPT desktop/web controls and model/effort selection",
-    "Actual ChatGPT sending and GPTBridge tool execution",
-    "End-to-end scheduler startup after independent user enable",
-    "DDT business completion"
-  ]
+    "Actual user-enabled scheduler startup after fix",
+    "Real independent ChatGPT desktop/web controls, model/effort selection and sending",
+    "GPTBridge business tool execution",
+    "Twenty DDT task completion"
+  ],
+  "previousDelivery": {
+    "sourceCommit": "fbf40195f2dc217df13787e48c58c20f35e253fd",
+    "runId": 39752886336,
+    "installedSha256": "b42f675068af90bfffa8e8a364a66acc1be1a319fa1c40c0c0ade8057e8f19d7"
+  },
+  "startupFailure": {
+    "observed": "user clicked enable; native UI rejected Windows WSL project; no scheduler files/heartbeat/state",
+    "rootCause": "Ubuntu-24.04 distro dot rejected by workspace_mapping",
+    "fixed": true,
+    "actualSchedulerStartAfterFix": "not performed by Codex"
+  },
+  "desktopIdentity": {
+    "observedPath": "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.1013.4894.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe",
+    "acceptedAsIndependentChatGPT": false,
+    "fix": "reject Codex image path before UI operations",
+    "target": "independent Windows ChatGPT or chatgpt.com in Chrome/Edge"
+  }
 }

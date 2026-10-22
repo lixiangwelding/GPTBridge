@@ -1,9 +1,8 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ChatGPT Windows 任务工作台</title><style>body{max-width:1080px;margin:40px auto;padding:0 24px;font:16px/1.8 system-ui;color:#23342c}img{max-width:100%}pre{overflow:auto;background:#f1f5f2;padding:16px}a{color:#176c52}</style><h1>Windows 候选安装交付</h1>
-<p>2026-10-22。最终功能源码 <code>fbf40195f2dc217df13787e48c58c20f35e253fd</code> 已推送，Windows <a href="https://github.com/lixiangwelding/GPTBridge/actions/runs/39752886336">候选构建</a> 成功，NSIS 安装退出 0。未发布 Release，未构建或访问 Mac。</p>
-<p>18 项 Node、12 项 Python 离线测试通过；Svelte 检查、前端构建、PowerShell 语法、Rust 测试目标编译及 NSIS 构建通过。Rust 测试目标仅编译，没有执行。</p>
-<p>Windows 新客户端已启动，原生“ChatGPT 任务”页面载入 20 个草稿，选中 Windows 弹弹堂开发全集，并自动识别已提交的同一批队列。状态 not_started，调度器没有启用，发送 0。安装完成时项目配置文件 SHA 与安装前相同；随后经原生界面启动 MCP，应用重写了 JSON 格式，逐字段比较配置仍完全相同，已有 FRP 进程保留；Windows MCP 经本机界面恢复监听 127.0.0.1:38766，没有协议或工具探测。</p>
-<p><img src="windows-native.png" alt="Windows 原生页面" /></p>
-<p>安装包 SHA256：<code>722208e2cb3f842d3137d8286a264a96a1c1766253ae5ec1c319823735e1516c</code>。安装后 EXE SHA256：<code>b42f675068af90bfffa8e8a364a66acc1be1a319fa1c40c0c0ade8057e8f19d7</code>。完整身份见 delivery.json；旧 EXE 与原配置备份保留在本机私有回滚目录。</p>
-<p>Codex 本机插件禁用、两个桥接 app 的新进程 callable=false，PreToolUse 拦截已启用并受信任；未重启现有聊天。只允许文件队列提交和状态回读，不允许 Codex 启用调度器或执行发送器。67 个其他聊天改动文件哈希未变。</p>
-<p>用户下一步：在 Windows GPTBridge 的“ChatGPT 任务”页面选择模型/思考强度和客户端，独立点击“启用独立调度器”。桌面准备阶段明确未发送时才可回落网页；发送未知不重发。真实 ChatGPT 控件身份、Pro/思考强度组合、消息发送、用户启用后的调度整链路以及 20 项业务完成均尚未验证。缺失控件或选项时应保留阻塞，不能视为完成。</p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ChatGPT Windows 任务工作台</title><style>body{max-width:1080px;margin:40px auto;padding:0 24px;font:16px/1.8 system-ui;color:#23342c}img{max-width:100%}pre{overflow:auto;background:#f1f5f2;padding:16px}a{color:#176c52}</style><h1>Windows 调度启动修复交付</h1>
+<p>2026-10-22。用户点击启用后，旧候选因 <code>Ubuntu-24.04</code> 包含点号而被路径校验拒绝，实际没有启动调度器。已修复、推送并安装新 Windows 候选；原来的 20 任务队列保持不变。</p>
+<p>最终功能源码 <code>167ed873c2a1e2e924b34119ffbdbe9b10d712b9</code>，Windows <a href="https://github.com/lixiangwelding/GPTBridge/actions/runs/39757521093">构建 39757521093</a> 全部通过：19 项 Node、12 项 Python、3 项 Rust 路径测试实际通过，非全量 Rust 测试。Svelte、前端构建、PowerShell 语法、Rust 测试目标编译与 NSIS 构建通过。安装退出 0，新进程正常，安装时配置 SHA 不变，Windows MCP 本机界面恢复监听 38766。</p>
+<p>本机可见 ChatGPT.exe 实际在 OpenAI.Codex 安装目录。新增镜像身份检查，拒绝把 Codex 内置 ChatGPT 当独立客户端；在选择新聊天和填入之前拦截。离线测试及 Windows CI 验证了 Codex 路径拒绝、独立 ChatGPT 路径接受，未执行发送器。</p>
+<p><img src="windows-native.png" alt="最新 Windows 原生窗口" /></p>
+<p>保留 Codex 禁令和队列交接例外。Codex 左上角 ChatGPT 模式不改变规则适用宿主；独立 Windows 调度器控制独立 ChatGPT 或 chatgpt.com 网页。旧启用没有成功，修复后用户需在 GPTBridge 中重新独立启用；Codex 没有代点。当前心跳和执行记录仍为空，20 项业务未开始。Mac 未访问或修改，67 个其他聊天文件哈希未变。完整构建、制品和安装身份见 delivery.json。</p>
+<p>尚未验证：修复后用户实际启用、真实模型和思考强度菜单、真实消息发送和 GPTBridge 调用、业务任务完成。独立客户端缺失时允许未发送前回落网页；未知发送保留原请求，不重发。</p>
 </html>
