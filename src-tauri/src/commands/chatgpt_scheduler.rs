@@ -223,6 +223,12 @@ async fn windows_control(state:&AppState,r:SchedulerRequest)->AppResult<Value> {
     struct StartingMarker {path:std::path::PathBuf,started:bool}
     impl Drop for StartingMarker {fn drop(&mut self){if !self.started {let _=std::fs::remove_file(&self.path);}}}
     let mut starting=StartingMarker{path:marker.clone(),started:false};
+    // The owner's start/resume also restores this selected Windows connection
+    // after an app update. Existing runtimes are reused; foreign ports stay owned.
+    let connection=super::runtime::start_mcp_service_with_reclaim(state,&r.workspace_id,false).await?;
+    if connection.state!="running" {
+        return Err(AppError::Message("Windows 本地连接尚未运行，未启动调度器；请查看该项目连接日志。".into()));
+    }
     // Only this GUI command enables and starts the independent owner process.
     let wsl=std::path::PathBuf::from(std::env::var_os("SystemRoot").ok_or_else(||AppError::Message("SystemRoot missing".into()))?).join("System32/wsl.exe");
     let converted=tokio::process::Command::new(&wsl).args(["-d",&distro,"--exec","wslpath","-u"]).arg(&root).output().await?;

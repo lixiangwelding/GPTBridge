@@ -156,7 +156,7 @@ async fn start_mcp_service(state: &AppState, id: &str) -> AppResult<RuntimeStatu
     start_mcp_service_with_reclaim(state, id, true).await
 }
 
-async fn start_mcp_service_with_reclaim(state: &AppState, id: &str, allow_reclaim: bool) -> AppResult<RuntimeStatusDto> {
+pub(crate) async fn start_mcp_service_with_reclaim(state: &AppState, id: &str, allow_reclaim: bool) -> AppResult<RuntimeStatusDto> {
     validate_start_resources(state, id, WorkspaceService::Mcp)?;
     let profile = profile_by_id(state, id)?;
     if state.with_runtime(|runtime| Ok(runtime.is_running(id, ServiceKind::Mcp)))? {
