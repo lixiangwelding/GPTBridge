@@ -1,13 +1,15 @@
-# Windows 调度启动修复交付
+# Windows ChatGPT 模式适配交付
 
-2026-10-22。用户点击启用后，旧候选因 `Ubuntu-24.04` 包含点号而被路径校验拒绝，实际没有启动调度器。已修复、推送并安装新 Windows 候选；原来的 20 任务队列保持不变。
+2026-10-22。已按用户实际使用的统一 Windows 应用适配：独立调度器在准备任务时选择并回读左上角 ChatGPT 模式，再核对“聊天”On/“工作”Off；填入和发送前继续核对。Codex 当前聊天仍只交接队列，不直接调用 GPTBridge，不启动调度器或运行发送步骤；Mac 不动。
 
-最终功能源码 `167ed873c2a1e2e924b34119ffbdbe9b10d712b9`，Windows [构建 39757521093](https://github.com/lixiangwelding/GPTBridge/actions/runs/39757521093) 全部通过：19 项 Node、12 项 Python、3 项 Rust 路径测试实际通过，非全量 Rust 测试。Svelte、前端构建、PowerShell 语法、Rust 测试目标编译与 NSIS 构建通过。安装退出 0，新进程正常，安装时配置 SHA 不变，Windows MCP 本机界面恢复监听 38766。
+功能源码 `b4499e92ad4f664dae0bd99faf294d46d9077728`，Windows [构建 39765170853](https://github.com/lixiangwelding/GPTBridge/actions/runs/39765170853) 成功。20 项 Node、12 项 Python、3 项 Rust 路径测试实际通过，非全量 Rust 测试；Svelte、前端构建、PowerShell 语法、Rust 测试目标编译与 NSIS 构建通过。
 
-本机可见 ChatGPT.exe 实际在 OpenAI.Codex 安装目录。新增镜像身份检查，拒绝把 Codex 内置 ChatGPT 当独立客户端；在选择新聊天和填入之前拦截。离线测试及 Windows CI 验证了 Codex 路径拒绝、独立 ChatGPT 路径接受，未执行发送器。
+Pro 在“强度”滑条中，用户明确确认最右端对应 Pro。默认配置已改为 GPT-6/Pro；旧偏好自动迁移。发送器要求唯一可核对的模型选中状态、Pro 端点和输入框中的带图标结构化 GPTBridge Windows 标记，不能把普通文字当插件附加。
 
-![最新 Windows 原生窗口](windows-native.png)
+Windows 安装退出 0，新进程正常，安装前后项目配置 SHA 一致。原生界面恢复 Windows MCP 后显示正在监听 38766，配置逐字段等价。新任务页已实际打开，识别原批次 20 任务，模型/强度偏好回读 GPT-6/Pro；67 个其他聊天文件哈希未变。构建、制品与安装 SHA 见 [完整回执](delivery.json)。
 
-保留 Codex 禁令和队列交接例外。Codex 左上角 ChatGPT 模式不改变规则适用宿主；独立 Windows 调度器控制独立 ChatGPT 或 chatgpt.com 网页。旧启用没有成功，修复后用户需在 GPTBridge 中重新独立启用；Codex 没有代点。当前心跳和执行记录仍为空，20 项业务未开始。Mac 未访问或修改，67 个其他聊天文件哈希未变。完整构建、制品和安装身份见 delivery.json。
+![当前 Windows 原生任务页](windows-native.png)
 
-尚未验证：修复后用户实际启用、真实模型和思考强度菜单、真实消息发送和 GPTBridge 调用、业务任务完成。独立客户端缺失时允许未发送前回落网页；未知发送保留原请求，不重发。
+截至本次回读，独立调度器尚未启用，队列状态 `not_started`，没有执行状态或心跳；原批次文件 SHA 不变。用户需在该页独立点击“启用独立调度器”，Codex 不代点。
+
+实际模式、模型菜单、强度滑条、输入框及结构化插件标记已有只读观察和离线夹具验证；完整多行正文填入、真实发送、GPTBridge 业务工具执行及 20 项任务完成仍未验证。隔离 Edge 输入夹具没有取得编辑控件，未注入文字；后续 HTTP 诊断被本机 PreToolUse 拦截，未重试绕过，不能将其写成多行输入通过。消息发送结果 UNKNOWN 保留原请求，不重发。

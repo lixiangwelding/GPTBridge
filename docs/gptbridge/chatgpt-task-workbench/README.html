@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>ChatGPT任务工作台</title><style>body{max-width:1080px;margin:40px auto;font:16px/1.8 system-ui;padding:0 24px}img{max-width:100%}pre{overflow:auto}</style><h1>ChatGPT 任务工作台 · 独立自动调度</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ChatGPT Windows 任务工作台</title><style>body{max-width:1080px;margin:40px auto;padding:0 24px;font:16px/1.8 system-ui;color:#23342c}img{max-width:100%}pre{overflow:auto;background:#f1f5f2;padding:16px}a{color:#176c52}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:8px}</style><h1>ChatGPT 任务工作台 · 独立自动调度</h1>
 <p>2026-10-22。GPTBridge 新增 <code>/chatgpt-tasks</code> 独立页面。三条正式交接已整理成 20 个可执行任务与依赖。Codex 只提交文件队列，由用户独立启用的 Windows 调度器控制 ChatGPT，只有 ChatGPT 调用 GPTBridge Windows；Mac 不调用、不修改。</p>
 <h2>Windows 统一应用的 ChatGPT 模式</h2>
 <p>用户已确认使用当前 Windows 应用左上角的 ChatGPT 模式，而不是另外安装客户端。<code>OpenAI.Codex</code> 包内的 <code>ChatGPT.exe</code> 同时承载两个模式，不能按包名整体拒绝。只有用户独立启用的 Windows 调度器可在任务准备阶段选择“ChatGPT 创建、学习和探索”，回读模式及“聊天”On/“工作”Off；inspect/send只核对、不切换。当前Codex代理仍不能调用GPTBridge、启动调度器或执行发送步骤。</p>
@@ -13,9 +13,9 @@
 <li>新页面、20 任务包、完整提示词、文件提交 CLI、独立队列引擎、Windows 桌面与 Chrome/Edge 网页的 UIAutomation 候选已写入源码。</li>
 <li>Node 相关 20 项测试、Python 调度 12 项离线测试通过；Svelte 检查与前端生产构建通过；Windows PowerShell 语法检查通过。</li>
 <li>20 个任务已实际提交到 Windows 配置目录下 inbox，batchId 为 <code>ddt-three-lines-20261022-01a16250</code>。独立调度器未启用，实际发送 0。</li>
-<li><strong>Windows 最终候选已构建并安装。</strong> 源码 <code>167ed873c2a1e2e924b34119ffbdbe9b10d712b9</code>，GitHub Windows 工作流 <a href="https://github.com/lixiangwelding/GPTBridge/actions/runs/39757521093">39757521093</a> 成功；Rust 测试目标完成编译，3 项 WSL 路径测试实际运行通过（非全量 Rust 测试），NSIS 安装退出 0，新进程正常。安装时原项目配置 SHA 未变；原生启动服务后的 JSON 格式重写已核对逐字段等价，FRP 保留，Windows MCP 本机界面显示正在监听 38766。</li>
-<li>原生新页面已打开、载入 20 草稿并自动识别同一批队列，状态 <code>not_started</code>；见 <a href="windows-native.png">Windows 实机截图</a> 和 <a href="delivery.json">交付回执</a>。<strong>真实 ChatGPT 控件、选项、发送与整链路执行仍未验证，不能宣称已可无人值守跑完。</strong></li>
-<li>统一模式适配本地已通过：15 项模式/聊天-工作场景、5 项 Pro 端点图像夹具、5 项插件结构断言和 Unicode 文本事件 ABI 检查；不运行真实输入或发送。最新适配的 Windows CI/安装结果以 delivery.json 为准，不能拿前一版构建代替。</li>
+<li><strong>统一应用模式候选已构建并安装。</strong> 源码 <code>b4499e92ad4f664dae0bd99faf294d46d9077728</code>，GitHub Windows 工作流 <a href="https://github.com/lixiangwelding/GPTBridge/actions/runs/39765170853">39765170853</a> 成功。20 项 Node、12 项 Python、3 项 Rust WSL 路径测试通过；非全量 Rust 测试。安装退出 0，安装前后项目配置 SHA 一致；原生恢复 Windows MCP 后逐字段等价，本机界面显示监听 38766。</li>
+<li>原生新任务页已打开，识别同一批 20 任务，偏好实际回读 GPT-6/Pro，状态 <code>not_started</code>；见 <a href="windows-native.png">Windows 实机截图</a> 和 <a href="delivery.json">交付回执</a>。用户需独立启用调度器，Codex 不代点。</li>
+<li>Windows 离线回归通过：15 项模式/聊天-工作场景、5 项宿主/名称断言、5 项 Pro 端点图像夹具、5 项插件结构断言和 Unicode 文本事件 ABI 检查。实际窗口的模式菜单、强度控件和结构化插件标记已有只读观察；<strong>完整提示词填入、发送、GPTBridge 业务调用和 20 任务执行仍待真实验收</strong>。独立 Edge 输入夹具未取得编辑控件，不能作为多行输入成功证据；未向 ChatGPT 填入测试文字。</li>
 <li>当前没有内置另一套 AI 拆解服务；拆任务由 Codex 完成。没有绕过 Codex 禁令的 MCP/HTTP 调度入口。</li>
 </ul>
 <p>Windows 专项手动构建工作流见 <code>.github/workflows/chatgpt-workbench-windows.yml</code>，仅构建候选，不发布 Release，不包含 Mac 作业。用户已授权精确提交、推送、仅 Windows CI 和安装；实际结果以后继 delivery.json 与 Git 历史为准，不预填成功。</p>

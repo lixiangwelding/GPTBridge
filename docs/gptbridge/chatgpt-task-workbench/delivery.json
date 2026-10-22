@@ -1,39 +1,41 @@
 {
-  "verifiedAt": "2026-10-22T09:53:35.532881+00:00",
-  "sourceCommit": "167ed873c2a1e2e924b34119ffbdbe9b10d712b9",
+  "verifiedAt": "2026-10-22T10:58:35.129772+00:00",
+  "sourceCommit": "b4499e92ad4f664dae0bd99faf294d46d9077728",
   "ci": {
-    "runId": 39757521093,
-    "url": "https://github.com/lixiangwelding/GPTBridge/actions/runs/39757521093",
+    "runId": 39765170853,
+    "url": "https://github.com/lixiangwelding/GPTBridge/actions/runs/39765170853",
     "conclusion": "success",
     "windowsOnly": true,
     "releasePublished": false,
-    "nodeTestsPassed": 19,
+    "nodeTestsPassed": 20,
     "pythonTestsPassed": 12,
     "rustTestTargetsCompiled": true,
     "rustTestsExecuted": true,
-    "nsisBuild": "passed",
     "rustTestsPassed": 3,
-    "rustTestsScope": "workspace_mapping_tests only; full Rust suite not executed"
+    "rustTestsScope": "workspace_mapping_tests only; full Rust suite not executed",
+    "powerShellSyntax": "passed",
+    "nativePowerShellFixtures": "5 host assertions, 15 mode/chat-work scenarios, 5 Pro image fixtures, 5 structured mention cases, Unicode INPUT ABI; no live dispatch",
+    "nsisBuild": "passed"
   },
   "artifact": {
-    "sourceCommit": "167ed873c2a1e2e924b34119ffbdbe9b10d712b9",
-    "runId": 39757521093,
-    "artifactId": 12416323880,
-    "artifactSha256": "e356a6b10680efe47c6a187b864790b1f9b96c2b3f0c67d2c5fddebf495667a2",
-    "installerSha256": "3ae096ae81e191311f804b018fc4b37120773715c249f6c634fc7a6e07bd6e08",
-    "installer": "/mnt/c/Users/99321/Downloads/GPTBridge_0.4.3_chatgpt-tasks_167ed87_x64-setup.exe"
+    "sourceCommit": "b4499e92ad4f664dae0bd99faf294d46d9077728",
+    "runId": 39765170853,
+    "artifactId": 12419673860,
+    "artifactSha256": "178fa592b0cfe8e578227bb942e538dcb59a7812a465a3c8bc0fad2cd67af720",
+    "installerSha256": "11e3c90267223759d2aa053b1993dc4d8624aaa678639b65153fa8ff12bdf757",
+    "installer": "/mnt/c/Users/99321/Downloads/GPTBridge_0.4.3_chatgpt-tasks_b4499e9_x64-setup.exe"
   },
   "installation": {
     "installerExit": 0,
     "installedPath": "C:\\Users\\99321\\AppData\\Local\\Programs\\GPTBridge\\coding-tools-mcp-personal.exe",
-    "installedSha256": "df2a4f3ff8dfb1011be035b94c9da3877f24d3e5057906f05ef2c6d6956d0811",
-    "pid": 40368,
-    "profilesBeforeSha256": "46295281ebd52e920cdc60625b97821d23257db5e33c94b792867e3e6e98fbf1",
-    "profilesSha256": "46295281ebd52e920cdc60625b97821d23257db5e33c94b792867e3e6e98fbf1",
+    "installedSha256": "252871d3fed5abda216d231193575869b4f8db4534eb63792fe2b839b788acd8",
+    "pid": 42396,
+    "profilesBeforeSha256": "8dc1ecb69b93b512aa343f79e4993f22121254de9e18909e1f813fcf17e4e316",
+    "profilesSha256": "8dc1ecb69b93b512aa343f79e4993f22121254de9e18909e1f813fcf17e4e316",
     "schedulerStarted": false,
     "macModified": false,
     "frpcPids": [
-      12020
+      42852
     ]
   },
   "nativeUi": {
@@ -41,16 +43,18 @@
     "twentyDraftsLoaded": true,
     "existingBatchAdopted": true,
     "workspace": "Windows·弹弹堂开发全集",
+    "requestedModel": "GPT-6",
+    "requestedEffort": "Pro",
     "schedulerStatus": "not_started",
     "screenshot": "windows-native.png",
-    "screenshotSha256": "2701505ee4f8791470ee77bd1a36cc627f9554f864b2938f5382f321acd3342e"
+    "screenshotSha256": "e966354753f53e55de153170fd9c7ddcf804ec7364559b9cb04585e856d08e30"
   },
   "windowsConnection": {
     "localPort": 38766,
-    "nativeUiStatus": "当前实例运行中",
+    "nativeUiStatus": "当前实例运行中; 本地 MCP 正在监听 127.0.0.1:38766",
     "endpoint": "https://gptbridge-b.ssh.ddtgm.lol/mcp",
     "protocolOrToolProbeByCodex": false,
-    "profilesFinalSha256": "8dc1ecb69b93b512aa343f79e4993f22121254de9e18909e1f813fcf17e4e316",
+    "profilesFinalSha256": "519018aaba06ccb2c86a6ad7470c204169ae4c4be4fba0a49255933e1cb59b0d",
     "profilesSemanticallyUnchanged": true,
     "formattingRewrittenByNativeServiceStart": true
   },
@@ -64,6 +68,7 @@
   "queue": {
     "batchId": "ddt-three-lines-20261022-01a16250",
     "tasksSubmitted": 20,
+    "batchSha256": "5cfb6c9719847bc3dee56a631491a00b626804aba91e4dfe950dfec6d523a52b",
     "schedulerEnabled": false,
     "messagesSent": 0,
     "gptbridgeToolCalls": 0
@@ -74,15 +79,15 @@
   },
   "macModified": false,
   "notVerified": [
-    "Actual user-enabled scheduler startup after fix",
-    "Real independent ChatGPT desktop/web controls, model/effort selection and sending",
-    "GPTBridge business tool execution",
+    "Actual user-enabled scheduler startup after final candidate install",
+    "Live end-to-end ChatGPT mode selection, model/Pro verification and full multiline prompt insertion",
+    "Actual message sending and GPTBridge business tool execution",
     "Twenty DDT task completion"
   ],
   "previousDelivery": {
-    "sourceCommit": "fbf40195f2dc217df13787e48c58c20f35e253fd",
-    "runId": 39752886336,
-    "installedSha256": "b42f675068af90bfffa8e8a364a66acc1be1a319fa1c40c0c0ade8057e8f19d7"
+    "sourceCommit": "167ed873c2a1e2e924b34119ffbdbe9b10d712b9",
+    "runId": 39757521093,
+    "installedSha256": "df2a4f3ff8dfb1011be035b94c9da3877f24d3e5057906f05ef2c6d6956d0811"
   },
   "startupFailure": {
     "observed": "user clicked enable; native UI rejected Windows WSL project; no scheduler files/heartbeat/state",
@@ -92,8 +97,18 @@
   },
   "desktopIdentity": {
     "observedPath": "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.1013.4894.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe",
-    "acceptedAsIndependentChatGPT": false,
-    "fix": "reject Codex image path before UI operations",
-    "target": "independent Windows ChatGPT or chatgpt.com in Chrome/Edge"
+    "hostKind": "unified",
+    "modeControlsReadonlyObserved": true,
+    "userConfirmedProInEffortMenu": true,
+    "userConfirmedProAtRightEndpoint": true,
+    "structuredWindowsMentionReadonlyObserved": true,
+    "latestBackgroundLookup": "inconclusive; no mode/text changes",
+    "policy": "Only user-enabled independent Windows scheduler may select and verify ChatGPT mode; Codex still queue-only; no Mac access"
+  },
+  "isolatedEditorSmoke": {
+    "result": "not_verified",
+    "reason": "Own isolated Edge fixture edit controls not exposed; no native text injected; HTTP follow-up blocked by local PreToolUse guard and not retried",
+    "chatgptTextEnteredByCodex": false,
+    "messagesSentByCodex": 0
   }
 }

@@ -23,9 +23,9 @@
 - 新页面、20 任务包、完整提示词、文件提交 CLI、独立队列引擎、Windows 桌面与 Chrome/Edge 网页的 UIAutomation 候选已写入源码。
 - Node 相关 20 项测试、Python 调度 12 项离线测试通过；Svelte 检查与前端生产构建通过；Windows PowerShell 语法检查通过。
 - 20 个任务已实际提交到 Windows 配置目录下 inbox，batchId 为 `ddt-three-lines-20261022-01a16250`。独立调度器未启用，实际发送 0。
-- **Windows 最终候选已构建并安装。** 源码 `167ed873c2a1e2e924b34119ffbdbe9b10d712b9`，GitHub Windows 工作流 [39757521093](https://github.com/lixiangwelding/GPTBridge/actions/runs/39757521093) 成功；Rust 测试目标完成编译，3 项 WSL 路径测试实际运行通过（非全量 Rust 测试），NSIS 安装退出 0，新进程正常。安装时原项目配置 SHA 未变；原生启动服务后的 JSON 格式重写已核对逐字段等价，FRP 保留，Windows MCP 本机界面显示正在监听 38766。
-- 原生新页面已打开、载入 20 草稿并自动识别同一批队列，状态 `not_started`；见 [Windows 实机截图](windows-native.png) 和 [交付回执](delivery.json)。**真实 ChatGPT 控件、选项、发送与整链路执行仍未验证，不能宣称已可无人值守跑完。**
-- 统一模式适配本地已通过：15 项模式/聊天-工作场景、5 项 Pro 端点图像夹具、5 项插件结构断言和 Unicode 文本事件 ABI 检查；不运行真实输入或发送。最新适配的 Windows CI/安装结果以 delivery.json 为准，不能拿前一版构建代替。
+- **统一应用模式候选已构建并安装。** 源码 `b4499e92ad4f664dae0bd99faf294d46d9077728`，GitHub Windows 工作流 [39765170853](https://github.com/lixiangwelding/GPTBridge/actions/runs/39765170853) 成功。20 项 Node、12 项 Python、3 项 Rust WSL 路径测试通过；非全量 Rust 测试。安装退出 0，安装前后项目配置 SHA 一致；原生恢复 Windows MCP 后逐字段等价，本机界面显示监听 38766。
+- 原生新任务页已打开，识别同一批 20 任务，偏好实际回读 GPT-6/Pro，状态 `not_started`；见 [Windows 实机截图](windows-native.png) 和 [交付回执](delivery.json)。用户需独立启用调度器，Codex 不代点。
+- Windows 离线回归通过：15 项模式/聊天-工作场景、5 项宿主/名称断言、5 项 Pro 端点图像夹具、5 项插件结构断言和 Unicode 文本事件 ABI 检查。实际窗口的模式菜单、强度控件和结构化插件标记已有只读观察；**完整提示词填入、发送、GPTBridge 业务调用和 20 任务执行仍待真实验收**。独立 Edge 输入夹具未取得编辑控件，不能作为多行输入成功证据；未向 ChatGPT 填入测试文字。
 - 当前没有内置另一套 AI 拆解服务；拆任务由 Codex 完成。没有绕过 Codex 禁令的 MCP/HTTP 调度入口。
 
 Windows 专项手动构建工作流见 `.github/workflows/chatgpt-workbench-windows.yml`，仅构建候选，不发布 Release，不包含 Mac 作业。用户已授权精确提交、推送、仅 Windows CI 和安装；实际结果以后继 delivery.json 与 Git 历史为准，不预填成功。
