@@ -1,0 +1,23 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>ChatGPT任务工作台</title><style>body{max-width:1000px;margin:40px auto;font:16px/1.8 system-ui;padding:0 24px}pre{overflow:auto}img{max-width:100%}</style><h1>统一 Windows 应用模式适配任务</h1>
+<h2>任务列表</h2>
+<ul>
+<li>[x] 只读核实实际模式按钮、菜单项与可访问性模式，收起菜单。</li>
+<li>[x] 保留Codex硬拦截，细化用户独立调度器的ChatGPT模式例外。</li>
+<li>[x] 实现stage选择/回读及inspect、填入、发送阶段复核，失败不发送。</li>
+<li>[x] 增加12项模式离线场景与5项宿主/名称断言。</li>
+<li>[x] 更新新任务页说明；本机Svelte和调度回归通过。</li>
+<li>[ ] 重拍实际前端桌面/手机截图，更新来源清单。</li>
+<li>[ ] Windows CI、候选安装与原生页面回读。</li>
+<li>[ ] 用户独立启用后的真实模式切换、模型/强度、发送和20任务执行业务验收（Codex不代启）。</li>
+</ul>
+<h2>交付物清单</h2>
+<p>独立任务页、模式适配器、修正的模型/强度偏好、回归测试、Windows候选与验证回执；业务任务结果由实际回执确认。</p>
+<h2>需求覆盖矩阵</h2>
+<p>| 需求 | 实现 | 验证 |
+|---|---|---|
+| FR-1 FR-2 FR-3 | 任务页、草稿、模型设置 | 前端检查与截图 |
+| FR-4 FR-5 FR-6 | 原生派发、UNKNOWN屏障 | Node/Python回归 |
+| FR-7 FR-8 FR-9 FR-10 | 模式、聊天/工作、Pro复核 | Windows控件替身、视觉夹具、只读实机观察 |</p>
+<h2>文件变更清单</h2>
+<p>与 design.md 文件结构一致；不修改MCP工具注册、生产环境、Mac或其他聊天文件。</p>
+</html>

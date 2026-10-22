@@ -3,8 +3,8 @@
   "title": "弹弹堂 · 三线接续 / 20 个任务",
   "workspace": "/home/lixiang/my-project-java/codeVerifyRe0",
   "connector": "GPTBridge Windows",
-  "requestedModel": "Pro",
-  "requestedEffort": "深入思考",
+  "requestedModel": "GPT-6",
+  "requestedEffort": "Pro",
   "tasks": [
     {
       "id": "T01",

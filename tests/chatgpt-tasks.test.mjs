@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { validatePlan, promptFor, nextReady, transition, isConversationUrl } from '../src/lib/chatgpt-tasks/model.ts';
 const seed = JSON.parse(fs.readFileSync(new URL('../src/lib/chatgpt-tasks/ddt-plan.json',import.meta.url)));
 test('20 tasks are valid, versioned, and dependency ordered',()=>{
@@ -41,16 +42,14 @@ test('native dispatcher is not an MCP tool and uses unique send attempt barrier'
  const registry=fs.readFileSync(new URL('../src-tauri/src/tools/registry.rs',import.meta.url),'utf8');assert.ok(!registry.includes('chatgpt_task_dispatch'));
 });
 
-test('Windows desktop image check rejects Codex embedded ChatGPT before UI actions',{skip:process.platform!=='win32'},()=>{
- const ps=fs.readFileSync(new URL('../src-tauri/scripts/chatgpt-dispatch.ps1',import.meta.url),'utf8');
- const helper=ps.match(/function Test-IndependentChatGPTImage\([^]*?\r?\n}/)?.[0];assert.ok(helper);
- const cases=[
-  [String.raw`C:\Program Files\WindowsApps\OpenAI.Codex_26.1013_x64__id\app\ChatGPT.exe`,false],
-  [String.raw`C:\Users\me\AppData\Local\Programs\Codex\ChatGPT.exe`,false],
-  [String.raw`C:\Program Files\WindowsApps\OpenAI.ChatGPT_1_x64__id\ChatGPT.exe`,true],
-  ['',false], [String.raw`C:\Apps\Other.exe`,false]
- ];
- const body=helper+'\n'+cases.map(([path,expected])=>`if((Test-IndependentChatGPTImage '${path.replaceAll("'","''")}') -ne $${expected}){throw 'wrong image classification'}`).join('\n');
- const result=spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(body,'utf16le').toString('base64')],{encoding:'utf8'});
- assert.equal(result.status,0,result.stderr);
+test('Windows unified desktop verifies ChatGPT mode and never sends in Codex',{skip:process.platform!=='win32'},()=>{
+ const file=new URL('./chatgpt-mode-gate.test.ps1',import.meta.url);
+ const result=spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',fileURLToPath(file)],{encoding:'utf8'});
+ assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/MODE_CASES_PASSED=15/);assert.match(result.stdout,/PRO_SLIDER_VISUAL_CASES_PASSED=5/);assert.match(result.stdout,/MENTION_CASES_PASSED=5/);assert.match(result.stdout,/SENDINPUT_NOT_CALLED/);
+});
+
+test('migrates original misplaced Pro default without altering queued task content or status',()=>{
+ const old=structuredClone(seed);old.requestedModel='Pro';old.requestedEffort='深入思考';old.tasks[0].status='unknown';old.tasks[0].receipt='query original';
+ const migrated=validatePlan(old);assert.equal(migrated.requestedModel,'GPT-6');assert.equal(migrated.requestedEffort,'Pro');assert.deepEqual(migrated.tasks,old.tasks);assert.equal(old.requestedModel,'Pro');
+ const custom=structuredClone(seed);custom.requestedModel='GPT-5.6 Sol';custom.requestedEffort='Standard';assert.equal(validatePlan(custom).requestedEffort,'Standard');
 });

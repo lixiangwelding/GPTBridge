@@ -1,36 +1,52 @@
 {
-  "capturedAt": "2026-10-22T08:36:36.901953+00:00",
+  "capturedAt": "2026-10-22T10:38:35.107075+00:00",
   "route": "/chatgpt-tasks",
   "actualUrl": "http://127.0.0.1:1437/chatgpt-tasks",
   "environment": "actual locally built Svelte frontend; native Tauri service unavailable in browser preview",
   "gameVersion": "not-applicable; prepared task drafts cover six versions",
-  "gitHead": "8e0aae116060db2202d63d9bfe4c1c9c2a78436e",
+  "gitHead": "10dc274c245fb45100bcaa451b018ef295e447f5",
   "dirty": true,
   "sourceSha256": {
-    "src/routes/chatgpt-tasks/+page.svelte": "913bd76fda5c7847de559bdc4c3c723d2526460b5f9458625527d51d86d49b41",
+    "src/routes/chatgpt-tasks/+page.svelte": "8ef9aedd10e71baa320ff2cdd7bcbf0e1c5c7a8c1c8fe67ffeb2991a6ed7bf9b",
     "src/lib/taskdock/Shell.svelte": "bb28ebdf6fef50742b7d2f6a7db4123a8c388e87a6e3b14c3d54b0d5d207854c",
-    "src/lib/chatgpt-tasks/model.ts": "db1fd5cedf6e2f5e7f74e77fc8d33e53ac8a66a966a1f6202e844a8e141a8ea4",
-    "src/lib/chatgpt-tasks/ddt-plan.json": "fa0178e29f7bfc0c7c4ff11b0898c9494f299686d9ff10aed675f23f230ac48c",
+    "src/lib/chatgpt-tasks/model.ts": "6519422b9012a95ecb5e6beb0f2eaa641f8dd31753505ffb500a5ff02009655c",
+    "src/lib/chatgpt-tasks/ddt-plan.json": "0e13767b66488efa68efb1535b263a9de882faf684b2093a47209f05dde6687c",
     "src-tauri/src/commands/chatgpt_tasks.rs": "baf151ade8d8cfc5018e05b3044331540d6a1af2ab9c03ed9cd50bd67cad968f",
-    "src-tauri/src/commands/chatgpt_scheduler.rs": "c1707c076ee2641610df318ded1bc5a519415e5d5f5210d35838194386316caf",
-    "src-tauri/scripts/chatgpt-dispatch.ps1": "4567975250f0e191aca6dd7f10087a0552a0aef7569c4ddec7ae4da36078f8b8",
-    "scripts/chatgpt-tasks/scheduler.py": "d32a66bad03121687740d0c9bd6d2bd96d4f209e3c88c70869ee4218d8412a53",
-    "scripts/chatgpt-tasks/submit_queue.py": "422d4c70efc8babc5eb516247221f0922bd24a15c527b8823febc528cb050f03"
+    "src-tauri/src/commands/chatgpt_scheduler.rs": "5eb2cbc92f6bbaf1d58b4a61cc78e2ee4f327d01e1ccdebb3cb27dde3a13ba15",
+    "src-tauri/scripts/chatgpt-dispatch.ps1": "43220ad4ef1230d2c910b219e8896bb6781f6feb2a9e9eabd5e4a7f1da25d80e",
+    "scripts/chatgpt-tasks/scheduler.py": "124d079b9d2017a1d7274c1f6cd932a06b44e592ac5e8fab1a1fb879b6298f61",
+    "scripts/chatgpt-tasks/submit_queue.py": "7000f39336013d1cbe93fa18a2a655d8eccbfd90a44a847ff194a9ca20a3ebdc"
   },
   "buildVersion": {
-    "version": "1792657942401"
+    "version": "1792664779532"
   },
   "screenshots": {
     "desktop.png": {
-      "sha256": "fe30bb3e79e71eb292ee79b9350d3ce5ad8a7e0262322a91964dd7113643825a",
+      "sha256": "a603894b13dc03f19c2aef1615059f23cdc88cf1fe59445de57469ad54931383",
+      "viewport": {
+        "width": 1440,
+        "height": 1100
+      },
+      "fullPage": false
+    },
+    "mobile.png": {
+      "sha256": "d2d9a975d194655fc9996ac3909ea85f895c3aa823c02964dc23aa65853ef836",
+      "viewport": {
+        "width": 375,
+        "height": 844
+      },
+      "fullPage": false
+    },
+    "desktop-full.png": {
+      "sha256": "a603894b13dc03f19c2aef1615059f23cdc88cf1fe59445de57469ad54931383",
       "viewport": {
         "width": 1440,
         "height": 1100
       },
       "fullPage": true
     },
-    "mobile.png": {
-      "sha256": "016186eb61d8b2b8dc68f4aee75b20f9bf6b8f92b1358ee4e91ec46084966add",
+    "mobile-full.png": {
+      "sha256": "d2d9a975d194655fc9996ac3909ea85f895c3aa823c02964dc23aa65853ef836",
       "viewport": {
         "width": 375,
         "height": 844
@@ -49,10 +65,15 @@
     "mobileHorizontalOverflow": false,
     "consoleErrors": 0,
     "nativeWindowsRustCompile": "passed; 3 Windows mapping tests executed; full Rust suite not run",
-    "actualChatGPTUIAutomation": "not run by Codex",
+    "actualChatGPTUIAutomation": "readonly real mode/menu/mention verified; no actual mode switch or message fill/send by Codex",
     "chatgptMessagesSent": 0,
     "gptbridgeToolCalls": 0,
-    "macModified": false
+    "macModified": false,
+    "nodeWindowsNativeTest": "native PS suite passed locally; final Windows CI pending",
+    "powerShellModeCases": 15,
+    "proVisualCases": 5,
+    "structuredMentionCases": 5,
+    "unicodePacketABI": "passed; SendInput not called"
   },
   "queue": {
     "batchId": "ddt-three-lines-20261022-01a16250",
@@ -62,5 +83,6 @@
   },
   "delivery": "delivery.json",
   "nativeWindowsScreenshot": "windows-native.png",
-  "currentDeliverySourceCommit": "167ed873c2a1e2e924b34119ffbdbe9b10d712b9"
+  "currentDeliverySourceCommit": "pending new Windows candidate",
+  "buildManifestSha256": "2fd39d0067b7ff63a3498cab4839abda8c427dbb12bfa4ae01cb324c50c85fe3"
 }

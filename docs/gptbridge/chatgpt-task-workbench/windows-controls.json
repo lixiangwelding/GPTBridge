@@ -1,0 +1,36 @@
+{
+  "capturedAt": "2026-10-22T10:35:11.078506+00:00",
+  "modeSelector": "切换模式，当前模式：ChatGPT",
+  "chatChoice": "聊天",
+  "workChoice": "工作",
+  "modeMenuChatGPT": "ChatGPT 创建、学习和探索",
+  "modeMenuCodex": "Codex 构建、调试和发布",
+  "modelTrigger": "选择 ChatGPT 模型",
+  "modelMenu": "选择模型",
+  "observedModels": [
+    "GPT-6",
+    "GPT-5.6 Sol"
+  ],
+  "effortControl": "强度",
+  "effortRangeValueAvailable": false,
+  "proMeaning": "right endpoint, explicitly confirmed by user",
+  "composer": "询问 ChatGPT",
+  "composerPatterns": [
+    "ValuePattern",
+    "TextPattern"
+  ],
+  "windowsConnector": "structured inline GPTBridge Windows text with icon directly inside composer",
+  "liveReadback": {
+    "chatModeReady": true,
+    "chatOptionOn": true,
+    "structuredWindowsMention": true,
+    "composerControls": 1,
+    "messagesSent": 0,
+    "settingsChanged": false
+  },
+  "proCapturedEndpointPassed": true,
+  "actualModeSwitchExecutedByCodex": false,
+  "actualMessageInputByCodex": false,
+  "messagesSentByCodex": 0,
+  "gptbridgeToolCallsByCodex": 0
+}

@@ -1,5 +1,7 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GPTBridge ChatGPT task workbench</title><style>body{max-width:1000px;margin:50px auto;padding:0 24px;font:16px/1.9 system-ui;color:#243b30}a{color:#28614c}pre{overflow:auto;background:#f3f6f4;padding:20px}img{max-width:100%}code{font-size:.9em}h1,h2{line-height:1.4}</style><h1>ChatGPT 任务工作台</h1>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>ChatGPT任务工作台</title><style>body{max-width:1000px;margin:40px auto;font:16px/1.8 system-ui;padding:0 24px}pre{overflow:auto}img{max-width:100%}</style><h1>ChatGPT 任务工作台</h1>
+<h2>功能概述</h2>
 <p>2026-10-22。用户要求在 GPTBridge 内单独新增界面，把三个已交付聊天的后续工作整理为 20 个任务；默认面向 Windows 原生 ChatGPT，提供网页目标选择。Mac 连接不改。Codex 只开发、静态验证和本机界面测试，不调用 GPTBridge，不通过 ChatGPT 代发。</p>
+<h2>需求列表</h2>
 <ul>
 <li>FR-1：新增 <code>/chatgpt-tasks</code> 路由和独立导航，旧工作台保留。</li>
 <li>FR-2：载入真实交接对应的 20 个草稿，编辑、搜索、依赖导航、JSON 导入导出、本地保存及完整提示词复制。</li>
@@ -8,5 +10,17 @@
 <li>FR-5：发送前写 UNKNOWN；重复请求拒绝，异常不自动重发/切换网页，任务发送不等于业务完成。</li>
 <li>FR-6：原生自动化命令仅供 Windows 桌面界面主动调用，不加入 MCP 工具目录。Mac 和 Linux 返回不支持。</li>
 </ul>
-<p>当前范围：任务草稿与本地队列、独立 Windows 所有者启动、依赖派发、结果 nonce 与产物/日志 SHA 核对、暂停/停止及未发送时网页回落。任意需求的拆分由 Codex 生成任务包；只有 ChatGPT 调用 GPTBridge。Windows 原生编译、安装及真实 ChatGPT 控件/发送尚未验证，不宣称已无人值守完成业务。</p>
+<p>当前范围：任务草稿与本地队列、独立 Windows 所有者启动、依赖派发、结果 nonce 与产物/日志 SHA 核对、暂停/停止及未发送时网页回落。任意需求的拆分由 Codex 生成任务包；只有 ChatGPT 调用 GPTBridge。Windows 原生编译及候选安装已经完成；真实 ChatGPT 控件/发送仍按交付回执分别报告，不宣称已无人值守完成业务。</p>
+<h2>Windows 统一应用模式适配（2026-10-22）</h2>
+<p>用户确认派发目标是当前 Windows 应用左上角的 ChatGPT 模式，应用包名可为 OpenAI.Codex，不能按包名整体拒绝。只允许用户独立启用的调度器执行任务准备和发送；当前 Codex 代理仍只提交队列和读取结果。</p>
+<ul>
+<li>FR-7：统一宿主须定位唯一模式按钮；Codex 模式仅在 stage 准备阶段允许选择“ChatGPT 创建、学习和探索”，随后实际回读 ChatGPT 模式。</li>
+<li>FR-8：inspect/send/verify 不切换模式；创建新聊天后、选择模型/插件前、填入和发送前再次核模式。Codex、缺失、重复或未确认的模式均拒绝继续。</li>
+<li>FR-9：不接管已展开的模式菜单，不打断正在生成的任务；未知发送不重发。保留同一批20任务、Mac及其他聊天的文件。</li>
+<li>FR-10：使用离线可访问性控件替身验证模式转换与拒绝分支，Windows CI 实际运行；实机只读菜单证据、模拟切换、真实发送分别报告。</li>
+</ul>
+<h2>非功能需求</h2>
+<p>系统 SHALL 保持 Codex 工作模式禁止调用 GPTBridge；只有用户独立启用的调度器在已核对的 ChatGPT 聊天模式派发。系统 SHALL 对歧义、未知发送与未确认选项停止发送，保留原请求和证据。</p>
+<h2>依赖关系</h2>
+<p>Windows UIAutomation、现有 WSL Python、用户已登录客户端及 GPTBridge Windows 连接。模型默认 GPT-6、强度 Pro；用户确认当前滑条右端对应 Pro。版本/控件变更未核对时保留阻塞。</p>
 </html>

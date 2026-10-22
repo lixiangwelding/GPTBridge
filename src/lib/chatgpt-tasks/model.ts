@@ -39,7 +39,10 @@ export function validatePlan(value: unknown): TaskPlan {
     visiting.delete(id);visited.add(id);
   }
   p.tasks.forEach(t=>visit(t.id));
-  return structuredClone(p);
+  const out=structuredClone(p);
+  // Migrate the original candidate's swapped Pro/effort defaults; task identities and states stay intact.
+  if(out.requestedModel==='Pro' && out.requestedEffort==='深入思考'){out.requestedModel='GPT-6';out.requestedEffort='Pro';}
+  return out;
 }
 export function isConversationUrl(value: string): boolean {
   try { const u = new URL(value); return u.origin === 'https://chatgpt.com' && /^\/c\/[a-zA-Z0-9-]+$/.test(u.pathname) && !u.username && !u.password && !u.search && !u.hash; } catch { return false; }
