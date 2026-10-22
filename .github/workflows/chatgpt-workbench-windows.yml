@@ -31,6 +31,7 @@ jobs:
           if($parseErrors.Count){ $parseErrors | ForEach-Object { Write-Error $_.Message }; exit 1 }
       - run: cargo build --manifest-path personal-runtime/Cargo.toml --target-dir src-tauri/target --bin coding-tools-personal-worker
       - run: cargo test --manifest-path src-tauri/Cargo.toml --no-run
+      - run: cargo test --manifest-path src-tauri/Cargo.toml workspace_mapping_tests -- --nocapture
       - run: npm run tauri -- build --bundles nsis
       - uses: actions/upload-artifact@v4
         with:

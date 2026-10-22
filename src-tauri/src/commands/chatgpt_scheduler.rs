@@ -32,10 +32,36 @@ pub async fn chatgpt_queue_control(state:State<'_,AppState>,request:SchedulerReq
 fn workspace_mapping(path:&str)->AppResult<(String,String)> {
     let normalized=path.replace("\\\\?\\UNC\\","\\\\");
     let parts:Vec<_>=normalized.split('\\').filter(|s|!s.is_empty()).collect();
-    if parts.len()<3 || !["wsl.localhost","wsl$"].contains(&parts[0].to_ascii_lowercase().as_str()) || !parts[1].bytes().all(|b|b.is_ascii_alphanumeric() || b==b'-' || b==b'_') || parts[2..].contains(&"..") {
+    if parts.len()<3 || !["wsl.localhost","wsl$"].contains(&parts[0].to_ascii_lowercase().as_str()) || [".",".."].contains(&parts[1]) || !parts[1].bytes().all(|b|b.is_ascii_alphanumeric() || b==b'-' || b==b'_' || b==b'.') || parts[2..].contains(&"..") {
         return Err(AppError::Message("请选择已登记的 Windows WSL 项目；当前自动化使用该项目已有 WSL Python。".into()));
     }
     Ok((parts[1].to_owned(),format!("/{}",parts[2..].join("/"))))
+}
+
+#[cfg(all(test,target_os="windows"))]
+mod workspace_mapping_tests {
+    use super::workspace_mapping;
+
+    #[test]
+    fn accepts_installed_ubuntu_dotted_name() {
+        let (distro,path)=workspace_mapping(r"\\wsl.localhost\Ubuntu-24.04\home\lixiang\my-project-java\codeVerifyRe0").unwrap();
+        assert_eq!(distro,"Ubuntu-24.04");
+        assert_eq!(path,"/home/lixiang/my-project-java/codeVerifyRe0");
+    }
+
+    #[test]
+    fn accepts_wsl_alias_and_extended_unc() {
+        for path in [r"\\wsl$\Ubuntu-24.04\home\user",r"\\?\UNC\wsl.localhost\Ubuntu-24.04\home\user"] {
+            assert_eq!(workspace_mapping(path).unwrap(),("Ubuntu-24.04".into(),"/home/user".into()));
+        }
+    }
+
+    #[test]
+    fn rejects_foreign_host_traversal_and_invalid_distro() {
+        for path in [r"\\other\Ubuntu-24.04\home\user",r"\\wsl.localhost\..\home\user",r"\\wsl.localhost\.\home\user",r"\\wsl.localhost\Ubuntu-24.04\home\..\user",r"\\wsl.localhost\Ubuntu;cmd\home\user",r"C:\home\user"] {
+            assert!(workspace_mapping(path).is_err(),"accepted {path}");
+        }
+    }
 }
 
 #[cfg(target_os="windows")]
