@@ -1,0 +1,30 @@
+{
+  "verifiedAt": "2026-10-22T11:30:29.445104+00:00",
+  "installedSourceCommit": "b4499e92ad4f664dae0bd99faf294d46d9077728",
+  "ownerEnabled": true,
+  "schedulerHeartbeatObserved": true,
+  "schedulerPid": 73146,
+  "batchId": "ddt-three-lines-20261022-01a16250",
+  "batchSha256": "5cfb6c9719847bc3dee56a631491a00b626804aba91e4dfe950dfec6d523a52b",
+  "task": "T01",
+  "status": "blocked",
+  "requestIdSha256": "415e4fccde45140bea2017ce440fcf5f6d913547fa027075b6440572b34aff6b",
+  "attempts": [
+    {
+      "client": "desktop",
+      "detail": "无法唯一核对聊天/工作选项；未填入或发送",
+      "status": "blocked",
+      "windowRef": "29264:264104"
+    },
+    {
+      "client": "web",
+      "detail": "请只打开一个目标 ChatGPT 窗口；网页端还需要可核对 chatgpt.com 地址栏。",
+      "status": "blocked",
+      "windowRef": ""
+    }
+  ],
+  "sendAttemptPresent": false,
+  "messagesSent": 0,
+  "gptbridgeBusinessCalls": 0,
+  "macModified": false
+}

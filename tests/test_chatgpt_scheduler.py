@@ -38,6 +38,7 @@ class SchedulerTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):self.engine.tick()
         self.assertEqual(self.state()['tasks']['T01']['status'],'unknown')
         restarted=Engine(self.queue,self.workspace,self.adapter,self.engine.options)
+        (self.queue/'retry-preparation').touch()
         self.assertEqual(restarted.tick(),'waiting_receipt');self.assertEqual(len(self.calls),2)
         self.receipt();self.assertEqual(restarted.tick(),'sent');self.assertEqual(self.calls[-1]['taskId'],'T02')
     def test_pause_after_fill_resumes_same_unsent_request(self):
@@ -97,6 +98,59 @@ class SchedulerTests(unittest.TestCase):
         self.engine.adapter=adapter;self.engine.options['webFallback']=True
         self.assertEqual(self.engine.tick(),'unknown');self.assertEqual([x['client'] for x in self.calls],['desktop','web','web'])
         self.engine.tick();self.assertEqual(len(self.calls),3)
+
+    def block_preparation(self):
+        def blocked(req):
+            self.calls.append(dict(req))
+            result=dict(status='blocked',requestId=req['requestId'],detail='fixture missing composer')
+            atomic_json(self.queue/'attempts'/(req['requestId']+'.stage.'+req['client']+'.json'),result)
+            return result
+        self.engine.adapter=blocked
+        self.assertEqual(self.engine.tick(),'blocked')
+        return self.state()['tasks']['T01']
+
+    def test_owner_resume_recovers_only_proven_unsent_same_request(self):
+        row=self.block_preparation();original_nonce=row['nonce']
+        self.assertEqual(self.engine.tick(),'blocked');self.assertEqual(len(self.calls),1)
+        self.engine.adapter=self.adapter
+        (self.queue/'retry-preparation').touch()
+        self.assertEqual(self.engine.tick(),'sent')
+        self.assertEqual([c['action'] for c in self.calls],['stage','stage','send'])
+        self.assertTrue(all(c['requestId']==original_nonce for c in self.calls))
+        self.assertEqual(len(self.state()['tasks']['T01']['preparationRecovery']),1)
+        self.assertFalse((self.queue/'retry-preparation').exists())
+        self.assertEqual(self.engine.tick(),'waiting_receipt');self.assertEqual(len(self.calls),3)
+
+    def test_owner_resume_rejects_missing_unknown_or_mismatched_audits_and_any_send_marker(self):
+        row=self.block_preparation();baseline=self.state();rid=row['requestId']
+        audit=self.queue/'attempts'/(rid+'.stage.desktop.json')
+        good=json.loads(audit.read_text());send=self.queue/'attempts'/(rid+'.send.web.input.json')
+        for condition in ['missing','unknown','prepared','wrong_request','send_marker']:
+            with self.subTest(condition=condition):
+                atomic_json(self.queue/'states/batch1.json',baseline)
+                result=dict(good)
+                if condition=='missing':audit.unlink(missing_ok=True)
+                else:
+                    if condition in ('unknown','prepared'):result['status']=condition
+                    if condition=='wrong_request':result['requestId']='another'
+                    atomic_json(audit,result)
+                if condition=='send_marker':send.touch()
+                (self.queue/'retry-preparation').touch();self.engine.adapter=self.adapter
+                self.assertEqual(self.engine.tick(),'blocked');self.assertEqual(len(self.calls),1)
+                self.assertEqual(self.state()['tasks']['T01']['nonce'],rid)
+                send.unlink(missing_ok=True)
+
+    def test_owner_resume_preserves_business_blocked_receipt(self):
+        row=self.block_preparation()
+        atomic_json(self.workspace/row['receiptPath'],dict(schemaVersion=1,batchId='batch1',taskId='T01',nonce=row['nonce'],status='blocked',summary='business input missing'))
+        (self.queue/'retry-preparation').touch();self.engine.adapter=self.adapter
+        self.assertEqual(self.engine.tick(),'blocked');self.assertEqual(len(self.calls),1)
+
+    def test_preparation_fallback_keeps_both_failure_reasons(self):
+        self.engine.options['webFallback']=True;self.block_preparation()
+        attempts=self.state()['tasks']['T01']['preparationAttempts']
+        self.assertEqual([a['client'] for a in attempts],['desktop','web'])
+        self.assertTrue(all(a['status']=='blocked' and a['detail']=='fixture missing composer' for a in attempts))
     def test_pause_stop_and_input_tamper(self):
         (self.queue/'pause').touch();self.assertEqual(self.engine.tick(),'paused');self.assertFalse(self.calls)
         (self.queue/'pause').unlink();self.engine.tick();self.batch['tasks'][0]['prompt']='tampered';atomic_json(self.queue/'inbox/batch1.json',self.batch)

@@ -59,6 +59,12 @@ function Confirm-ChatGPTMode($Window,[string]$HostKind,[string]$Action) {
   if($cp.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On -or $wp.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::Off){return @{ready=$false;detail='当前不是聊天选项；工作模式不允许派发'}}
   return @{ready=$true;detail='已核对 ChatGPT 模式及聊天选项'}
 }
+function Confirm-ChatGPTEntryMode($Window,[string]$HostKind,[string]$Action,[bool]$NewChat) {
+  # A Work conversation can remain visible inside ChatGPT mode. Only preparation of a
+  # new chat may defer the composer gate until after the unique New chat control.
+  if($Action -eq 'stage' -and $NewChat){return Confirm-ChatGPTAppMode $Window $HostKind $Action}
+  return Confirm-ChatGPTMode $Window $HostKind $Action
+}
 function Close-TaskOptionMenu($Window,$Trigger) {
   try {$p=$Trigger.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern);$p.Collapse();Start-Sleep -Milliseconds 80
     if($p.Current.ExpandCollapseState -ne [System.Windows.Automation.ExpandCollapseState]::Collapsed){
@@ -266,7 +272,7 @@ public class ChatGPTTextInput {
     Start-Sleep -Milliseconds 150
     if([ChatGPTMenuCleanup]::GetForegroundWindow() -ne [IntPtr]$window.Current.NativeWindowHandle){Result 'blocked' '请将目标 ChatGPT 窗口置于前台；未填入或发送' $ref}
   }
-  $mode=Confirm-ChatGPTMode $window $hostKind $req.action
+  $mode=Confirm-ChatGPTEntryMode $window $hostKind $req.action ([bool]$req.newChat)
   if(-not $mode.ready){Result 'blocked' $mode.detail $ref}
   if($req.action -eq 'stage' -and $req.newChat) {
     $currentButtons=@($window.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button)))
@@ -276,6 +282,8 @@ public class ChatGPTTextInput {
     if(-not $new[0].TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$invoke)){Result 'blocked' '新聊天入口不可访问，没有发送。' $ref}
     $invoke.Invoke()
     Start-Sleep -Milliseconds 700
+    $mode=Confirm-ChatGPTMode $window $hostKind 'stage'
+    if(-not $mode.ready){Result 'blocked' $mode.detail $ref}
   }
   function Select-ExactOption($triggerNames,$optionName) {
     $guard=Confirm-ChatGPTMode $window $hostKind 'verify'

@@ -85,7 +85,16 @@ Assert (-not(Confirm-ChatGPTMode $window 'unified' 'send').ready -and -not $fixt
 Reset-Fixture 'ChatGPT';$fixture.conversationControls=$false
 Assert (-not(Confirm-ChatGPTMode $window 'unified' 'stage').ready) 'Missing Chat/Work state accepted'
 'HOST_CLASSIFICATION_CASES_PASSED=5' 
-'MODE_CASES_PASSED=15'
+Reset-Fixture 'ChatGPT';$fixture.conversationControls=$false
+Assert ((Confirm-ChatGPTEntryMode $window 'unified' 'stage' $true).ready) 'Existing Work view blocked creation of a new chat'
+Assert (-not(Confirm-ChatGPTMode $window 'unified' 'stage').ready) 'New chat without Chat/Work controls bypassed composer guard'
+$fixture.conversationControls=$true;$fixture.chat=$false
+Assert ((Confirm-ChatGPTMode $window 'unified' 'stage').ready -and $fixture.chat) 'New composer did not switch to Chat'
+Reset-Fixture 'ChatGPT';$fixture.conversationControls=$false
+Assert (-not(Confirm-ChatGPTEntryMode $window 'unified' 'send' $true).ready) 'Send deferred Chat/Work guard using newChat flag'
+Assert (-not(Confirm-ChatGPTEntryMode $window 'unified' 'inspect' $true).ready) 'Inspect deferred Chat/Work guard'
+Assert (-not(Confirm-ChatGPTEntryMode $window 'unified' 'stage' $false).ready) 'Stage without new chat deferred composer guard'
+'MODE_CASES_PASSED=19'
 
 function New-ThumbFixture([double]$center,[switch]$allWhite){
  $b=New-Object System.Drawing.Bitmap 582,76;$g=[Drawing.Graphics]::FromImage($b)

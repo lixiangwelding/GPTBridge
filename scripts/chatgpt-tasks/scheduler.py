@@ -128,6 +128,42 @@ class Engine:
         self.adapter, self.options = adapter, options
         self.queue.mkdir(parents=True, exist_ok=True)
 
+    def retry_unsent_preparation(self, state_path, state):
+        """Owner Resume only. Require every persisted attempt to prove no send occurred."""
+        if state['status'] != 'blocked':
+            return
+        recovered = False
+        for task_id, row in state['tasks'].items():
+            if row.get('status') != 'blocked':
+                continue
+            request_id = row.get('requestId', '')
+            if not request_id or request_id != row.get('nonce') or not request_id.isalnum():
+                continue
+            attempts = self.queue / 'attempts'
+            # Any send marker, receipt, unknown preparation or missing audit is a stop.
+            if list(attempts.glob(request_id + '.send.*')) or inside(self.workspace, row['receiptPath']).exists():
+                continue
+            audits = sorted(attempts.glob(request_id + '.stage.*.json'))
+            if not audits or any(p.name not in (request_id + '.stage.desktop.json', request_id + '.stage.web.json') for p in audits):
+                continue
+            results = []
+            for path in audits:
+                if path.stat().st_size > 2 * 1024 * 1024:
+                    break
+                result = json.loads(path.read_text(encoding='utf-8-sig'))
+                if result.get('status') != 'blocked' or result.get('requestId') != request_id:
+                    break
+                results.append(dict(path=path.name, sha256=digest(path), detail=result.get('detail', '')))
+            if len(results) != len(audits):
+                continue
+            row.setdefault('preparationRecovery', []).append(dict(at=time.time(), audits=results))
+            row.update(status='waiting_client', client=self.options['client'], startedAt=time.time(),
+                       detail='用户继续：已核对准备阶段未发送，沿用原 requestId 重新准备。')
+            recovered = True
+        if recovered:
+            state.update(status='queued', detail='用户请求恢复已证实未发送的准备失败；未知发送保持原状。')
+            atomic_json(state_path, state)
+
     def send_prepared(self, state_path, state, row, request):
         row['status'] = 'unknown'
         atomic_json(state_path, state)  # durable before exactly one send
@@ -142,6 +178,11 @@ class Engine:
             return 'stopped'
         if (self.queue / 'pause').exists():
             return 'paused'
+        retry_marker = self.queue / 'retry-preparation'
+        retry_requested = retry_marker.is_file()
+        if retry_requested:
+            retry_marker.unlink()  # one owner request; never an automatic retry loop
+        idle_status = 'idle'
         for incoming in sorted((self.queue / 'inbox').glob('*.json')):
             if incoming.stat().st_size > 2 * 1024 * 1024:
                 raise ValueError('batch file exceeds size limit')
@@ -156,7 +197,11 @@ class Engine:
                     raise ValueError('submitted batch changed after dispatch')
             else:
                 state = dict(batchId=batch_id, inputSha256=digest(incoming), status='queued', tasks={})
+            if retry_requested:
+                self.retry_unsent_preparation(state_path, state)
             if state['status'] in ('completed', 'blocked'):
+                if state['status'] == 'blocked':
+                    idle_status = 'blocked'
                 continue
             for task in batch['tasks']:
                 row = state['tasks'].get(task['id'])
@@ -194,11 +239,14 @@ class Engine:
                     state.update(status='attention',detail='客户端长时间忙碌，未发送当前任务。');atomic_json(state_path,state);return 'attention'
                 nonce = row['nonce'] if row and row['status']=='waiting_client' else uuid.uuid4().hex
                 started_at = row['startedAt'] if row and row['status']=='waiting_client' else time.time()
+                recovery = row.get('preparationRecovery') if row else None
                 relative = f'output/gptbridge-chatgpt-results/{batch_id}/{task["id"]}.result.json'
                 inside(self.workspace, relative).parent.mkdir(parents=True, exist_ok=True)
                 prompt = task['prompt'] + receipt_instructions(batch_id, task['id'], nonce, relative)
                 row = dict(status='preparing', nonce=nonce, requestId=nonce,
                            receiptPath=relative, startedAt=started_at, client=self.options['client'])
+                if recovery:
+                    row['preparationRecovery'] = recovery
                 state['tasks'][task['id']] = row
                 state['status'] = 'running'
                 atomic_json(state_path, state)  # durable before touching the client
@@ -206,12 +254,14 @@ class Engine:
                                windowRef='', model=self.options['model'], effort=self.options['effort'],
                                prompt=prompt, newChat=True)
                 prepared = self.adapter(request)
+                row['preparationAttempts'] = [dict(client=row['client'], status=prepared.get('status'), detail=prepared.get('detail', ''))]
                 # Only known-unsent preparation may fall back to the web; never after send.
                 if prepared.get('status') == 'blocked' and row['client'] == 'desktop' and self.options.get('webFallback'):
                     request['client'] = 'web'
                     row['client'] = 'web'
                     atomic_json(state_path, state)
                     prepared = self.adapter(request)
+                    row['preparationAttempts'].append(dict(client=row['client'], status=prepared.get('status'), detail=prepared.get('detail', '')))
                 if prepared.get('status') == 'busy':
                     row.update(status='waiting_client',detail=prepared.get('detail','client busy; no action performed'))
                     atomic_json(state_path,state)
@@ -236,7 +286,7 @@ class Engine:
                 state.update(status='blocked',detail='阻塞项及其依赖保留；当前没有可独立推进的就绪任务。')
                 atomic_json(state_path,state)
                 return 'blocked'
-        return 'idle'
+        return idle_status
 
 
 class WindowsAdapter:

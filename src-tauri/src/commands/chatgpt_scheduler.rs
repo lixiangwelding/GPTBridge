@@ -97,7 +97,8 @@ async fn windows_control(state:&AppState,r:SchedulerRequest)->AppResult<Value> {
     }
     if r.action=="resume" {
         let _=std::fs::remove_file(root.join("pause"));
-        return Ok(json!({"status":"resume_requested","unknownReplayed":false}));
+        std::fs::write(root.join("retry-preparation"),b"Windows owner requested proven-unsent preparation recovery")?;
+        return Ok(json!({"status":"resume_requested","unknownReplayed":false,"retryProvenUnsentPreparation":true}));
     }
     let profile=super::taskdock::profile(state,&r.workspace_id)?;
     let (distro,workspace)=workspace_mapping(&profile.path)?;

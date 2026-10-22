@@ -45,7 +45,7 @@ test('native dispatcher is not an MCP tool and uses unique send attempt barrier'
 test('Windows unified desktop verifies ChatGPT mode and never sends in Codex',{skip:process.platform!=='win32'},()=>{
  const file=new URL('./chatgpt-mode-gate.test.ps1',import.meta.url);
  const result=spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',fileURLToPath(file)],{encoding:'utf8'});
- assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/MODE_CASES_PASSED=15/);assert.match(result.stdout,/PRO_SLIDER_VISUAL_CASES_PASSED=5/);assert.match(result.stdout,/MENTION_CASES_PASSED=5/);assert.match(result.stdout,/SENDINPUT_NOT_CALLED/);
+ assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/MODE_CASES_PASSED=19/);assert.match(result.stdout,/PRO_SLIDER_VISUAL_CASES_PASSED=5/);assert.match(result.stdout,/MENTION_CASES_PASSED=5/);assert.match(result.stdout,/SENDINPUT_NOT_CALLED/);
 });
 
 test('migrates original misplaced Pro default without altering queued task content or status',()=>{
