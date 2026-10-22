@@ -1,7 +1,7 @@
 ﻿param([Parameter(Mandatory=$true)][string]$RequestPath)
 $ErrorActionPreference='Stop'
 [Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false)
-function Result($status,$detail,$ref='') { @{status=$status;detail=$detail;windowRef=$ref;requestId=$req.requestId}|ConvertTo-Json -Compress;exit 0 }
+function Result($status,$detail,$ref='') { @{status=$status;detail=$detail;windowRef=$ref;requestId=$req.requestId;diagnostics=$script:diagnostics}|ConvertTo-Json -Depth 5 -Compress;exit 0 }
 # The same Windows application hosts both modes. Image identity never grants a Codex chat permission.
 function Get-ChatGPTDesktopHostKind([string]$ImagePath) {
   if([string]::IsNullOrWhiteSpace($ImagePath) -or [IO.Path]::GetFileName($ImagePath) -ine 'ChatGPT.exe'){return 'unsupported'}
@@ -263,9 +263,14 @@ public class ChatGPTTextInput {
   if($targets.Count -ne 1){Result 'blocked' '请只打开一个目标 ChatGPT 窗口；网页端还需要可核对 chatgpt.com 地址栏。'}
   $window=$targets[0];$hostKind=if($req.client -eq 'web'){'web'}else{$desktopKinds[[string]$window.Current.NativeWindowHandle]};$ref="$($window.Current.ProcessId):$($window.Current.NativeWindowHandle)"
   if($req.windowRef -and $req.windowRef -ne $ref){Result 'blocked' '目标窗口已变化，请重新检查并填入任务。' $ref}
+  $script:diagnostics=@{hostKind=$hostKind;mode=(Get-ChatGPTModeSnapshot $window).mode}
   if($req.action -eq 'stage') {
     $busyButtons=@($window.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button))|Where-Object {$_.Current.Name -in @('Stop generating','Stop streaming','停止生成','停止响应','停止','停止任务') -and -not $_.Current.IsOffscreen})
-    if($busyButtons.Count -gt 0){Result 'busy' 'ChatGPT 仍在处理上一条消息；未创建新聊天、未填入或发送。' $ref}
+    if($busyButtons.Count -gt 0){
+      $script:diagnostics.busyButtonCount=$busyButtons.Count
+      $script:diagnostics.busyButtonNames=@($busyButtons|Select-Object -First 8|ForEach-Object {$_.Current.Name})
+      Result 'busy' 'ChatGPT 仍在处理上一条消息；未创建新聊天、未填入或发送。' $ref
+    }
   }
   if($req.action -eq 'stage' -and $hostKind -eq 'unified' -and [ChatGPTMenuCleanup]::GetForegroundWindow() -ne [IntPtr]$window.Current.NativeWindowHandle){
     [void][ChatGPTMenuCleanup]::SetForegroundWindow([IntPtr]$window.Current.NativeWindowHandle)

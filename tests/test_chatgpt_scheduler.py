@@ -6,7 +6,9 @@ import tempfile
 import unittest
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts/chatgpt-tasks'))
-from scheduler import Engine,atomic_json,digest,inside,verify_receipt,validate_batch
+from scheduler import Engine,WindowsAdapter,atomic_json,digest,inside,verify_receipt,validate_batch,diagnostic_event
+from unittest.mock import patch
+import subprocess
 from submit_queue import submit
 
 
@@ -170,6 +172,29 @@ class SchedulerTests(unittest.TestCase):
         for mutate in [lambda b:b.update(connector='Mac'),lambda b:b['tasks'][0].update(dependsOn=['T02']),lambda b:b['tasks'][0].update(dependsOn=['missing'])]:
             b=json.loads(json.dumps(self.batch));mutate(b)
             with self.assertRaises(ValueError):validate_batch(b)
+
+    def test_diagnostic_metadata_redaction_rotation_and_log_failure(self):
+        diagnostic_event(self.queue,'fixture',taskId='T01',prompt='PRIVATE_PROMPT',password='PRIVATE_PASSWORD')
+        path=self.queue/'logs/scheduler-events.jsonl'
+        record=json.loads(path.read_text())
+        self.assertEqual(record['taskId'],'T01');self.assertNotIn('PRIVATE',path.read_text())
+        path.write_text('x'*(2*1024*1024))
+        diagnostic_event(self.queue,'rotated',status='waiting_client')
+        self.assertEqual(json.loads(path.read_text())['event'],'rotated')
+        self.assertTrue(path.with_name(path.name+'.1').is_file())
+        path.unlink();path.mkdir()
+        diagnostic_event(self.queue,'unwritable')  # Does not break dispatch semantics.
+
+    def test_adapter_error_logs_metadata_and_keeps_unknown_attempt(self):
+        adapter=WindowsAdapter(self.queue,'unused-fixture.ps1')
+        req=dict(taskId='T01',requestId='fixture1',action='stage',client='desktop',prompt='PRIVATE_PROMPT')
+        with patch('scheduler.subprocess.check_output',return_value='C:\\fixture.json'),patch('scheduler.subprocess.run',side_effect=subprocess.TimeoutExpired('fixture',50)):
+            result=adapter(req)
+        self.assertEqual(result['status'],'unknown')
+        logs=(self.queue/'logs/scheduler-events.jsonl').read_text()
+        self.assertIn('TimeoutExpired',logs);self.assertNotIn('PRIVATE_PROMPT',logs)
+        self.assertEqual(json.loads((self.queue/'attempts/fixture1.stage.desktop.json').read_text())['status'],'unknown')
+        self.assertFalse(list((self.queue/'attempts').glob('*.input.json')))
 
 
 if __name__=='__main__':unittest.main()

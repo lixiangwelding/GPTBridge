@@ -25,7 +25,30 @@ pub async fn chatgpt_queue_control(state:State<'_,AppState>,request:SchedulerReq
     #[cfg(not(target_os="windows"))]
     { let _=(state,request);Err(AppError::Message("独立调度器仅支持 Windows + WSL，不操作 Mac。".into())) }
     #[cfg(target_os="windows")]
-    { windows_control(&state,request).await }
+    {
+        let action=request.action.clone();
+        let started=std::time::Instant::now();
+        let result=windows_control(&state,request).await;
+        // Keep polling quiet; log controls locally without workspace or prompt contents.
+        if action!="status" {
+            if let Ok(dir)=crate::platform::platform().app_config_dir() {
+                use std::io::Write;
+                let folder=dir.join("chatgpt-task-queue/logs");
+                let _=std::fs::create_dir_all(&folder);
+                let path=folder.join("windows-controls.jsonl");
+                if std::fs::metadata(&path).map(|m|m.len()>2*1024*1024).unwrap_or(false) {
+                    let _=std::fs::remove_file(folder.join("windows-controls.previous.jsonl"));
+                    let _=std::fs::rename(&path,folder.join("windows-controls.previous.jsonl"));
+                }
+                if let Ok(mut file)=std::fs::OpenOptions::new().append(true).create(true).open(path) {
+                    let at=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs_f64();
+                    let record=json!({"at":at,"action":action,"ok":result.is_ok(),"durationMs":started.elapsed().as_millis(),"status":result.as_ref().ok().and_then(|v|v.get("status"))});
+                    let _=writeln!(file,"{}",record);
+                }
+            }
+        }
+        result
+    }
 }
 
 #[cfg(target_os="windows")]

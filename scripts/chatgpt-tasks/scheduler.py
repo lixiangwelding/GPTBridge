@@ -15,6 +15,28 @@ import uuid
 ID = re.compile(r'^[A-Za-z0-9_-]{1,80}$')
 
 
+def diagnostic_event(queue, event, **fields):
+    """Bounded metadata only; never serialize requests, prompts or exception messages."""
+    try:
+        folder = Path(queue) / 'logs'
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / 'scheduler-events.jsonl'
+        if path.exists() and path.stat().st_size >= 2 * 1024 * 1024:
+            for n in (2, 1):
+                old = folder / f'scheduler-events.jsonl.{n}'
+                if old.exists():
+                    os.replace(old, folder / f'scheduler-events.jsonl.{n+1}')
+            os.replace(path, folder / 'scheduler-events.jsonl.1')
+        allowed = {'batchId','taskId','requestId','action','client','status','durationMs',
+                   'exitCode','errorType','stdoutBytes','stderrBytes','stderrSha256',
+                   'pid','hostKind','mode','busyButtonCount','busyButtonNames'}
+        record = dict(at=time.time(), event=event, **{k:v for k,v in fields.items() if k in allowed})
+        with path.open('a', encoding='utf-8') as output:
+            output.write(json.dumps(record, ensure_ascii=False) + '\n')
+    except (OSError, TypeError, ValueError):
+        pass  # Diagnostics must not turn an acknowledged send into a retry.
+
+
 def atomic_json(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -157,6 +179,7 @@ class Engine:
             if len(results) != len(audits):
                 continue
             row.setdefault('preparationRecovery', []).append(dict(at=time.time(), audits=results))
+            diagnostic_event(self.queue, 'preparation_recovered', batchId=state['batchId'], taskId=task_id, requestId=request_id)
             row.update(status='waiting_client', client=self.options['client'], startedAt=time.time(),
                        detail='用户继续：已核对准备阶段未发送，沿用原 requestId 重新准备。')
             recovered = True
@@ -167,10 +190,12 @@ class Engine:
     def send_prepared(self, state_path, state, row, request):
         row['status'] = 'unknown'
         atomic_json(state_path, state)  # durable before exactly one send
+        diagnostic_event(self.queue, 'send_attempt', batchId=state['batchId'], taskId=request['taskId'], requestId=request['requestId'], client=request['client'])
         sent = self.adapter(request)
         row.update(status='sent' if sent.get('status') == 'sent' else 'unknown', detail=sent.get('detail', '查询原对话'))
         row.pop('preparedRequest', None)
         atomic_json(state_path, state)
+        diagnostic_event(self.queue, 'send_result', batchId=state['batchId'], taskId=request['taskId'], requestId=request['requestId'], status=row['status'])
         return row['status']
 
     def tick(self):
@@ -225,6 +250,7 @@ class Engine:
                         # A partially written JSON is rejected until the writer finishes atomically.
                         verify_receipt(self.workspace, result, batch_id, task['id'], row['nonce'])
                         row.update(status='completed', receiptSha256=digest(receipt_path), completedAt=time.time())
+                        diagnostic_event(self.queue, 'receipt_verified', batchId=batch_id, taskId=task['id'], requestId=row['requestId'])
                         state['status'] = 'running'
                         atomic_json(state_path, state)
                         continue
@@ -294,21 +320,31 @@ class WindowsAdapter:
         self.queue, self.adapter_path = Path(queue), adapter_path
 
     def __call__(self, request):
+        started = time.monotonic()
+        meta = {key:request[key] for key in ('taskId','requestId','action','client')}
         attempt = self.queue / 'attempts' / (request['requestId'] + '.' + request['action'] + '.' + request['client'] + '.json')
         if request['action'] == 'send' and attempt.exists():
             return dict(status='unknown', detail='本请求已有发送尝试；没有重放。')
         atomic_json(attempt, dict(status='unknown', requestId=request['requestId'], action=request['action']))
         path = attempt.with_suffix('.input.json')
         atomic_json(path, request)
+        diagnostic_event(self.queue, 'adapter_start', **meta)
         try:
             win_path = subprocess.check_output(['wslpath', '-w', str(path)], text=True).strip()
             p = subprocess.run(['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
                                 '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File',
                                 self.adapter_path, '-RequestPath', win_path], capture_output=True, timeout=50)
             result = json.loads(p.stdout.decode('utf-8-sig')) if p.returncode == 0 else dict(status='unknown', detail='适配器退出异常')
+            diagnostic_event(self.queue, 'adapter_result', **meta, status=result.get('status'),
+                             durationMs=round((time.monotonic()-started)*1000), exitCode=p.returncode,
+                             stdoutBytes=len(p.stdout), stderrBytes=len(p.stderr),
+                             stderrSha256=hashlib.sha256(p.stderr).hexdigest(),
+                             **{k:v for k,v in result.get('diagnostics', {}).items()
+                                if k in ('hostKind','mode','busyButtonCount','busyButtonNames')})
             atomic_json(attempt, result)
             return result
-        except Exception:
+        except Exception as error:
+            diagnostic_event(self.queue, 'adapter_error', **meta, errorType=type(error).__name__, durationMs=round((time.monotonic()-started)*1000))
             return dict(status='unknown', detail='适配器异常；查询原对话，禁止重发。')
         finally:
             path.unlink(missing_ok=True)
@@ -331,14 +367,20 @@ def main():
         except BlockingIOError:
             raise SystemExit('a scheduler already owns this queue')
         atomic_json(queue/'auto-enabled',dict(pid=os.getpid(),owner='Windows GPTBridge'))
+        diagnostic_event(queue, 'scheduler_started', pid=os.getpid())
         engine = Engine(queue, config['workspace'], WindowsAdapter(queue, config['adapterWindowsPath']), config)
         heartbeat = queue / 'scheduler-status.json'
+        previous_status = None
         try:
             while True:
                 try:
                     state = engine.tick()
+                    if state != previous_status:
+                        diagnostic_event(queue, 'scheduler_status', status=state, pid=os.getpid())
+                        previous_status = state
                     atomic_json(heartbeat, dict(status=state, pid=os.getpid(), updatedAt=time.time(), detail=''))
                 except Exception as e:
+                    diagnostic_event(queue, 'scheduler_error', errorType=type(e).__name__, pid=os.getpid())
                     # Bad/partial/mismatched receipts never cause redispatch. Preserve all task state.
                     atomic_json(heartbeat, dict(status='attention', pid=os.getpid(), updatedAt=time.time(), detail=str(e)))
                     state = 'attention'
@@ -346,6 +388,7 @@ def main():
                     return
                 time.sleep(2)
         finally:
+            diagnostic_event(queue, 'scheduler_stopped', pid=os.getpid())
             (queue/'auto-enabled').unlink(missing_ok=True)
             atomic_json(heartbeat, dict(status='stopped', pid=os.getpid(), updatedAt=time.time()))
 
