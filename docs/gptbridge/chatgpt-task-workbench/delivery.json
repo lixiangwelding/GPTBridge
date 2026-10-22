@@ -1,114 +1,221 @@
 {
-  "verifiedAt": "2026-10-22T10:58:35.129772+00:00",
-  "sourceCommit": "b4499e92ad4f664dae0bd99faf294d46d9077728",
+  "verifiedAt": "2026-10-22T13:36:23.643442+00:00",
+  "sourceCommit": "955a22306bbfd3cfe52ecc170c3c710e20c76c85",
   "ci": {
-    "runId": 39765170853,
-    "url": "https://github.com/lixiangwelding/GPTBridge/actions/runs/39765170853",
+    "runId": 39783260329,
+    "url": "https://github.com/lixiangwelding/GPTBridge/actions/runs/39783260329",
     "conclusion": "success",
     "windowsOnly": true,
     "releasePublished": false,
-    "nodeTestsPassed": 20,
-    "pythonTestsPassed": 12,
+    "nodeTestsPassed": 21,
+    "pythonTestsPassed": 19,
     "rustTestTargetsCompiled": true,
     "rustTestsExecuted": true,
-    "rustTestsPassed": 3,
-    "rustTestsScope": "workspace_mapping_tests only; full Rust suite not executed",
+    "rustTestsPassed": 6,
+    "rustTestsScope": "workspace_mapping_tests filter: 3 workspace mapping and 3 Windows skill catalog regressions; full Rust suite not executed",
+    "svelteErrors": 0,
+    "svelteWarnings": 0,
     "powerShellSyntax": "passed",
-    "nativePowerShellFixtures": "5 host assertions, 15 mode/chat-work scenarios, 5 Pro image fixtures, 5 structured mention cases, Unicode INPUT ABI; no live dispatch",
+    "nativePowerShellFixtures": "19 mode/chat-work scenarios plus host, Pro, structured mention and Unicode INPUT ABI fixtures; no live send",
     "nsisBuild": "passed"
   },
   "artifact": {
-    "sourceCommit": "b4499e92ad4f664dae0bd99faf294d46d9077728",
-    "runId": 39765170853,
-    "artifactId": 12419673860,
-    "artifactSha256": "178fa592b0cfe8e578227bb942e538dcb59a7812a465a3c8bc0fad2cd67af720",
-    "installerSha256": "11e3c90267223759d2aa053b1993dc4d8624aaa678639b65153fa8ff12bdf757",
-    "installer": "/mnt/c/Users/99321/Downloads/GPTBridge_0.4.3_chatgpt-tasks_b4499e9_x64-setup.exe"
+    "sourceCommit": "955a22306bbfd3cfe52ecc170c3c710e20c76c85",
+    "runId": 39783260329,
+    "artifactId": 12427838448,
+    "artifactSha256": "53f29b1aae921a263053010f8972d9f83b4c622b061a7b387b758d01ba84cac9",
+    "installerSha256": "0503f8a335cf4b7d1b53a683c9913b82cebb4101fedccafe21e2ab7963446b99",
+    "installer": "/mnt/c/Users/99321/Downloads/GPTBridge_0.4.3_chatgpt-tasks_955a223_x64-setup.exe"
   },
   "installation": {
     "installerExit": 0,
     "installedPath": "C:\\Users\\99321\\AppData\\Local\\Programs\\GPTBridge\\coding-tools-mcp-personal.exe",
-    "installedSha256": "252871d3fed5abda216d231193575869b4f8db4534eb63792fe2b839b788acd8",
-    "pid": 42396,
-    "profilesBeforeSha256": "8dc1ecb69b93b512aa343f79e4993f22121254de9e18909e1f813fcf17e4e316",
-    "profilesSha256": "8dc1ecb69b93b512aa343f79e4993f22121254de9e18909e1f813fcf17e4e316",
+    "installedSha256": "f4966d70f926fb2977562304a3df5639ec0e7bd7327aec2e94a1dc9d2ced8538",
+    "profilesBeforeSha256": "754c3543742f44c3f72c4751255aab03b39fbc93cb4155cdbb6ac6677e775b9c",
+    "profilesSha256": "754c3543742f44c3f72c4751255aab03b39fbc93cb4155cdbb6ac6677e775b9c",
     "schedulerStarted": false,
     "macModified": false,
-    "frpcPids": [
-      42852
-    ]
-  },
-  "nativeUi": {
-    "route": "/chatgpt-tasks",
-    "twentyDraftsLoaded": true,
-    "existingBatchAdopted": true,
-    "workspace": "Windows·弹弹堂开发全集",
-    "requestedModel": "GPT-6",
-    "requestedEffort": "Pro",
-    "schedulerStatus": "not_started",
-    "screenshot": "windows-native.png",
-    "screenshotSha256": "e966354753f53e55de153170fd9c7ddcf804ec7364559b9cb04585e856d08e30"
+    "pid": 35512,
+    "nativeWindowId": 1250398
   },
   "windowsConnection": {
     "localPort": 38766,
-    "nativeUiStatus": "当前实例运行中; 本地 MCP 正在监听 127.0.0.1:38766",
-    "endpoint": "https://gptbridge-b.ssh.ddtgm.lol/mcp",
+    "listenerPid": 35512,
+    "listenerAddress": "127.0.0.1",
     "protocolOrToolProbeByCodex": false,
-    "profilesFinalSha256": "519018aaba06ccb2c86a6ad7470c204169ae4c4be4fba0a49255933e1cb59b0d",
-    "profilesSemanticallyUnchanged": true,
-    "formattingRewrittenByNativeServiceStart": true
+    "otherProfileFieldsSemanticallyUnchanged": true,
+    "intentionalConfigurationChanges": [
+      "Windows runtime.upstream_mcps: existing Windows Playwright, jshook, drawio"
+    ]
   },
-  "codexGuard": {
-    "pluginEnabled": false,
-    "freshRuntimeBridgeAppsCallable": false,
-    "preToolUseHookTrusted": true,
-    "activeChatsRestarted": false,
-    "queueOnlyException": true
+  "localMcp": {
+    "configured": true,
+    "qualifiedTransport": "Windows native node.exe stdio",
+    "handshakeAndToolList": [
+      {
+        "name": "Windows playwright",
+        "toolsCount": 25,
+        "status": "passed"
+      },
+      {
+        "name": "Windows jshook",
+        "toolsCount": 8,
+        "status": "passed"
+      },
+      {
+        "name": "Windows drawio",
+        "toolsCount": 8,
+        "status": "passed"
+      }
+    ],
+    "activeProcesses": [
+      {
+        "name": "Windows playwright",
+        "count": 1,
+        "pids": [
+          42340
+        ]
+      },
+      {
+        "name": "Windows jshook",
+        "count": 1,
+        "pids": [
+          480
+        ]
+      },
+      {
+        "name": "Windows drawio",
+        "count": 1,
+        "pids": [
+          24664
+        ]
+      }
+    ],
+    "businessToolsCalled": false,
+    "discoveryProcessesClosed": true
+  },
+  "skills": {
+    "matches": 477,
+    "scanBoundaryWarning": false,
+    "builtinTools": 52,
+    "detailRead": "not_verified; final Computer Use detail action returned an error; user then stopped UI automation"
   },
   "queue": {
     "batchId": "ddt-three-lines-20261022-01a16250",
     "tasksSubmitted": 20,
     "batchSha256": "5cfb6c9719847bc3dee56a631491a00b626804aba91e4dfe950dfec6d523a52b",
     "schedulerEnabled": false,
-    "messagesSent": 0,
-    "gptbridgeToolCalls": 0
+    "schedulerStatus": "stopped",
+    "lastSchedulerPid": 85034,
+    "firstTaskStatus": "waiting_client",
+    "sameOriginalRequest": true,
+    "sendMarkers": 0,
+    "resultReceipts": 0,
+    "tasksCompleted": 0,
+    "lastPreparation": {
+      "mode": "ChatGPT",
+      "targetCount": 1,
+      "status": "busy",
+      "busyButtonNames": [
+        "停止"
+      ]
+    },
+    "reasonStopped": "stopped through authorized native Windows controls before latest install; not restarted",
+    "resumeRequiresWindowsOwnerControl": true
+  },
+  "computerUse": {
+    "officialWindowsRuntime": true,
+    "nativeReadVerified": true,
+    "nativeInputVerified": true,
+    "currentToolCatalogHotloaded": false,
+    "activeChatsRestarted": false,
+    "stoppedByUser": true,
+    "ownedSessionClosed": true,
+    "newUiActionsAfterStop": false
+  },
+  "codexGuard": {
+    "pluginEnabled": false,
+    "preToolUseHookTrusted": true,
+    "directBridgeCallsStillProhibited": true,
+    "queueOnlyException": true,
+    "temporaryUiGrantPresent": false
+  },
+  "diagnostics": {
+    "installed": true,
+    "actualWindowsControlsReadback": [
+      {
+        "action": "start",
+        "at": 1792674282.6415598,
+        "durationMs": 1289,
+        "ok": true,
+        "status": "start_requested"
+      },
+      {
+        "action": "resume",
+        "at": 1792674307.9588568,
+        "durationMs": 1,
+        "ok": true,
+        "status": "resume_requested"
+      },
+      {
+        "action": "stop",
+        "at": 1792674626.05756,
+        "durationMs": 1,
+        "ok": true,
+        "status": "stop_requested"
+      }
+    ],
+    "lastPreparation": {
+      "at": 1792674626.720991,
+      "event": "adapter_result",
+      "taskId": "T01",
+      "action": "stage",
+      "client": "desktop",
+      "status": "busy",
+      "durationMs": 1523,
+      "exitCode": 0,
+      "stdoutBytes": 422,
+      "stderrBytes": 0,
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "ChatGPT",
+      "busyButtonCount": 1,
+      "busyButtonNames": [
+        "停止"
+      ],
+      "targetCount": 1,
+      "seenDesktopWindows": 1,
+      "hostKind": "unified",
+      "discoveryErrorTypes": [],
+      "desktopRootTypes": [
+        "ControlType.Window"
+      ],
+      "offscreenDesktopWindows": 0
+    },
+    "normalizedEmbeddedRuntimeMatchesSource": true,
+    "nativeWindowsControlLog": "chatgpt-task-queue/logs/windows-controls.jsonl",
+    "schedulerLog": "chatgpt-task-queue/logs/scheduler-events.jsonl",
+    "promptOrCredentialBodiesLogged": false,
+    "rotationBounded": true
+  },
+  "nativeUi": {
+    "twentyTasksLoaded": true,
+    "requestedModel": "GPT-6",
+    "requestedEffort": "Pro",
+    "screenshot": "windows-native.png",
+    "screenshotSha256": "581ab6be71673b8bfde38890626b3a059355b97e32e4660a0ad29cbab786f6ad",
+    "screenshotRepresents": "historical d48dc67 task page; does not represent current skill catalog or queue state"
   },
   "foreignFiles": {
     "checked": 67,
     "changed": []
   },
+  "runtimeDependency": "Windows GUI and native MCP servers; queue engine uses existing WSL Python",
   "macModified": false,
   "notVerified": [
-    "Actual user-enabled scheduler startup after final candidate install",
-    "Live end-to-end ChatGPT mode selection, model/Pro verification and full multiline prompt insertion",
-    "Actual message sending and GPTBridge business tool execution",
-    "Twenty DDT task completion"
-  ],
-  "previousDelivery": {
-    "sourceCommit": "167ed873c2a1e2e924b34119ffbdbe9b10d712b9",
-    "runId": 39757521093,
-    "installedSha256": "df2a4f3ff8dfb1011be035b94c9da3877f24d3e5057906f05ef2c6d6956d0811"
-  },
-  "startupFailure": {
-    "observed": "user clicked enable; native UI rejected Windows WSL project; no scheduler files/heartbeat/state",
-    "rootCause": "Ubuntu-24.04 distro dot rejected by workspace_mapping",
-    "fixed": true,
-    "actualSchedulerStartAfterFix": "not performed by Codex"
-  },
-  "desktopIdentity": {
-    "observedPath": "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.1013.4894.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe",
-    "hostKind": "unified",
-    "modeControlsReadonlyObserved": true,
-    "userConfirmedProInEffortMenu": true,
-    "userConfirmedProAtRightEndpoint": true,
-    "structuredWindowsMentionReadonlyObserved": true,
-    "latestBackgroundLookup": "inconclusive; no mode/text changes",
-    "policy": "Only user-enabled independent Windows scheduler may select and verify ChatGPT mode; Codex still queue-only; no Mac access"
-  },
-  "isolatedEditorSmoke": {
-    "result": "not_verified",
-    "reason": "Own isolated Edge fixture edit controls not exposed; no native text injected; HTTP follow-up blocked by local PreToolUse guard and not retried",
-    "chatgptTextEnteredByCodex": false,
-    "messagesSentByCodex": 0
-  }
+    "Installed Windows Skill detail preview after final UI action error; user stopped Computer Use",
+    "Live prompt input/send and task receipt",
+    "Business tool execution through ChatGPT GPTBridge Windows",
+    "Twenty DDT task completion",
+    "Full Rust test suite"
+  ]
 }

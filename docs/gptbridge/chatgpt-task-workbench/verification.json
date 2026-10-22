@@ -1,28 +1,28 @@
 {
-  "capturedAt": "2026-10-22T10:38:35.107075+00:00",
+  "capturedAt": "2026-10-22T11:38:08.942730+00:00",
   "route": "/chatgpt-tasks",
   "actualUrl": "http://127.0.0.1:1437/chatgpt-tasks",
-  "environment": "actual locally built Svelte frontend; native Tauri service unavailable in browser preview",
+  "environment": "actual locally built Svelte frontend with proxy persistence fix; no native Tauri scheduler calls in browser",
   "gameVersion": "not-applicable; prepared task drafts cover six versions",
-  "gitHead": "10dc274c245fb45100bcaa451b018ef295e447f5",
+  "gitHead": "1320d6f90d8ac4037f2b62a4eaa4058b1d5f33e9",
   "dirty": true,
   "sourceSha256": {
     "src/routes/chatgpt-tasks/+page.svelte": "8ef9aedd10e71baa320ff2cdd7bcbf0e1c5c7a8c1c8fe67ffeb2991a6ed7bf9b",
     "src/lib/taskdock/Shell.svelte": "bb28ebdf6fef50742b7d2f6a7db4123a8c388e87a6e3b14c3d54b0d5d207854c",
-    "src/lib/chatgpt-tasks/model.ts": "6519422b9012a95ecb5e6beb0f2eaa641f8dd31753505ffb500a5ff02009655c",
+    "src/lib/chatgpt-tasks/model.ts": "01a46831c4f8b4d5f4781468b62494868420d245bd0508eb959ffbef888e27e3",
     "src/lib/chatgpt-tasks/ddt-plan.json": "0e13767b66488efa68efb1535b263a9de882faf684b2093a47209f05dde6687c",
     "src-tauri/src/commands/chatgpt_tasks.rs": "baf151ade8d8cfc5018e05b3044331540d6a1af2ab9c03ed9cd50bd67cad968f",
-    "src-tauri/src/commands/chatgpt_scheduler.rs": "5eb2cbc92f6bbaf1d58b4a61cc78e2ee4f327d01e1ccdebb3cb27dde3a13ba15",
-    "src-tauri/scripts/chatgpt-dispatch.ps1": "43220ad4ef1230d2c910b219e8896bb6781f6feb2a9e9eabd5e4a7f1da25d80e",
-    "scripts/chatgpt-tasks/scheduler.py": "124d079b9d2017a1d7274c1f6cd932a06b44e592ac5e8fab1a1fb879b6298f61",
+    "src-tauri/src/commands/chatgpt_scheduler.rs": "4e5c76f2ae5430e3164d5bea498d845a6eb5b1f4c213a97b84afcf31d2f22313",
+    "src-tauri/scripts/chatgpt-dispatch.ps1": "63e1df0381a982184b5d05c9696c3d4c7e59902f0fc4cab5dd0817aa758d712c",
+    "scripts/chatgpt-tasks/scheduler.py": "4d0e8c46f1455c2917ec9b8c57b13c3732d6e5f6fe6edec2407a40f0cbacfa24",
     "scripts/chatgpt-tasks/submit_queue.py": "7000f39336013d1cbe93fa18a2a655d8eccbfd90a44a847ff194a9ca20a3ebdc"
   },
   "buildVersion": {
-    "version": "1792664779532"
+    "version": "1792668883660"
   },
   "screenshots": {
     "desktop.png": {
-      "sha256": "a603894b13dc03f19c2aef1615059f23cdc88cf1fe59445de57469ad54931383",
+      "sha256": "ed0ff121a51ad8f4910676d06af0fdb6549456749531a89f0c5d2d40c591b7d3",
       "viewport": {
         "width": 1440,
         "height": 1100
@@ -30,7 +30,7 @@
       "fullPage": false
     },
     "mobile.png": {
-      "sha256": "d2d9a975d194655fc9996ac3909ea85f895c3aa823c02964dc23aa65853ef836",
+      "sha256": "c10c7f624f4e0ca7d9cc945ccb6ab0bc9648793ec4a4524a9f1b430a38208057",
       "viewport": {
         "width": 375,
         "height": 844
@@ -38,7 +38,7 @@
       "fullPage": false
     },
     "desktop-full.png": {
-      "sha256": "a603894b13dc03f19c2aef1615059f23cdc88cf1fe59445de57469ad54931383",
+      "sha256": "ed0ff121a51ad8f4910676d06af0fdb6549456749531a89f0c5d2d40c591b7d3",
       "viewport": {
         "width": 1440,
         "height": 1100
@@ -46,7 +46,7 @@
       "fullPage": true
     },
     "mobile-full.png": {
-      "sha256": "d2d9a975d194655fc9996ac3909ea85f895c3aa823c02964dc23aa65853ef836",
+      "sha256": "c10c7f624f4e0ca7d9cc945ccb6ab0bc9648793ec4a4524a9f1b430a38208057",
       "viewport": {
         "width": 375,
         "height": 844
@@ -58,45 +58,59 @@
     "svelteErrors": 0,
     "svelteWarnings": 0,
     "frontendBuild": "passed",
-    "nodeTestsPassed": 20,
-    "offlineSchedulerTestsPassed": 12,
+    "nodeTestsPassed": 21,
+    "offlineSchedulerTestsPassed": 16,
     "powerShellSyntax": "passed; dispatch script not executed",
     "taskRows": 20,
     "mobileHorizontalOverflow": false,
     "consoleErrors": 0,
     "nativeWindowsRustCompile": "passed; 3 Windows mapping tests executed; full Rust suite not run",
-    "actualChatGPTUIAutomation": "readonly observations only; actual user-enabled dispatch pending",
+    "actualChatGPTUIAutomation": "User enabled scheduler; T01 desktop stage rejected missing Chat/Work controls in existing Work view, web stage rejected missing target; no send marker",
     "chatgptMessagesSent": 0,
     "gptbridgeToolCalls": 0,
     "macModified": false,
-    "nodeWindowsNativeTest": "passed in final Windows CI",
-    "powerShellModeCases": 15,
+    "nodeWindowsNativeTest": "passed in final Windows CI39771920911",
+    "powerShellModeCases": 19,
     "proVisualCases": 5,
     "structuredMentionCases": 5,
     "unicodePacketABI": "passed; SendInput not called",
-    "isolatedNativeTextInput": "not verified: own Edge fixture edit controls unavailable"
+    "isolatedNativeTextInput": "not verified: own Edge fixture edit controls unavailable",
+    "nodeTestsSkipped": 0,
+    "proxyPlanSave": "real UI Save succeeded with 20 stored tasks and no DataCloneError",
+    "proxyPlanReload": "20 tasks persisted across reload",
+    "nativeWindowsStatusPersistence": "actual final installed native page polled old T01 state, no DataCloneError"
   },
   "queue": {
     "batchId": "ddt-three-lines-20261022-01a16250",
     "tasksSubmitted": 20,
     "ownerEnabled": false,
-    "dispatched": false
+    "dispatched": false,
+    "firstTaskStatus": "old T01 block retained; user stopped owner before installation; awaiting re-enable/resume"
   },
   "delivery": "delivery.json",
   "nativeWindowsScreenshot": "windows-native.png",
-  "currentDeliverySourceCommit": "b4499e92ad4f664dae0bd99faf294d46d9077728",
-  "buildManifestSha256": "2fd39d0067b7ff63a3498cab4839abda8c427dbb12bfa4ae01cb324c50c85fe3",
+  "currentDeliverySourceCommit": "955a22306bbfd3cfe52ecc170c3c710e20c76c85",
+  "buildManifestSha256": "5ae4f1f241e84e20e3311d6000658388659c406e3b1c4104f8f4cb17f31a81d3",
   "installedSourceSha256": {
     "src/routes/chatgpt-tasks/+page.svelte": "8ef9aedd10e71baa320ff2cdd7bcbf0e1c5c7a8c1c8fe67ffeb2991a6ed7bf9b",
     "src/lib/taskdock/Shell.svelte": "bb28ebdf6fef50742b7d2f6a7db4123a8c388e87a6e3b14c3d54b0d5d207854c",
-    "src/lib/chatgpt-tasks/model.ts": "6519422b9012a95ecb5e6beb0f2eaa641f8dd31753505ffb500a5ff02009655c",
+    "src/lib/chatgpt-tasks/model.ts": "01a46831c4f8b4d5f4781468b62494868420d245bd0508eb959ffbef888e27e3",
     "src/lib/chatgpt-tasks/ddt-plan.json": "0e13767b66488efa68efb1535b263a9de882faf684b2093a47209f05dde6687c",
     "src-tauri/src/commands/chatgpt_tasks.rs": "baf151ade8d8cfc5018e05b3044331540d6a1af2ab9c03ed9cd50bd67cad968f",
-    "src-tauri/src/commands/chatgpt_scheduler.rs": "5eb2cbc92f6bbaf1d58b4a61cc78e2ee4f327d01e1ccdebb3cb27dde3a13ba15",
-    "src-tauri/scripts/chatgpt-dispatch.ps1": "6206eaac54a51af941d6d6ddbe442504ff5071cc4a9087034df1669bc0202148",
-    "scripts/chatgpt-tasks/scheduler.py": "124d079b9d2017a1d7274c1f6cd932a06b44e592ac5e8fab1a1fb879b6298f61",
+    "src-tauri/src/commands/chatgpt_scheduler.rs": "4e5c76f2ae5430e3164d5bea498d845a6eb5b1f4c213a97b84afcf31d2f22313",
+    "src-tauri/scripts/chatgpt-dispatch.ps1": "63e1df0381a982184b5d05c9696c3d4c7e59902f0fc4cab5dd0817aa758d712c",
+    "scripts/chatgpt-tasks/scheduler.py": "4d0e8c46f1455c2917ec9b8c57b13c3732d6e5f6fe6edec2407a40f0cbacfa24",
     "scripts/chatgpt-tasks/submit_queue.py": "7000f39336013d1cbe93fa18a2a655d8eccbfd90a44a847ff194a9ca20a3ebdc"
   },
-  "nativeWindowsScreenshotSha256": "e966354753f53e55de153170fd9c7ddcf804ec7364559b9cb04585e856d08e30",
-  "deliveryVerifiedAt": "2026-10-22T10:58:35.129772+00:00"
+  "nativeWindowsScreenshotSha256": "581ab6be71673b8bfde38890626b3a059355b97e32e4660a0ad29cbab786f6ad",
+  "deliveryVerifiedAt": "2026-10-22T13:36:23.643442+00:00",
+  "captureSourceCommit": "d48dc67d7e855a581fde1dd65d5ad3a56a77d9ca",
+  "actualServedEntryAndRouteAssetsSha256": {
+    "/_app/immutable/entry/start.ye51Nxxv.js": "a8899b2dc35a767b77d62292b865e5812e948f9e671b7983d12568110f1dc0c5",
+    "/_app/immutable/entry/app.ElceqOh-.js": "16aaf9def51ab10851e621a78944393c660cf6fff11aec0aa507fe597c0daefe",
+    "/_app/immutable/nodes/0.CdGy9w6u.js": "e106155057895302d6dbdacb2852d8d95953c92e5de492edb28be1c3de89b7f3",
+    "/_app/immutable/nodes/3.OvvAVZsc.js": "d86cb669e8916de660801bb683907ac236a950b43087c0681eef95f29cc9f986",
+    "/_app/immutable/nodes/1.BqMoPTHC.js": "c1b3e07cf0336e030b2551aa17880b5054eb54ae5f7dccbd9c5f7b085ac2bbeb"
+  },
+  "captureNote": "Dated d48dc67 frontend Save/reload and screenshot evidence. Later changes are scheduler diagnostics and Windows skill catalog; current runtime and tests are in delivery.json. Screenshots are historical, not current Windows catalog proof."
 }
