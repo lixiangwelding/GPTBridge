@@ -16,7 +16,7 @@
 
 ## 验证与运行状态
 
-仅Windows候选构建：[39794435328](https://github.com/lixiangwelding/GPTBridge/actions/runs/39794435328)。Windows作业的21个步骤均返回success，包含Node/Python测试、PowerShell语法检查、Rust测试编译和workspace_mapping_tests定向执行、NSIS打包及制品上传；全量Rust测试未执行。新增Windows回归覆盖停止后继续、活动所有者恢复、未知/停止/过期/未来心跳拒绝及启动日志追加/轮转。GitHub整体run/job状态仍显示in_progress、conclusion为空，不能把步骤成功写成整体运行已结束。
+仅Windows候选构建：[39794435328](https://github.com/lixiangwelding/GPTBridge/actions/runs/39794435328)。Windows作业的21个步骤均返回success，包含Node/Python测试、PowerShell语法检查、Rust测试编译和workspace_mapping_tests定向执行、NSIS打包及制品上传；全量Rust测试未执行。新增Windows回归覆盖停止后继续、活动所有者恢复、未知/停止/过期/未来心跳拒绝及启动日志追加/轮转。最终GitHub整体run状态已回读为completed/success；下载的Windows作业日志确认21个Node、19个Python、9个Windows定向Rust测试通过，Svelte检查0错误0警告。此前步骤已成功而整体状态滞后的中间结果，已按本次最终回读更新。
 
 Windows候选已静默安装，安装退出码0；新客户端PID44060，安装EXE SHA256为`5a5b29657b1e8c55397aab8aa1a42e391547936627abafdc99ba51a96c9add19`。配置SHA安装前后相同，队列非日志文件安装前后全部保持原字节。下载安装器SHA256为`c93c5779882b805f0626719558f2fa4c64965be0bcd202148576200e399f4d9c`。当前安装器和原回滚安装器保留；只清理经成员SHA核对的6,896,301字节重复ZIP。
 

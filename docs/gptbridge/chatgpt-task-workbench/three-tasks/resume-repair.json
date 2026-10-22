@@ -6,9 +6,17 @@
     "url": "https://github.com/lixiangwelding/GPTBridge/actions/runs/39794435328",
     "jobId": 119878127481,
     "all21StepConclusions": "success",
-    "runStatus": "in_progress",
-    "runConclusion": null,
-    "note": "GitHub overall run/job metadata remains in_progress although all steps including Complete job succeeded; no overall success inferred. Full Rust test execution not performed."
+    "runStatus": "completed",
+    "runConclusion": "success",
+    "note": "Final GitHub run conclusion success; retrieved Windows log confirms 21 Node,19 Python,9 targeted Rust tests passed. Full Rust test execution not performed.",
+    "tests": {
+      "nodePassed": 21,
+      "pythonPassed": 19,
+      "rustTargetedPassed": 9,
+      "svelteErrors": 0,
+      "svelteWarnings": 0
+    },
+    "finalVerifiedAt": "2026-10-22T14:40:45.067669+00:00"
   },
   "installed": {
     "installedPath": "C:\\Users\\99321\\AppData\\Local\\Programs\\GPTBridge\\coding-tools-mcp-personal.exe",
