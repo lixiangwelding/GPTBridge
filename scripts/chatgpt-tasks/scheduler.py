@@ -156,7 +156,7 @@ class Engine:
                     raise ValueError('submitted batch changed after dispatch')
             else:
                 state = dict(batchId=batch_id, inputSha256=digest(incoming), status='queued', tasks={})
-            if state['status'] in ('completed', 'blocked', 'attention'):
+            if state['status'] in ('completed', 'blocked'):
                 continue
             for task in batch['tasks']:
                 row = state['tasks'].get(task['id'])
@@ -186,6 +186,7 @@ class Engine:
                     if time.time() - row['startedAt'] > self.options.get('timeoutSeconds', 7200):
                         state.update(status='attention', detail='结果超时，查询原请求；没有重发。')
                         atomic_json(state_path, state)
+                        return 'attention'
                     return 'waiting_receipt'
                 if any(state['tasks'].get(dep, {}).get('status') != 'completed' for dep in task['dependsOn']):
                     continue

@@ -61,6 +61,12 @@ class SchedulerTests(unittest.TestCase):
         self.receipt();(self.workspace/'T01.txt').write_text('changed')
         with self.assertRaises(ValueError):self.engine.tick()
         self.assertEqual(len(self.calls),2)
+    def test_late_receipt_recovers_timeout_without_redispatch(self):
+        self.engine.tick();state=self.state();state['tasks']['T01']['startedAt']=0;atomic_json(self.queue/'states/batch1.json',state)
+        self.assertEqual(self.engine.tick(),'attention');self.assertEqual(self.engine.tick(),'attention');self.assertEqual(len(self.calls),2)
+        self.receipt();self.assertEqual(self.engine.tick(),'sent');self.assertEqual(self.calls[-1]['taskId'],'T02')
+        self.assertEqual([c['taskId'] for c in self.calls],['T01','T01','T02','T02'])
+
     def test_explicit_blocker_only_stops_its_dependents(self):
         self.batch['tasks'].append(dict(id='T03',dependsOn=['T01'],prompt='independent third'))
         self.batch['tasks'].append(dict(id='T04',dependsOn=['T02'],prompt='waits for blocked second'))
