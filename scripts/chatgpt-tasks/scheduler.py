@@ -160,7 +160,7 @@ class Engine:
                 continue
             for task in batch['tasks']:
                 row = state['tasks'].get(task['id'])
-                if row and row['status'] == 'completed':
+                if row and row['status'] in ('completed', 'blocked'):
                     continue
                 if row and row['status'] == 'prepared':
                     return self.send_prepared(state_path, state, row, row['preparedRequest'])
@@ -170,6 +170,13 @@ class Engine:
                         if receipt_path.stat().st_size > 2 * 1024 * 1024:
                             raise ValueError('receipt exceeds size limit')
                         result = json.loads(receipt_path.read_text(encoding='utf-8-sig'))
+                        if result.get('status') in ('blocked','failed'):
+                            if result.get('schemaVersion')!=1 or result.get('batchId')!=batch_id or result.get('taskId')!=task['id'] or result.get('nonce')!=row['nonce'] or not str(result.get('summary','')).strip():
+                                raise ValueError('blocked receipt identity/summary mismatch')
+                            row.update(status='blocked',detail=result['summary'],receiptSha256=digest(receipt_path))
+                            state['status']='running'
+                            atomic_json(state_path,state)
+                            continue  # only dependent tasks wait; independent ready tasks may proceed
                         # A partially written JSON is rejected until the writer finishes atomically.
                         verify_receipt(self.workspace, result, batch_id, task['id'], row['nonce'])
                         row.update(status='completed', receiptSha256=digest(receipt_path), completedAt=time.time())
@@ -224,6 +231,10 @@ class Engine:
                 state['status'] = 'completed'
                 atomic_json(state_path, state)
                 return 'completed'
+            if any(r.get('status')=='blocked' for r in state['tasks'].values()):
+                state.update(status='blocked',detail='阻塞项及其依赖保留；当前没有可独立推进的就绪任务。')
+                atomic_json(state_path,state)
+                return 'blocked'
         return 'idle'
 
 

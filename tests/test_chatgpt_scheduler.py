@@ -61,6 +61,17 @@ class SchedulerTests(unittest.TestCase):
         self.receipt();(self.workspace/'T01.txt').write_text('changed')
         with self.assertRaises(ValueError):self.engine.tick()
         self.assertEqual(len(self.calls),2)
+    def test_explicit_blocker_only_stops_its_dependents(self):
+        self.batch['tasks'].append(dict(id='T03',dependsOn=['T01'],prompt='independent third'))
+        self.batch['tasks'].append(dict(id='T04',dependsOn=['T02'],prompt='waits for blocked second'))
+        atomic_json(self.queue/'inbox/batch1.json',self.batch)
+        self.engine.tick();self.receipt();self.engine.tick()
+        row=self.state()['tasks']['T02']
+        atomic_json(self.workspace/row['receiptPath'],dict(schemaVersion=1,batchId='batch1',taskId='T02',nonce=row['nonce'],status='blocked',summary='fixture missing input'))
+        self.assertEqual(self.engine.tick(),'sent');self.assertEqual(self.calls[-1]['taskId'],'T03')
+        self.receipt('T03');self.assertEqual(self.engine.tick(),'blocked')
+        self.assertNotIn('T04',self.state()['tasks']);self.assertEqual(self.state()['tasks']['T02']['status'],'blocked')
+
     def test_busy_client_never_interrupts_or_changes_request(self):
         def busy(req):
             self.calls.append(dict(req))
