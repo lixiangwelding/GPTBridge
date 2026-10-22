@@ -19,7 +19,7 @@ class SchedulerTests(unittest.TestCase):
             self.calls.append(dict(req));return dict(status='prepared' if req['action']=='stage' else 'sent',windowRef='fixture:1',detail='OFFLINE_FIXTURE_ONLY')
         self.adapter=adapter;self.engine=Engine(self.queue,self.workspace,adapter,dict(client='desktop',model='Pro',effort='深入思考'))
     def tearDown(self):self.temp.cleanup()
-    def state(self):return json.loads((self.queue/'states/batch1.json').read_text())
+    def state(self):return json.loads((self.queue/'states/batch1.json').read_text(encoding='utf-8'))
     def receipt(self,task='T01',nonce=None):
         row=self.state()['tasks'][task];a=self.workspace/(task+'.txt');a.write_text('fixture artifact');log=self.workspace/(task+'.log');log.write_text('fixture check exit0')
         r=dict(schemaVersion=1,batchId='batch1',taskId=task,nonce=nonce or row['nonce'],status='completed',summary='fixture only',artifacts=[dict(path=a.name,sha256=digest(a))],checks=[dict(command='fixture check',exitCode=0,logPath=log.name,logSha256=digest(log))])

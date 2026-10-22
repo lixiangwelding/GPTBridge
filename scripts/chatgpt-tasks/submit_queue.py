@@ -56,8 +56,8 @@ def main():
         else:
             root=Path(a.queue)
             result={'scheduler':None,'batches':[]}
-            if (root/'scheduler-status.json').is_file():result['scheduler']=json.loads((root/'scheduler-status.json').read_text())
-            for path in sorted((root/'states').glob('*.json')):result['batches'].append(json.loads(path.read_text()))
+            if (root/'scheduler-status.json').is_file():result['scheduler']=json.loads((root/'scheduler-status.json').read_text(encoding='utf-8'))
+            for path in sorted((root/'states').glob('*.json')):result['batches'].append(json.loads(path.read_text(encoding='utf-8')))
             print(json.dumps(result,ensure_ascii=False,indent=2))
     except Exception as e:
         print(json.dumps({'ok':False,'error':str(e)},ensure_ascii=False),file=sys.stderr);raise SystemExit(1)
