@@ -29,7 +29,8 @@ def diagnostic_event(queue, event, **fields):
             os.replace(path, folder / 'scheduler-events.jsonl.1')
         allowed = {'batchId','taskId','requestId','action','client','status','durationMs',
                    'exitCode','errorType','stdoutBytes','stderrBytes','stderrSha256',
-                   'pid','hostKind','mode','busyButtonCount','busyButtonNames'}
+                   'pid','hostKind','mode','busyButtonCount','busyButtonNames',
+                   'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes'}
         record = dict(at=time.time(), event=event, **{k:v for k,v in fields.items() if k in allowed})
         with path.open('a', encoding='utf-8') as output:
             output.write(json.dumps(record, ensure_ascii=False) + '\n')
@@ -340,7 +341,8 @@ class WindowsAdapter:
                              stdoutBytes=len(p.stdout), stderrBytes=len(p.stderr),
                              stderrSha256=hashlib.sha256(p.stderr).hexdigest(),
                              **{k:v for k,v in (result.get('diagnostics') or {}).items()
-                                if k in ('hostKind','mode','busyButtonCount','busyButtonNames')})
+                                if k in ('hostKind','mode','busyButtonCount','busyButtonNames',
+                                         'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes')})
             atomic_json(attempt, result)
             return result
         except Exception as error:

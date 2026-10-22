@@ -241,9 +241,15 @@ public class ChatGPTTextInput {
   $root=[System.Windows.Automation.AutomationElement]::RootElement
   $windows=@($root.FindAll([System.Windows.Automation.TreeScope]::Children,[System.Windows.Automation.Condition]::TrueCondition))
   $targets=@();$desktopKinds=@{}
+  $script:diagnostics=@{targetCount=0;seenDesktopWindows=0;offscreenDesktopWindows=0;desktopRootTypes=@();discoveryErrorTypes=@()}
   foreach($w in $windows) {
     try {
       $proc=Get-Process -Id $w.Current.ProcessId
+      if($req.client -eq 'desktop' -and $proc.ProcessName -eq 'ChatGPT'){
+        $script:diagnostics.seenDesktopWindows++
+        if($w.Current.IsOffscreen){$script:diagnostics.offscreenDesktopWindows++}
+        $script:diagnostics.desktopRootTypes=@($script:diagnostics.desktopRootTypes + $w.Current.ControlType.ProgrammaticName|Select-Object -Unique -First 8)
+      }
       if($req.client -eq 'desktop' -and $proc.ProcessName -eq 'ChatGPT' -and $w.Current.ControlType -eq [System.Windows.Automation.ControlType]::Window -and $w.Current.Name -and -not $w.Current.IsOffscreen){
         $kind=Get-ChatGPTDesktopHostKind $proc.Path
         if($kind -ne 'unsupported'){$targets+=,$w;$desktopKinds[[string]$w.Current.NativeWindowHandle]=$kind}
@@ -258,12 +264,14 @@ public class ChatGPTTextInput {
           }
         }
       }
-    } catch { }
+    } catch {if($script:diagnostics.discoveryErrorTypes.Count -lt 8){$script:diagnostics.discoveryErrorTypes+= $_.Exception.GetType().Name}}
   }
+  $script:diagnostics.targetCount=$targets.Count
   if($targets.Count -ne 1){Result 'blocked' '请只打开一个目标 ChatGPT 窗口；网页端还需要可核对 chatgpt.com 地址栏。'}
   $window=$targets[0];$hostKind=if($req.client -eq 'web'){'web'}else{$desktopKinds[[string]$window.Current.NativeWindowHandle]};$ref="$($window.Current.ProcessId):$($window.Current.NativeWindowHandle)"
   if($req.windowRef -and $req.windowRef -ne $ref){Result 'blocked' '目标窗口已变化，请重新检查并填入任务。' $ref}
-  $script:diagnostics=@{hostKind=$hostKind;mode=(Get-ChatGPTModeSnapshot $window).mode}
+  $script:diagnostics.hostKind=$hostKind
+  $script:diagnostics.mode=(Get-ChatGPTModeSnapshot $window).mode
   if($req.action -eq 'stage') {
     $busyButtons=@($window.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button))|Where-Object {$_.Current.Name -in @('Stop generating','Stop streaming','停止生成','停止响应','停止','停止任务') -and -not $_.Current.IsOffscreen})
     if($busyButtons.Count -gt 0){

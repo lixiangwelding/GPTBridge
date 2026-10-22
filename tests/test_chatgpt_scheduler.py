@@ -206,6 +206,13 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(result,response)
         record=json.loads((self.queue/'logs/scheduler-events.jsonl').read_text().splitlines()[-1])
         self.assertEqual(record['status'],'blocked');self.assertEqual(record['exitCode'],0)
+        response['diagnostics']=dict(targetCount=0,seenDesktopWindows=1,offscreenDesktopWindows=1,desktopRootTypes=['ControlType.Window'],prompt='PRIVATE_PROMPT')
+        completed.stdout=json.dumps(response).encode()
+        with patch('scheduler.subprocess.check_output',return_value='C:\\fixture.json'),patch('scheduler.subprocess.run',return_value=completed):
+            self.assertEqual(adapter(req)['status'],'blocked')
+        logs=(self.queue/'logs/scheduler-events.jsonl').read_text()
+        record=json.loads(logs.splitlines()[-1]);self.assertEqual(record['targetCount'],0);self.assertEqual(record['offscreenDesktopWindows'],1)
+        self.assertNotIn('PRIVATE_PROMPT',logs)
 
 
 if __name__=='__main__':unittest.main()
