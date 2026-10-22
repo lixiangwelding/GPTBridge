@@ -15,7 +15,7 @@ test('package and Tauri branding have one name and version', () => {
   assert.equal(tauri.productName, 'GPTBridge');
   assert.match(tauri.app.windows[0].title, /^GPTBridge/);
   const cargoVersion = read('src-tauri/Cargo.toml').match(/^version = "([^"]+)"/m)?.[1];
-  const lockedVersion = read('src-tauri/Cargo.lock').match(/name = "coding-tools-mcp-personal"\nversion = "([^"]+)"/)?.[1];
+  const lockedVersion = read('src-tauri/Cargo.lock').match(/name = "coding-tools-mcp-personal"\r?\nversion = "([^"]+)"/)?.[1];
   assert.equal(cargoVersion, version);
   assert.equal(lockedVersion, version);
 });
