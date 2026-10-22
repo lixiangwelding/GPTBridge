@@ -34,6 +34,16 @@ test('imported completion must include evidence and validation returns isolated 
  const p=structuredClone(seed);p.tasks[0].status='done';assert.throws(()=>validatePlan(p),/回执/);
  const v=validatePlan(seed);v.tasks[0].title='changed';assert.notEqual(seed.tasks[0].title,'changed');
 });
+test('reactive proxy plans persist and transition without DataCloneError',()=>{
+ const deepProxy=value=>value&&typeof value==='object'?new Proxy(value,{get:(target,key,receiver)=>deepProxy(Reflect.get(target,key,receiver))}):value;
+ const source=structuredClone(seed),proxy=deepProxy(source);
+ const plain=validatePlan(proxy);assert.deepEqual(plain,seed);
+ assert.doesNotThrow(()=>structuredClone(plain));assert.doesNotThrow(()=>JSON.stringify(plain));
+ plain.tasks[0].inputs.push('isolated');assert.equal(source.tasks[0].inputs.includes('isolated'),false);
+ const updated=transition(proxy,'T01','blocked','verified missing input');
+ assert.equal(updated.tasks[0].status,'blocked');assert.equal(source.tasks[0].status,'draft');
+ assert.doesNotThrow(()=>validatePlan(deepProxy(updated)));
+});
 test('native dispatcher is not an MCP tool and uses unique send attempt barrier',()=>{
  const rs=fs.readFileSync(new URL('../src-tauri/src/commands/chatgpt_tasks.rs',import.meta.url),'utf8');
  const ps=fs.readFileSync(new URL('../src-tauri/scripts/chatgpt-dispatch.ps1',import.meta.url),'utf8');

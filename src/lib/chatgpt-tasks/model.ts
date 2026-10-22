@@ -39,7 +39,17 @@ export function validatePlan(value: unknown): TaskPlan {
     visiting.delete(id);visited.add(id);
   }
   p.tasks.forEach(t=>visit(t.id));
-  const out=structuredClone(p);
+  // Svelte $state values are proxies, which structuredClone rejects. Project the
+  // validated JSON contract into plain values so persistence and transitions work.
+  const out: TaskPlan = {
+    schemaVersion: 1, title: p.title, workspace: p.workspace, connector: p.connector,
+    requestedModel: p.requestedModel, requestedEffort: p.requestedEffort,
+    tasks: p.tasks.map(t => ({
+      id: t.id, title: t.title, version: t.version, goal: t.goal,
+      inputs: [...t.inputs], steps: [...t.steps], acceptance: [...t.acceptance], dependsOn: [...t.dependsOn],
+      status: t.status, conversationUrl: t.conversationUrl, receipt: t.receipt, customPrompt: t.customPrompt,
+    })),
+  };
   // Migrate the original candidate's swapped Pro/effort defaults; task identities and states stay intact.
   if(out.requestedModel==='Pro' && out.requestedEffort==='深入思考'){out.requestedModel='GPT-6';out.requestedEffort='Pro';}
   return out;
