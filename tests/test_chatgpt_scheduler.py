@@ -196,5 +196,16 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(json.loads((self.queue/'attempts/fixture1.stage.desktop.json').read_text())['status'],'unknown')
         self.assertFalse(list((self.queue/'attempts').glob('*.input.json')))
 
+    def test_adapter_null_diagnostics_preserves_known_unsent_result(self):
+        adapter=WindowsAdapter(self.queue,'unused-fixture.ps1')
+        req=dict(taskId='T01',requestId='fixture2',action='stage',client='desktop',prompt='PRIVATE_PROMPT')
+        response=dict(status='blocked',detail='no target',requestId='fixture2',diagnostics=None)
+        completed=subprocess.CompletedProcess([],0,stdout=json.dumps(response).encode(),stderr=b'')
+        with patch('scheduler.subprocess.check_output',return_value='C:\\fixture.json'),patch('scheduler.subprocess.run',return_value=completed):
+            result=adapter(req)
+        self.assertEqual(result,response)
+        record=json.loads((self.queue/'logs/scheduler-events.jsonl').read_text().splitlines()[-1])
+        self.assertEqual(record['status'],'blocked');self.assertEqual(record['exitCode'],0)
+
 
 if __name__=='__main__':unittest.main()

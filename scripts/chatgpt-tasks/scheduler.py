@@ -339,7 +339,7 @@ class WindowsAdapter:
                              durationMs=round((time.monotonic()-started)*1000), exitCode=p.returncode,
                              stdoutBytes=len(p.stdout), stderrBytes=len(p.stderr),
                              stderrSha256=hashlib.sha256(p.stderr).hexdigest(),
-                             **{k:v for k,v in result.get('diagnostics', {}).items()
+                             **{k:v for k,v in (result.get('diagnostics') or {}).items()
                                 if k in ('hostKind','mode','busyButtonCount','busyButtonNames')})
             atomic_json(attempt, result)
             return result
