@@ -1,0 +1,144 @@
+{
+  "capturedAt": "2026-10-22T14:38:25.607192+00:00",
+  "sourceCommit": "b98e5f8173d5d089b98433e98930df8ecaffd6bc",
+  "windowsBuild": {
+    "runId": 39794435328,
+    "url": "https://github.com/lixiangwelding/GPTBridge/actions/runs/39794435328",
+    "jobId": 119878127481,
+    "all21StepConclusions": "success",
+    "runStatus": "in_progress",
+    "runConclusion": null,
+    "note": "GitHub overall run/job metadata remains in_progress although all steps including Complete job succeeded; no overall success inferred. Full Rust test execution not performed."
+  },
+  "installed": {
+    "installedPath": "C:\\Users\\99321\\AppData\\Local\\Programs\\GPTBridge\\coding-tools-mcp-personal.exe",
+    "installedSha256": "5a5b29657b1e8c55397aab8aa1a42e391547936627abafdc99ba51a96c9add19",
+    "installerExit": 0,
+    "pid": 44060,
+    "profilesBeforeSha256": "754f08b29a9873bdb4667d9e8e6c62c58430b8d7d7110e2d3920c22c7c9c85ff",
+    "profilesSha256": "754f08b29a9873bdb4667d9e8e6c62c58430b8d7d7110e2d3920c22c7c9c85ff",
+    "queueFilesUnchanged": true
+  },
+  "queue": {
+    "batchId": "ddt-three-tasks-20261022-01a16250",
+    "inputSha256": "84840334d515639a50b5f18a115a4944163dc590818e639c8e521394529eeb75",
+    "activeTaskIds": [
+      "D01",
+      "D02",
+      "D03"
+    ],
+    "scheduler": {
+      "status": "waiting_client",
+      "pid": 94432,
+      "updatedAt": 1792679904.4362216,
+      "detail": ""
+    },
+    "taskStates": {
+      "D01": {
+        "status": "waiting_client",
+        "client": "desktop"
+      }
+    },
+    "latestPreparation": {
+      "at": 1792679904.4131,
+      "status": "busy",
+      "mode": "Codex",
+      "busyButtonCount": 1,
+      "busyButtonNames": [
+        "停止"
+      ],
+      "targetCount": 1,
+      "exitCode": 0,
+      "stderrBytes": 0
+    },
+    "sent": false,
+    "businessCompleted": false,
+    "old20Archived": true,
+    "oldRequestsAndAuditRetained": true
+  },
+  "windowsRuntime": {
+    "app": [
+      {
+        "ProcessId": 44060,
+        "ParentProcessId": 42740,
+        "Name": "coding-tools-mcp-personal.exe",
+        "ExecutablePath": "C:\\Users\\99321\\AppData\\Local\\Programs\\GPTBridge\\coding-tools-mcp-personal.exe"
+      }
+    ],
+    "listeners": [
+      {
+        "LocalAddress": "127.0.0.1",
+        "LocalPort": 38766,
+        "OwningProcess": 44060
+      }
+    ],
+    "children": [
+      {
+        "ProcessId": 3440,
+        "ParentProcessId": 44060,
+        "Name": "msedgewebview2.exe"
+      },
+      {
+        "ProcessId": 23852,
+        "ParentProcessId": 44060,
+        "Name": "node.exe"
+      },
+      {
+        "ProcessId": 32868,
+        "ParentProcessId": 44060,
+        "Name": "node.exe"
+      },
+      {
+        "ProcessId": 5592,
+        "ParentProcessId": 44060,
+        "Name": "node.exe"
+      },
+      {
+        "ProcessId": 30644,
+        "ParentProcessId": 44060,
+        "Name": "frpc.exe"
+      },
+      {
+        "ProcessId": 15448,
+        "ParentProcessId": 44060,
+        "Name": "wsl.exe"
+      }
+    ],
+    "capturedAt": "2026-10-22T14:36:45.337407+00:00",
+    "workerAlive": true,
+    "startupLogBytes": {
+      "worker-stdout.log": 0,
+      "worker-stderr.log": 0
+    }
+  },
+  "localMcpProcesses": [
+    {
+      "name": "Windows playwright",
+      "pid": 23852
+    },
+    {
+      "name": "Windows jshook",
+      "pid": 32868
+    },
+    {
+      "name": "Windows drawio",
+      "pid": 5592
+    }
+  ],
+  "boundaries": {
+    "computerUse": false,
+    "codexBridgeProtocolCalls": false,
+    "codexSenderInvocation": false,
+    "macModified": false
+  },
+  "verificationLimits": [
+    "Fresh Windows process/listener and local file evidence only; no Bridge protocol probe",
+    "ChatGPT task body, GPT-6/Pro and plugin attachment not yet verified for a sent D01 request",
+    "No three-task business acceptance or production operation"
+  ],
+  "cleanup": {
+    "duplicateZipBytesRemoved": 6896301,
+    "currentInstallerRetained": true,
+    "rollbackInstallerRetained": true
+  }
+}

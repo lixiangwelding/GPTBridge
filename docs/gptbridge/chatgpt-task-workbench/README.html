@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>README</title><style>body{font:16px/1.8 system-ui;max-width:1000px;margin:36px auto;padding:0 24px;color:#172132}a{color:#075ea6}pre{overflow:auto;background:#eef3f8;padding:16px}td,th{border:1px solid #ccd5df;padding:8px}table{border-collapse:collapse}</style></head><body><h1>ChatGPT 任务工作台 · 独立自动调度</h1>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ChatGPT 任务工作台 · 独立自动调度</title><style>body{font:16px/1.8 system-ui;max-width:1000px;margin:36px auto;padding:0 24px;color:#172132}a{color:#075ea6}pre{overflow:auto;background:#eef3f8;padding:16px}td,th{border:1px solid #ccd5df;padding:8px}table{border-collapse:collapse}code{overflow-wrap:anywhere}</style></head><body><h1>ChatGPT 任务工作台 · 独立自动调度</h1>
 <blockquote>
-<p><strong>当前接续改为3个任务（2026-10-22）：</strong> <a href="three-tasks/README.md">三任务入口</a> · <a href="three-tasks/tasks.json">可导入任务包</a> · <a href="three-tasks/submission.json">提交回执</a>。旧20项已核实未发送并退出活动inbox，原请求与审计归档保留；本批已提交，独立调度器仍为stopped，尚未派发。下文20项是历史拆分与交付记录。</p>
+<p><strong>当前接续改为3个任务（2026-10-22）：</strong> <a href="three-tasks/README.md">三任务入口</a> · <a href="three-tasks/tasks.json">可导入任务包</a> · <a href="three-tasks/submission.json">提交回执</a>。旧20项已核实未发送并退出活动inbox，原请求与审计归档保留；本批已提交，Windows修复版安装后由用户点击继续，独立调度器已启动；D01准备阶段等待当前Codex窗口空闲，尚未发送。最新状态见<a href="three-tasks/resume-repair.md">后台修复与运行回读</a>。下文20项是历史拆分与交付记录。</p>
 </blockquote>
 <p>2026-10-22。GPTBridge 新增 <code>/chatgpt-tasks</code> 独立页面。三条正式交接已整理成 20 个可执行任务与依赖。Codex 只提交文件队列，由用户独立启用的 Windows 调度器控制 ChatGPT，只有 ChatGPT 调用 GPTBridge Windows；Mac 不调用、不修改。</p>
 <h2>Windows 统一应用的 ChatGPT 模式</h2>
@@ -12,14 +12,14 @@
 <p>一次在 Windows GPTBridge 中选定项目、桌面客户端/网页、模型与思考强度，启用独立调度器。以后在 Codex 中交代工作，由 Codex 生成任务包和完整提示词，提交本地队列；调度器自动建新聊天、核对选项和 Windows 插件、填入并发送，等待本次结果回执后推进依赖任务。Codex 只读取本地状态和产物，不运行发送器。</p>
 <p>每个任务的结果 JSON 带 batchId、taskId、本次随机 nonce、实际产物 SHA、验证命令、exitCode 和日志 SHA。调度器独立读取文件与 SHA；失败/阻塞/未知不升级成完成，不执行回执中的命令。此核对证明回执及其产物身份，不独立保证每项业务验收内容真实完整；未验运行、游戏、奖励与生产层级必须继续保留。</p>
 <p>桌面为默认目标。只有准备阶段明确尚未发送时，才允许按勾选设置回落网页；一旦发送尝试发生，重启、超时和异常均保留原请求，不重发。暂停可保留已填入但未发送的同一请求；停止不关闭用户 ChatGPT、其他聊天或已有 MCP。调度器不触碰 Mac。</p>
-<h2>Windows 运行环境与当前状态</h2>
+<h2>Windows 运行环境与历史验证记录</h2>
 <p>交付是 Windows <code>.exe</code> 和 Windows 桌面界面；源码在 WSL 维护，GitHub <code>windows-latest</code> 编译。当前队列引擎使用本机已有 WSL Python，尚非脱离 WSL 的 Windows 原生独立实现；不在本机安装 Rust，Mac 不动。</p>
 <ul>
-<li>已安装源码 <code>955a22306bbfd3cfe52ecc170c3c710e20c76c85</code>，Windows <a href="https://github.com/lixiangwelding/GPTBridge/actions/runs/39783260329">构建 39783260329</a> 成功：21 Node、19 Python、6 Rust 定向测试通过；全量 Rust 测试未执行。Windows 连接服务和三个本地 MCP 正在运行。</li>
+<li>历史安装源码 <code>955a22306bbfd3cfe52ecc170c3c710e20c76c85</code>，Windows <a href="https://github.com/lixiangwelding/GPTBridge/actions/runs/39783260329">构建 39783260329</a> 成功：21 Node、19 Python、6 Rust 定向测试通过；全量 Rust 测试未执行。Windows 连接服务和三个本地 MCP 正在运行。</li>
 <li>原生技能目录已显示 477 项，扫描截断提示消失；修复 Windows 嵌套与共享正文引用。详情预览最后一次自动化动作报错，尚未取得原生详情通过证据。<a href="windows-local-mcp-skills.md">本地 MCP 与技能说明</a> 记录具体边界。</li>
 <li>官方 Windows Computer Use 曾实际读取并操作任务页，WSL 中指向 Mac 的错误启动项已修正。用户随后要求停止 Computer Use，本次会话已关闭，不再操作窗口；当前聊天工具目录未热加载，也没有重启活动聊天。</li>
 <li>本聊天此前的 UI 授权仅覆盖 Windows GPTBridge；直接 Bridge MCP/HTTP、发送脚本、直接发送按钮和 Codex 操作 ChatGPT UI 仍禁用，Mac 不动。后续后台检查不绕过该边界。</li>
-<li>最后一次准备诊断已识别一个 ChatGPT 模式窗口，因发现“停止”按钮而等待；原 T01 请求未发送。技能候选安装前已停止调度器，当前仍为 stopped，原 20 项任务与请求保留，发送标记和回执均为 0。</li>
+<li>最后一次准备诊断已识别一个 ChatGPT 模式窗口，因发现“停止”按钮而等待；原 T01 请求未发送。技能候选安装前已停止调度器，当时为 stopped，原 20 项任务与请求保留，发送标记和回执均为 0。后续已替换为三任务并安装b98e5f8修复，最新状态见页首入口。</li>
 <li>Windows 控制与调度阶段日志已安装并有真实启用/继续/停止、窗口筛选和 busy 事件。<a href="windows-diagnostics.md">Windows 诊断说明</a> 提供位置及排错方式。</li>
 </ul>
 <p><a href="delivery.json">交付回执</a> 给出安装和运行身份。<a href="windows-native.png">历史任务页截图</a> 拍摄于后继日志与技能修复之前，不能代表当前技能目录或队列状态。完整输入、发送、GPTBridge 业务执行和 20 项任务完成仍未验收。</p>
@@ -60,4 +60,5 @@ python3 scripts/chatgpt-tasks/submit_queue.py status \
 <li><a href="prompts/T18.md">T18 补 V8 与 V9 调试接线</a> · V8 / V9 · 依赖 T01, T02</li>
 <li><a href="prompts/T19.md">T19 补齐签到原图与数据对照</a> · V7 / 工作台 · 依赖 T02</li>
 <li><a href="prompts/T20.md">T20 六版整合与交接</a> · 六版 · 依赖 T03, T10, T16, T17, T18, T19</li>
-</ul></body></html>
+</ul>
+</body></html>

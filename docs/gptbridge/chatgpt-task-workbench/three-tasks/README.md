@@ -12,6 +12,6 @@
 
 [可导入任务包](tasks.json) 同时包含三份完整customPrompt；[来源清单](sources.json)绑定本轮正式文件SHA。原20任务的输入移出活动inbox并存入superseded，原state、requestId、attempts和日志全部保留；只有停止且已证实未发送才能替换，sent/unknown/prepared或已有回执都会拒绝。提交只写文件，不启用发送器。
 
-实际提交与执行状态见 [submission.json](submission.json)。提交成功不等于ChatGPT已收到或业务已完成。当前独立调度器如仍stopped，需要由Windows所有者在原任务页恢复；Codex不通过后台脚本启动。页面localStorage草稿可能仍保留历史20项，本任务包可用既有导入入口查看；不在运行中直接改写WebView私有存储。
+首次提交回执见 [submission.json](submission.json)；最新启动与修复见 [resume-repair.md](resume-repair.md) 和 [运行回执](resume-repair.json)。Windows修复版已安装，用户再次继续后独立进程已启动，D01准备阶段因当前Codex窗口可见“停止”而waiting_client；D02/D03待顺序处理，尚未派发或业务完成。Codex不通过后台脚本启动。页面localStorage草稿可能仍保留历史20项，本任务包可用既有导入入口查看；不在运行中直接改写WebView私有存储。
 
 本批不连接生产、不部署、不提交推送业务改动。代码审查/组件/Windows运行/逐关与奖励分别验收；未完成必须给本次blocked结果和精确接续输入，不能把三个大任务的拆分写成全部副本已完成。

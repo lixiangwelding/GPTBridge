@@ -1,6 +1,6 @@
 # ChatGPT 任务工作台 · 独立自动调度
 
-> **当前接续改为3个任务（2026-10-22）：** [三任务入口](three-tasks/README.md) · [可导入任务包](three-tasks/tasks.json) · [提交回执](three-tasks/submission.json)。旧20项已核实未发送并退出活动inbox，原请求与审计归档保留；本批已提交，独立调度器仍为stopped，尚未派发。下文20项是历史拆分与交付记录。
+> **当前接续改为3个任务（2026-10-22）：** [三任务入口](three-tasks/README.md) · [可导入任务包](three-tasks/tasks.json) · [提交回执](three-tasks/submission.json)。旧20项已核实未发送并退出活动inbox，原请求与审计归档保留；本批已提交，Windows修复版安装后由用户点击继续，独立调度器已启动；D01准备阶段等待当前Codex窗口空闲，尚未发送。最新状态见[后台修复与运行回读](three-tasks/resume-repair.md)。下文20项是历史拆分与交付记录。
 
 2026-10-22。GPTBridge 新增 `/chatgpt-tasks` 独立页面。三条正式交接已整理成 20 个可执行任务与依赖。Codex 只提交文件队列，由用户独立启用的 Windows 调度器控制 ChatGPT，只有 ChatGPT 调用 GPTBridge Windows；Mac 不调用、不修改。
 
@@ -20,15 +20,15 @@
 
 桌面为默认目标。只有准备阶段明确尚未发送时，才允许按勾选设置回落网页；一旦发送尝试发生，重启、超时和异常均保留原请求，不重发。暂停可保留已填入但未发送的同一请求；停止不关闭用户 ChatGPT、其他聊天或已有 MCP。调度器不触碰 Mac。
 
-## Windows 运行环境与当前状态
+## Windows 运行环境与历史验证记录
 
 交付是 Windows `.exe` 和 Windows 桌面界面；源码在 WSL 维护，GitHub `windows-latest` 编译。当前队列引擎使用本机已有 WSL Python，尚非脱离 WSL 的 Windows 原生独立实现；不在本机安装 Rust，Mac 不动。
 
-- 已安装源码 `955a22306bbfd3cfe52ecc170c3c710e20c76c85`，Windows [构建 39783260329](https://github.com/lixiangwelding/GPTBridge/actions/runs/39783260329) 成功：21 Node、19 Python、6 Rust 定向测试通过；全量 Rust 测试未执行。Windows 连接服务和三个本地 MCP 正在运行。
+- 历史安装源码 `955a22306bbfd3cfe52ecc170c3c710e20c76c85`，Windows [构建 39783260329](https://github.com/lixiangwelding/GPTBridge/actions/runs/39783260329) 成功：21 Node、19 Python、6 Rust 定向测试通过；全量 Rust 测试未执行。Windows 连接服务和三个本地 MCP 正在运行。
 - 原生技能目录已显示 477 项，扫描截断提示消失；修复 Windows 嵌套与共享正文引用。详情预览最后一次自动化动作报错，尚未取得原生详情通过证据。[本地 MCP 与技能说明](windows-local-mcp-skills.md) 记录具体边界。
 - 官方 Windows Computer Use 曾实际读取并操作任务页，WSL 中指向 Mac 的错误启动项已修正。用户随后要求停止 Computer Use，本次会话已关闭，不再操作窗口；当前聊天工具目录未热加载，也没有重启活动聊天。
 - 本聊天此前的 UI 授权仅覆盖 Windows GPTBridge；直接 Bridge MCP/HTTP、发送脚本、直接发送按钮和 Codex 操作 ChatGPT UI 仍禁用，Mac 不动。后续后台检查不绕过该边界。
-- 最后一次准备诊断已识别一个 ChatGPT 模式窗口，因发现“停止”按钮而等待；原 T01 请求未发送。技能候选安装前已停止调度器，当前仍为 stopped，原 20 项任务与请求保留，发送标记和回执均为 0。
+- 最后一次准备诊断已识别一个 ChatGPT 模式窗口，因发现“停止”按钮而等待；原 T01 请求未发送。技能候选安装前已停止调度器，当时为 stopped，原 20 项任务与请求保留，发送标记和回执均为 0。后续已替换为三任务并安装b98e5f8修复，最新状态见页首入口。
 - Windows 控制与调度阶段日志已安装并有真实启用/继续/停止、窗口筛选和 busy 事件。[Windows 诊断说明](windows-diagnostics.md) 提供位置及排错方式。
 
 [交付回执](delivery.json) 给出安装和运行身份。[历史任务页截图](windows-native.png) 拍摄于后继日志与技能修复之前，不能代表当前技能目录或队列状态。完整输入、发送、GPTBridge 业务执行和 20 项任务完成仍未验收。
