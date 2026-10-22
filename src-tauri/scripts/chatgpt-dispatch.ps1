@@ -196,15 +196,23 @@ function Ensure-StructuredWindowsMention($Window,$Composer,$Value) {
   return $false
 }
 function Append-TaskAfterMention($Window,$Composer,[string]$Text) {
-  $Composer.SetFocus()
+  $script:diagnostics.phase='append_focus'
+  if(-not $Composer.Current.HasKeyboardFocus){
+    try {$Composer.SetFocus()} catch {
+      $script:diagnostics.focusErrorType=$_.Exception.GetType().Name
+      if(-not $Composer.Current.HasKeyboardFocus){return $false}
+    }
+  }
+  $script:diagnostics.phase='append_range'
   $pattern=$null
   if(-not $Composer.TryGetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern,[ref]$pattern)){return $false}
   $range=$pattern.DocumentRange.Clone()
-  $range.MoveEndpointByRange([System.Windows.Automation.TextPatternRangeEndpoint]::Start,$pattern.DocumentRange,[System.Windows.Automation.TextPatternRangeEndpoint]::End)
+  $range.MoveEndpointByRange([System.Windows.Automation.Text.TextPatternRangeEndpoint]::Start,$pattern.DocumentRange,[System.Windows.Automation.Text.TextPatternRangeEndpoint]::End)
   $range.Select()
   for($offset=0;$offset -lt $Text.Length;$offset+=256){
     $mode=Confirm-ChatGPTMode $Window 'unified' 'verify'
     if(-not $mode.ready -or -not $Composer.Current.HasKeyboardFocus -or [ChatGPTMenuCleanup]::GetForegroundWindow() -ne [IntPtr]$Window.Current.NativeWindowHandle){return $false}
+    $script:diagnostics.phase='append_unicode'
     $part=$Text.Substring($offset,[Math]::Min(256,$Text.Length-$offset))
     if(-not [ChatGPTTextInput]::AppendUnicode($part)){return $false}
   }
@@ -270,6 +278,8 @@ function Confirm-ChatGPTForeground($Window,[string]$Action,
 }
 # END DESKTOP MODE HELPERS
 try {
+  $ref=''
+  $script:diagnostics=@{phase='request_load'}
   $req=Get-Content -LiteralPath $RequestPath -Raw -Encoding UTF8|ConvertFrom-Json
   Add-Type -AssemblyName UIAutomationClient
   Add-Type -AssemblyName UIAutomationTypes
@@ -295,7 +305,7 @@ public class ChatGPTTextInput {
   $root=[System.Windows.Automation.AutomationElement]::RootElement
   $windows=@($root.FindAll([System.Windows.Automation.TreeScope]::Children,[System.Windows.Automation.Condition]::TrueCondition))
   $targets=@();$desktopKinds=@{}
-  $script:diagnostics=@{targetCount=0;seenDesktopWindows=0;offscreenDesktopWindows=0;desktopRootTypes=@();discoveryErrorTypes=@()}
+  $script:diagnostics=@{phase='window_discovery';targetCount=0;seenDesktopWindows=0;offscreenDesktopWindows=0;desktopRootTypes=@();discoveryErrorTypes=@()}
   foreach($w in $windows) {
     try {
       $proc=Get-Process -Id $w.Current.ProcessId
@@ -349,6 +359,7 @@ public class ChatGPTTextInput {
     $script:diagnostics.activationErrorTypes=@($activation.errors)
     if(-not $activation.ready){Result 'busy' '目标窗口前台激活尚未确认；未切换模式、新建聊天、填入或发送，将按有限退避重试。' $ref 'foreground_unavailable'}
   }
+  $script:diagnostics.phase='entry_mode'
   $mode=Confirm-ChatGPTEntryMode $window $hostKind $req.action ([bool]$req.newChat)
   if(-not $mode.ready){Result 'blocked' $mode.detail $ref}
   if($req.action -eq 'stage' -and $req.newChat) {
@@ -383,8 +394,9 @@ public class ChatGPTTextInput {
     elseif($items[0].TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$invoke)){$invoke.Invoke()}
     Start-Sleep -Milliseconds 250
   }
-  $unifiedModelReady=$false;$unifiedEffortReady=$false
-  if($hostKind -eq 'unified'){
+  $script:diagnostics.phase='model_effort'
+  $unifiedModelReady=($req.action -eq 'query_preparation');$unifiedEffortReady=$unifiedModelReady
+  if($hostKind -eq 'unified' -and $req.action -ne 'query_preparation'){
     $modelChoice=Confirm-TaskOption $window $hostKind '选择模型' $req.model ($req.action -eq 'stage')
     if(-not $modelChoice.ready){Result 'blocked' $modelChoice.detail $ref}
     $effortChoice=Confirm-TaskOption $window $hostKind '强度' $req.effort ($req.action -eq 'stage')
@@ -409,6 +421,7 @@ public class ChatGPTTextInput {
   if(-not $mode.ready){Result 'blocked' $mode.detail $ref}
   $composer=$composers[0];$value=$null
   if(-not $composer.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$value) -or $value.Current.IsReadOnly){Result 'blocked' '客户端输入框未提供可核对的 ValuePattern，已停止；不会用坐标或盲打发送。' $ref}
+  $script:diagnostics.phase='plugin_mention'
   $richMention=$false
   if($hostKind -eq 'unified'){
     if($req.action -eq 'stage'){$richMention=Ensure-StructuredWindowsMention $window $composer $value}else{$richMention=Get-StructuredWindowsMention $composer}
@@ -421,6 +434,13 @@ public class ChatGPTTextInput {
     $proof=Get-Content -LiteralPath $proofPath -Raw -Encoding UTF8|ConvertFrom-Json
     if($proof.requestId -cne $req.requestId -or $proof.windowRef -cne $ref -or $proof.model -cne $req.model -or $proof.effort -cne $req.effort -or $proof.promptSha256 -cne (Get-PromptSha $req.prompt)){Result 'blocked' '插件填入回执与本请求不匹配；没有发送' $ref}
     $expectedText=[string]$proof.mentionPrefix+[string]$req.prompt
+  }
+  if($req.action -eq 'query_preparation'){
+    # Read-only: no activation, menus, new chat, mention attachment or input.
+    $script:diagnostics.phase='query_preparation'
+    $posted=@($all|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Text -and $_.Current.Name.Contains([string]$req.requestId)})
+    if($hostKind -ne 'unified' -or -not $richMention -or $value.Current.Value -notmatch '^\s*GPTBridge Windows\s*$' -or $posted.Count -gt 0){Result 'blocked' '原窗口不是只有插件标记的未发送草稿；保留原请求。' $ref}
+    Result 'ready' '已只读核对原窗口只有结构化插件标记，没有本请求正文；尚未续填或发送。' $ref 'unsent_mention_only'
   }
   if($req.action -eq 'inspect'){Result 'ready' '已核对窗口、模型、思考强度、GPTBridge Windows 和输入框；尚未填入或发送。' $ref}
   if($req.action -eq 'stage') {
@@ -448,7 +468,9 @@ public class ChatGPTTextInput {
   if(-not $send[0].TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$pattern)){Result 'blocked' '发送按钮不支持可访问性调用，没有发送。' $ref}
   $mode=Confirm-ChatGPTMode $window $hostKind 'send'
   if(-not $mode.ready){Result 'blocked' $mode.detail $ref}
+  $script:diagnostics.phase='send_invoke'
   $pattern.Invoke()
+  $script:diagnostics.phase='send_observe'
   # Observe the outgoing exact text outside the composer. No automatic retry or fallback.
   $deadline=[DateTime]::UtcNow.AddSeconds(10)
   while([DateTime]::UtcNow -lt $deadline) {
@@ -459,5 +481,8 @@ public class ChatGPTTextInput {
   }
   Result 'unknown' '已调用一次发送按钮，但未能独立确认消息；请查询原对话，禁止自动重发或切换网页重发。' $ref
 } catch {
-  Result 'unknown' '客户端适配发生异常；保留本次请求并核对原窗口。没有自动重试。'
+  $script:diagnostics.errorType=$_.Exception.GetType().Name
+  $script:diagnostics.innerErrorType=if($_.Exception.InnerException){$_.Exception.InnerException.GetType().Name}else{''}
+  $script:diagnostics.scriptLine=$_.InvocationInfo.ScriptLineNumber
+  Result 'unknown' '客户端适配发生异常；保留本次请求并核对原窗口。没有自动重试。' $ref
 }

@@ -167,6 +167,7 @@ class SchedulerTests(unittest.TestCase):
         self.assertIn(b'FOREGROUND_FIXTURE_CASES_PASSED=9',result.stdout)
         self.assertIn(b'MODE_CASES_PASSED=19',result.stdout)
         self.assertIn(b'WORK_STOP_ORIGIN_CASES_PASSED=11',result.stdout)
+        self.assertIn(b'MENTION_APPEND_RANGE_CASES_PASSED=3',result.stdout)
         self.assertIn(b'SENDINPUT_NOT_CALLED',result.stdout)
 
     def block_preparation(self):
@@ -215,6 +216,48 @@ class SchedulerTests(unittest.TestCase):
         atomic_json(self.workspace/row['receiptPath'],dict(schemaVersion=1,batchId='batch1',taskId='T01',nonce=row['nonce'],status='blocked',summary='business input missing'))
         (self.queue/'retry-preparation').touch();self.engine.adapter=self.adapter
         self.assertEqual(self.engine.tick(),'blocked');self.assertEqual(len(self.calls),1)
+
+    def test_unknown_preparation_owner_confirmation_queries_then_continues_same_chat(self):
+        row=self.block_preparation();rid=row['nonce'];audit=self.queue/'attempts'/(rid+'.stage.desktop.json')
+        atomic_json(audit,dict(status='unknown',requestId=rid,windowRef='',detail='fixture exception'))
+        confirmed=dict(requestId=rid,auditSha256=digest(audit))
+        def query(req):
+            self.calls.append(dict(req))
+            if req['action']=='query_preparation':
+                self.assertFalse(req['newChat'])
+                return dict(status='ready',reasonCode='unsent_mention_only',requestId=rid,windowRef='fixture:1')
+            if req['action']=='stage':
+                self.assertFalse(req['newChat']);self.assertEqual(req['windowRef'],'fixture:1')
+                return dict(status='prepared',windowRef='fixture:1')
+            return dict(status='sent')
+        self.engine.adapter=query
+        atomic_json(self.queue/'retry-preparation',dict(confirmedUnsent=[confirmed]))
+        self.assertEqual(self.engine.tick(),'sent')
+        self.assertEqual([c['action'] for c in self.calls],['stage','query_preparation','stage','send'])
+        final=self.state()['tasks']['T01'];self.assertEqual(final['nonce'],rid)
+        self.assertEqual(final['preparationRecovery'][-1]['audits'][0]['result']['status'],'unknown')
+
+    def test_unknown_preparation_requires_bound_confirmation_and_readonly_query(self):
+        row=self.block_preparation();rid=row['nonce'];audit=self.queue/'attempts'/(rid+'.stage.desktop.json')
+        atomic_json(audit,dict(status='unknown',requestId=rid,windowRef='fixture:1'))
+        baseline=self.state()
+        for condition in ['bad_hash','query_blocked','query_wrong_request','window_changed','send_marker']:
+            with self.subTest(condition=condition):
+                atomic_json(self.queue/'states/batch1.json',baseline)
+                confirmed=dict(requestId=rid,auditSha256='bad' if condition=='bad_hash' else digest(audit))
+                send=self.queue/'attempts'/(rid+'.send.desktop.json')
+                if condition=='send_marker':send.touch()
+                def query(req):
+                    self.assertEqual(req['action'],'query_preparation');self.calls.append(dict(req))
+                    return dict(status='blocked' if condition=='query_blocked' else 'ready',reasonCode='unsent_mention_only',
+                                requestId='foreign' if condition=='query_wrong_request' else rid,
+                                windowRef='changed' if condition=='window_changed' else 'fixture:1')
+                self.engine.adapter=query;before=len(self.calls)
+                atomic_json(self.queue/'retry-preparation',dict(confirmedUnsent=[confirmed]))
+                self.assertEqual(self.engine.tick(),'blocked')
+                self.assertLessEqual(len(self.calls)-before,1)
+                self.assertEqual(self.state()['tasks']['T01']['nonce'],rid)
+                send.unlink(missing_ok=True)
 
     def test_preparation_fallback_keeps_both_failure_reasons(self):
         self.engine.options['webFallback']=True;self.block_preparation()

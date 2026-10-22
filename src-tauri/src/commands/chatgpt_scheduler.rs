@@ -153,6 +153,43 @@ mod workspace_mapping_tests {
 }
 
 #[cfg(target_os="windows")]
+async fn owner_retry_request(root:&std::path::Path)->AppResult<Vec<u8>> {
+    use sha2::{Digest,Sha256};
+    let mut candidates=Vec::new();
+    if let Ok(entries)=std::fs::read_dir(root.join("states")) {
+        for entry in entries.flatten() {
+            if std::fs::metadata(entry.path()).map(|m|m.len()>2*1024*1024).unwrap_or(true){continue;}
+            let state:Value=std::fs::read(entry.path()).ok().and_then(|b|serde_json::from_slice(&b).ok()).unwrap_or(json!({}));
+            if state["status"]!="blocked" {continue;}
+            if let Some(rows)=state["tasks"].as_object(){for row in rows.values(){
+                let id=row["requestId"].as_str().unwrap_or("");
+                if row["status"]!="blocked" || row["nonce"]!=id || id.is_empty() || id.len()>80 || !id.bytes().all(|b|b.is_ascii_alphanumeric()){continue;}
+                let attempts=root.join("attempts");
+                if std::fs::read_dir(&attempts).map(|es|es.flatten().any(|e|e.file_name().to_string_lossy().starts_with(&format!("{id}.send.")))).unwrap_or(true){continue;}
+                let path=attempts.join(format!("{id}.stage.desktop.json"));
+                if std::fs::metadata(&path).map(|m|m.len()>2*1024*1024).unwrap_or(true){continue;}
+                let bytes=std::fs::read(path)?;
+                let audit:Value=serde_json::from_slice(&bytes)?;
+                if audit["status"]=="unknown" && audit["requestId"]==id {
+                    candidates.push(json!({"requestId":id,"auditSha256":format!("{:x}",Sha256::digest(&bytes))}));
+                }
+            }}
+        }
+    }
+    if !candidates.is_empty(){
+        // Native owner control only. Never infer that an unknown send was unsent.
+        let confirmed=tokio::task::spawn_blocking(||{
+            #[link(name="user32")] extern "system" {fn MessageBoxW(hwnd:isize,text:*const u16,title:*const u16,flags:u32)->i32;}
+            let text:Vec<u16>="检测到准备异常。仅当你已确认原 ChatGPT 聊天只有 GPTBridge Windows 插件标记、没有发送任务正文时，选择“是”。调度器仍会先只读查询原窗口，核对通过后沿用原请求续填；不会新建聊天或重放发送。其他情况请选择“否”。".encode_utf16().chain(Some(0)).collect();
+            let title:Vec<u16>="GPTBridge · 核对原请求未发送".encode_utf16().chain(Some(0)).collect();
+            unsafe{MessageBoxW(0,text.as_ptr(),title.as_ptr(),0x00000004|0x00000030|0x00000100)==6}
+        }).await.map_err(|_|AppError::Message("原请求确认未完成；保留未知状态。".into()))?;
+        if !confirmed {candidates.clear();}
+    }
+    Ok(serde_json::to_vec(&json!({"confirmedUnsent":candidates}))?)
+}
+
+#[cfg(target_os="windows")]
 async fn windows_control(state:&AppState,r:SchedulerRequest)->AppResult<Value> {
     use std::io::Write;
     use std::process::Stdio;
@@ -190,9 +227,10 @@ async fn windows_control(state:&AppState,r:SchedulerRequest)->AppResult<Value> {
         let now=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs_f64();
         resume_requires_start(marker.exists(),pid,&heartbeat,root.join("stop").exists(),now)?
     } else {false};
+    let retry_request=if r.action=="resume" {Some(owner_retry_request(&root).await?)}else{None};
     if r.action=="resume" && !resume_restart {
         let _=std::fs::remove_file(root.join("pause"));
-        std::fs::write(root.join("retry-preparation"),b"Windows owner requested proven-unsent preparation recovery")?;
+        std::fs::write(root.join("retry-preparation"),retry_request.as_ref().unwrap())?;
         return Ok(json!({"status":"resume_requested","unknownReplayed":false,"retryProvenUnsentPreparation":true}));
     }
     let profile=super::taskdock::profile(state,&r.workspace_id)?;
@@ -238,7 +276,7 @@ async fn windows_control(state:&AppState,r:SchedulerRequest)->AppResult<Value> {
     let adapter=root.join("chatgpt-dispatch.ps1");std::fs::write(&adapter,include_str!("../../scripts/chatgpt-dispatch.ps1"))?;
     let config=json!({"ownerEnabled":true,"workspace":workspace,"queue":queue,"adapterWindowsPath":adapter,"client":r.client,"model":r.model,"effort":r.effort,"webFallback":r.web_fallback,"timeoutSeconds":7200});
     std::fs::write(root.join("scheduler-config.json"),serde_json::to_vec_pretty(&config)?)?;
-    if resume_restart {std::fs::write(root.join("retry-preparation"),b"Windows owner requested proven-unsent preparation recovery")?;}
+    if resume_restart {std::fs::write(root.join("retry-preparation"),retry_request.as_ref().unwrap())?;}
     let _=std::fs::remove_file(root.join("stop"));let _=std::fs::remove_file(root.join("pause"));
     let stdout=worker_log(&root,"worker-stdout.log")?;
     let stderr=worker_log(&root,"worker-stderr.log")?;

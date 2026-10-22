@@ -32,7 +32,7 @@ def diagnostic_event(queue, event, **fields):
                    'exitCode','errorType','stdoutBytes','stderrBytes','stderrSha256',
                    'pid','hostKind','mode','busyButtonCount','busyButtonNames',
                    'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes',
-                   'reasonCode','foregroundAttempts','foregroundConfirmed','activationErrorTypes','retryCount','retryAfterSeconds','workStopCount'}
+                   'reasonCode','foregroundAttempts','foregroundConfirmed','activationErrorTypes','retryCount','retryAfterSeconds','workStopCount','phase','errorType','innerErrorType','scriptLine','focusErrorType'}
         record = dict(at=time.time(), event=event, **{k:v for k,v in fields.items() if k in allowed})
         with path.open('a', encoding='utf-8') as output:
             output.write(json.dumps(record, ensure_ascii=False) + '\n')
@@ -153,7 +153,7 @@ class Engine:
         self.adapter, self.options = adapter, options
         self.queue.mkdir(parents=True, exist_ok=True)
 
-    def retry_unsent_preparation(self, state_path, state):
+    def retry_unsent_preparation(self, state_path, state, batch=None, confirmations=None):
         """Owner Resume only. Require every persisted attempt to prove no send occurred."""
         if state['status'] != 'blocked':
             return
@@ -172,21 +172,46 @@ class Engine:
             if not audits or any(p.name not in (request_id + '.stage.desktop.json', request_id + '.stage.web.json') for p in audits):
                 continue
             results = []
+            query_window = None
             for path in audits:
                 if path.stat().st_size > 2 * 1024 * 1024:
                     break
                 result = json.loads(path.read_text(encoding='utf-8-sig'))
                 proven_activation_wait = (result.get('status') == 'busy' and
                                           result.get('reasonCode') == 'foreground_unavailable')
-                if (result.get('status') != 'blocked' and not proven_activation_wait) or result.get('requestId') != request_id:
+                if result.get('requestId') != request_id:
                     break
-                results.append(dict(path=path.name, sha256=digest(path), detail=result.get('detail', '')))
+                if result.get('status') == 'unknown':
+                    # A pre-send exception is never replayed without an owner-bound
+                    # confirmation plus an independent read-only original-window query.
+                    key = dict(requestId=request_id, auditSha256=digest(path))
+                    if (path.name != request_id+'.stage.desktop.json' or key not in (confirmations or [])
+                            or batch is None):
+                        break
+                    task = next((t for t in batch['tasks'] if t['id']==task_id), None)
+                    if task is None:
+                        break
+                    prompt = task['prompt'] + receipt_instructions(state['batchId'], task_id, request_id, row['receiptPath'])
+                    query = self.adapter(dict(action='query_preparation', client='desktop', taskId=task_id,
+                        requestId=request_id, windowRef=result.get('windowRef',''), newChat=False,
+                        prompt=prompt, model=self.options['model'], effort=self.options['effort']))
+                    if (query.get('status') != 'ready' or query.get('reasonCode') != 'unsent_mention_only'
+                            or query.get('requestId') != request_id or not query.get('windowRef')):
+                        break
+                    if result.get('windowRef') and result['windowRef'] != query['windowRef']:
+                        break
+                    query_window = query['windowRef']
+                elif result.get('status') != 'blocked' and not proven_activation_wait:
+                    break
+                results.append(dict(path=path.name, sha256=digest(path), result=result))
             if len(results) != len(audits):
                 continue
             row.setdefault('preparationRecovery', []).append(dict(at=time.time(), audits=results))
             diagnostic_event(self.queue, 'preparation_recovered', batchId=state['batchId'], taskId=task_id, requestId=request_id)
             row.update(status='waiting_client', client=self.options['client'], startedAt=time.time(),
                        detail='用户继续：已核对准备阶段未发送，沿用原 requestId 重新准备。')
+            if query_window:
+                row['resumeDraftWindowRef'] = query_window
             row.pop('activationRetry', None)  # A fresh bounded budget requires owner Resume.
             recovered = True
         if recovered:
@@ -211,7 +236,13 @@ class Engine:
             return 'paused'
         retry_marker = self.queue / 'retry-preparation'
         retry_requested = retry_marker.is_file()
+        confirmations = []
         if retry_requested:
+            if retry_marker.stat().st_size <= 65536:
+                try:
+                    confirmations = json.loads(retry_marker.read_text(encoding='utf-8')).get('confirmedUnsent', [])
+                except (ValueError, AttributeError):
+                    pass  # Legacy marker only permits already-proven unsent audits.
             retry_marker.unlink()  # one owner request; never an automatic retry loop
         idle_status = 'idle'
         for incoming in sorted((self.queue / 'inbox').glob('*.json')):
@@ -229,7 +260,7 @@ class Engine:
             else:
                 state = dict(batchId=batch_id, inputSha256=digest(incoming), status='queued', tasks={})
             if retry_requested:
-                self.retry_unsent_preparation(state_path, state)
+                self.retry_unsent_preparation(state_path, state, batch, confirmations)
             if state['status'] in ('completed', 'blocked'):
                 if state['status'] == 'blocked':
                     idle_status = 'blocked'
@@ -275,6 +306,7 @@ class Engine:
                 nonce = row['nonce'] if row and row['status']=='waiting_client' else uuid.uuid4().hex
                 started_at = row['startedAt'] if row and row['status']=='waiting_client' else time.time()
                 recovery = row.get('preparationRecovery') if row else None
+                resume_window = row.get('resumeDraftWindowRef', '') if row else ''
                 relative = f'output/gptbridge-chatgpt-results/{batch_id}/{task["id"]}.result.json'
                 inside(self.workspace, relative).parent.mkdir(parents=True, exist_ok=True)
                 prompt = task['prompt'] + receipt_instructions(batch_id, task['id'], nonce, relative)
@@ -288,12 +320,12 @@ class Engine:
                 state['status'] = 'running'
                 atomic_json(state_path, state)  # durable before touching the client
                 request = dict(action='stage', client=row['client'], taskId=task['id'], requestId=nonce,
-                               windowRef='', model=self.options['model'], effort=self.options['effort'],
-                               prompt=prompt, newChat=True)
+                               windowRef=resume_window, model=self.options['model'], effort=self.options['effort'],
+                               prompt=prompt, newChat=not bool(resume_window))
                 prepared = self.adapter(request)
                 row['preparationAttempts'] = [dict(client=row['client'], status=prepared.get('status'), detail=prepared.get('detail', ''))]
                 # Only known-unsent preparation may fall back to the web; never after send.
-                if prepared.get('status') == 'blocked' and row['client'] == 'desktop' and self.options.get('webFallback'):
+                if prepared.get('status') == 'blocked' and row['client'] == 'desktop' and self.options.get('webFallback') and not resume_window:
                     request['client'] = 'web'
                     row['client'] = 'web'
                     atomic_json(state_path, state)
@@ -366,7 +398,7 @@ class WindowsAdapter:
                              **{k:v for k,v in (result.get('diagnostics') or {}).items()
                                 if k in ('hostKind','mode','busyButtonCount','busyButtonNames',
                                          'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes',
-                                         'foregroundAttempts','foregroundConfirmed','activationErrorTypes','workStopCount')})
+                                         'foregroundAttempts','foregroundConfirmed','activationErrorTypes','workStopCount','phase','errorType','innerErrorType','scriptLine','focusErrorType')})
             atomic_json(attempt, result)
             return result
         except Exception as error:

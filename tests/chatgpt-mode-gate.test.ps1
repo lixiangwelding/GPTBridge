@@ -174,3 +174,24 @@ Assert ($events.Length -eq 14) 'Unicode text events lost characters'
 for($i=0;$i -lt $events.Length;$i++){Assert ($events[$i].type -eq 1 -and $events[$i].data.key.vk -eq 0) 'Text input emitted a virtual Return or other key';Assert ($events[$i].data.key.flags -eq $(if($i%2){6}else{4})) 'Unexpected text input flags'}
 Assert ([Runtime.InteropServices.Marshal]::SizeOf([type][ChatGPTTextInput+INPUT]) -eq 40) 'Windows x64 INPUT ABI mismatch'
 'UNICODE_PACKET_TEST_PASSED=1; SENDINPUT_NOT_CALLED'
+
+# Exercise the exact range endpoint namespace against the real Windows assembly.
+# Empty text means no Unicode input is sent; window/selection are offline fixtures.
+$script:diagnostics=@{}
+$script:rangeMoves=0;$script:rangeSelections=0
+$script:range=[pscustomobject]@{}
+$script:range|Add-Member ScriptMethod Clone {return $script:range}
+$script:range|Add-Member ScriptMethod MoveEndpointByRange {param([System.Windows.Automation.Text.TextPatternRangeEndpoint]$start,$other,[System.Windows.Automation.Text.TextPatternRangeEndpoint]$end)
+ Assert ($start -eq [System.Windows.Automation.Text.TextPatternRangeEndpoint]::Start -and $end -eq [System.Windows.Automation.Text.TextPatternRangeEndpoint]::End) 'Wrong range endpoints'
+ $script:rangeMoves++
+}
+$script:range|Add-Member ScriptMethod Select {$script:rangeSelections++}
+$script:textPattern=[pscustomobject]@{DocumentRange=$script:range}
+$script:composerFixture=[pscustomobject]@{Current=[pscustomobject]@{HasKeyboardFocus=$true}}
+$script:composerFixture|Add-Member ScriptMethod SetFocus {throw 'Fixture focus unavailable'}
+$script:composerFixture|Add-Member ScriptMethod TryGetCurrentPattern {param($pattern,$result);$result.Value=$script:textPattern;return $true}
+Assert (Append-TaskAfterMention $null $composerFixture '') 'Correct TextPattern endpoint path failed'
+Assert ($rangeMoves -eq 1 -and $rangeSelections -eq 1) 'Caret not selected at document end'
+$composerFixture.Current.HasKeyboardFocus=$false
+Assert (-not (Append-TaskAfterMention $null $composerFixture '')) 'Failed composer focus was accepted'
+Write-Output 'MENTION_APPEND_RANGE_CASES_PASSED=3; SENDINPUT_NOT_CALLED'
