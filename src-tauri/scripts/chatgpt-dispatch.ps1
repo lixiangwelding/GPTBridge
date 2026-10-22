@@ -167,7 +167,9 @@ function Ensure-StructuredWindowsMention($Window,$Composer,$Value) {
   if(Get-StructuredWindowsMention $Composer){return $true}
   if($Value.Current.Value.Trim()){return $false}
   $mode=Confirm-ChatGPTMode $Window 'unified' 'verify'
-  if(-not $mode.ready){return $false}
+  if(-not $mode.ready -or [ChatGPTMenuCleanup]::GetForegroundWindow() -ne [IntPtr]$Window.Current.NativeWindowHandle){return $false}
+  $Composer.SetFocus()
+  if(-not $Composer.Current.HasKeyboardFocus){return $false}
   $Value.SetValue('@GPTBridge Windows')
   $choices=@();$cr=$Composer.Current.BoundingRectangle
   for($i=0;$i -lt 10;$i++){
