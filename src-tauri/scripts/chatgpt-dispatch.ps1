@@ -79,11 +79,11 @@ try {
   if($req.action -eq 'stage') {
     if($value.Current.Value.Trim()){Result 'blocked' '输入框已有内容，请先在 ChatGPT 中处理；不会覆盖未发送草稿。' $ref}
     $value.SetValue([string]$req.prompt)
-    if($value.Current.Value -ne $req.prompt){Result 'blocked' '填入后内容回读不一致，没有发送。' $ref}
+    if($value.Current.Value -cne $req.prompt){Result 'blocked' '填入后内容回读不一致，没有发送。' $ref}
     Result 'prepared' '任务已填入并逐字回读，尚未发送。请检查客户端内容后点击发送。' $ref
   }
   if($req.action -ne 'send'){Result 'blocked' '不支持的操作。' $ref}
-  if($value.Current.Value -ne $req.prompt){Result 'blocked' '输入内容已变化，请重新核对；没有发送。' $ref}
+  if($value.Current.Value -cne $req.prompt){Result 'blocked' '输入内容已变化，请重新核对；没有发送。' $ref}
   $send=@($buttons|Where-Object {$_.Current.Name -in @('Send prompt','发送提示','发送消息','发送') -and $_.Current.IsEnabled})
   if($send.Count -ne 1){Result 'blocked' '没有唯一可用的发送按钮，没有发送。' $ref}
   $pattern=$null
@@ -94,7 +94,7 @@ try {
   while([DateTime]::UtcNow -lt $deadline) {
     Start-Sleep -Milliseconds 250
     $after=@($window.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition))
-    $posted=@($after|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Text -and $_.Current.Name -eq $req.prompt})
+    $posted=@($after|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Text -and $_.Current.Name -ceq $req.prompt})
     if($posted.Count -gt 0 -and -not $value.Current.Value.Trim()){Result 'sent' '已观察到本次完整消息出现在对话中；任务执行和验收尚未完成。' $ref}
   }
   Result 'unknown' '已调用一次发送按钮，但未能独立确认消息；请查询原对话，禁止自动重发或切换网页重发。' $ref
