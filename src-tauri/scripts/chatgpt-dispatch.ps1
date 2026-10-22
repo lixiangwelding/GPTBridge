@@ -59,7 +59,7 @@ function Get-ChatGPTComposers($Nodes,[bool]$ChatOnly=$false) {
   foreach($candidate in $editable){
     try {
       $value=$null
-      if($candidate.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$value) -and -not $value.Current.IsReadOnly -and (Get-StructuredWindowsMention $candidate)){$rich+=,$candidate}
+      if($candidate.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$value) -and -not $value.Current.IsReadOnly -and ((Get-StructuredWindowsMention $candidate) -or $value.Current.Value.Trim() -ceq '@GPTBridge Windows')){$rich+=,$candidate}
     }catch{}
   }
   return $rich
@@ -202,7 +202,8 @@ function Get-StructuredWindowsMention($Composer) {
 }
 function Ensure-StructuredWindowsMention($Window,$Composer,$Value) {
   if(Get-StructuredWindowsMention $Composer){return $true}
-  if($Value.Current.Value.Trim()){return $false}
+  $pendingMention=($Value.Current.Value.Trim() -ceq '@GPTBridge Windows')
+  if($Value.Current.Value.Trim() -and -not $pendingMention){return $false}
   $mode=Confirm-ChatGPTMode $Window 'unified' 'verify'
   if(-not $mode.ready -or [ChatGPTMenuCleanup]::GetForegroundWindow() -ne [IntPtr]$Window.Current.NativeWindowHandle){return $false}
   $Composer.SetFocus()
@@ -461,7 +462,7 @@ public class ChatGPTTextInput {
   if($hostKind -eq 'unified'){
     if($req.action -eq 'stage'){$richMention=Ensure-StructuredWindowsMention $window $composer $value}else{$richMention=Get-StructuredWindowsMention $composer}
   }
-  if(((-not $unifiedModelReady) -and $model.Count -ne 1) -or ((-not $unifiedEffortReady) -and $effort.Count -ne 1) -or ($bridge.Count -ne 1 -and -not $richMention)){Result 'blocked' '尚未核对模型、Pro 强度和真实附加的 GPTBridge Windows；未发送。' $ref}
+  if(((-not $unifiedModelReady) -and $model.Count -ne 1) -or ((-not $unifiedEffortReady) -and $effort.Count -ne 1) -or ($bridge.Count -ne 1 -and -not $richMention -and $req.action -ne 'query_preparation')){Result 'blocked' '尚未核对模型、Pro 强度和真实附加的 GPTBridge Windows；未发送。' $ref}
   $expectedText=[string]$req.prompt
   $proofPath=Join-Path (Split-Path -Parent $RequestPath) ($req.requestId+'.prepared-ui.json')
   if($req.action -eq 'send' -and $richMention){
@@ -474,8 +475,8 @@ public class ChatGPTTextInput {
     # Read-only content query after verified activation: no menus, new chat, attachment or input.
     $script:diagnostics.phase='query_preparation'
     $posted=@($all|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Text -and $_.Current.Name.Contains([string]$req.requestId)})
-    if($hostKind -ne 'unified' -or -not $richMention -or $value.Current.Value -notmatch '^\s*GPTBridge Windows\s*$' -or $posted.Count -gt 0){Result 'blocked' '原窗口不是只有插件标记的未发送草稿；保留原请求。' $ref}
-    Result 'ready' '已只读核对原窗口只有结构化插件标记，没有本请求正文；尚未续填或发送。' $ref 'unsent_mention_only'
+    if($hostKind -ne 'unified' -or (-not $richMention -and $value.Current.Value.Trim() -cne '@GPTBridge Windows') -or $value.Current.Value -notmatch '^\s*@?GPTBridge Windows\s*$' -or $posted.Count -gt 0){Result 'blocked' '原窗口不是只有插件标记的未发送草稿；保留原请求。' $ref}
+    Result 'ready' '已核对原窗口只有 Windows 插件标记或其待选择的 @ 文本，没有本请求正文；尚未续填或发送。' $ref 'unsent_mention_only'
   }
   if($req.action -eq 'inspect'){Result 'ready' '已核对窗口、模型、思考强度、GPTBridge Windows 和输入框；尚未填入或发送。' $ref}
   if($req.action -eq 'stage') {

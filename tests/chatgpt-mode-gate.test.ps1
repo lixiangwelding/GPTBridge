@@ -226,13 +226,18 @@ $script:originalMentionProof=${function:Get-StructuredWindowsMention}
 function Get-StructuredWindowsMention($Composer){return $Composer.fixtureChip}
 try {
  $script:richFixture=[pscustomobject]@{fixtureChip=$true;Current=[pscustomobject]@{Name='';IsOffscreen=$false;IsEnabled=$true;ControlType=[Windows.Automation.ControlType]::Edit}}
- $richFixture|Add-Member ScriptMethod TryGetCurrentPattern {param($pattern,$result);$result.Value=[pscustomobject]@{Current=[pscustomobject]@{IsReadOnly=$false}};return $true}
+ $richFixture|Add-Member ScriptMethod TryGetCurrentPattern {param($pattern,$result);$result.Value=[pscustomobject]@{Current=[pscustomobject]@{IsReadOnly=$false;Value=$script:pendingMentionFixture}};return $true}
  Assert (@(Get-ChatGPTComposers @($richFixture) $true).Count -eq 1) 'Structured chip composer with blank accessible name rejected'
  $richFixture.fixtureChip=$false
  Assert (@(Get-ChatGPTComposers @($richFixture) $true).Count -eq 0) 'Unproven rich composer accepted'
+ $script:pendingMentionFixture='@GPTBridge Windows'
+ Assert (@(Get-ChatGPTComposers @($richFixture) $true).Count -eq 1) 'Exact pending mention not found for read-only query'
+ $script:pendingMentionFixture='@GPTBridge Windows task body'
+ Assert (@(Get-ChatGPTComposers @($richFixture) $true).Count -eq 0) 'Pending mention with other draft text accepted'
+ $script:pendingMentionFixture=''
  $richFixture.fixtureChip=$true;$richFixture.Current.IsOffscreen=$true
  Assert (@(Get-ChatGPTComposers @($richFixture) $true).Count -eq 0) 'Offscreen rich composer accepted'
  $richFixture.Current.IsOffscreen=$false
  Assert (@(Get-ChatGPTComposers @($richFixture,$richFixture) $true).Count -eq 2) 'Ambiguity was silently discarded'
 }finally{${function:Get-StructuredWindowsMention}=$script:originalMentionProof}
-Write-Output 'RICH_COMPOSER_CASES_PASSED=4; SENDINPUT_NOT_CALLED'
+Write-Output 'RICH_COMPOSER_CASES_PASSED=6; SENDINPUT_NOT_CALLED'
