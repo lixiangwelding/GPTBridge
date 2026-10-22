@@ -13,9 +13,10 @@
 ## 当前实际交付状态
 
 - 新页面、20 任务包、完整提示词、文件提交 CLI、独立队列引擎、Windows 桌面与 Chrome/Edge 网页的 UIAutomation 候选已写入源码。
-- Node 相关 18 项测试、Python 调度 10 项离线测试通过；Svelte 检查与前端生产构建通过；Windows PowerShell 语法检查通过。
+- Node 相关 18 项测试、Python 调度 12 项离线测试通过；Svelte 检查与前端生产构建通过；Windows PowerShell 语法检查通过。
 - 20 个任务已实际提交到 Windows 配置目录下 inbox，batchId 为 `ddt-three-lines-20261022-01a16250`。独立调度器未启用，实际发送 0。
-- **Windows Rust 原生编译、NSIS 构建/安装、真实 ChatGPT 控件身份及真实消息发送尚未验证。** 当前安装的旧 0.4.3 没有自动获得这份未提交代码。不能宣称已经可以无人值守跑完 20 任务。
+- **Windows 最终候选已构建并安装。** 源码 `fbf40195f2dc217df13787e48c58c20f35e253fd`，GitHub Windows 工作流 [39752886336](https://github.com/lixiangwelding/GPTBridge/actions/runs/39752886336) 成功；Rust 测试目标完成编译（未运行 Rust 测试），NSIS 安装退出 0，新进程正常。安装时原项目配置 SHA 未变；原生启动服务后的 JSON 格式重写已核对逐字段等价，FRP 保留，Windows MCP 本机界面显示正在监听 38766。
+- 原生新页面已打开、载入 20 草稿并自动识别同一批队列，状态 `not_started`；见 [Windows 实机截图](windows-native.png) 和 [交付回执](delivery.json)。**真实 ChatGPT 控件、选项、发送与整链路执行仍未验证，不能宣称已可无人值守跑完。**
 - 候选脚本按严格的可访问性名称选择模型、思考强度和插件，并校验唯一目标窗口及输入框 ValuePattern。不同客户端名称、Pro 与思考强度组合或可访问性模式缺失都会停止，须在独立 Windows 客户端验收后适配，不能去掉检查或改为坐标盲点。
 - 当前没有内置另一套 AI 拆解服务；拆任务由 Codex 完成。没有绕过 Codex 禁令的 MCP/HTTP 调度入口。
 

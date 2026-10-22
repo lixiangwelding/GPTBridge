@@ -1,0 +1,81 @@
+{
+  "verifiedAt": "2026-10-22T09:19:27.396215+00:00",
+  "sourceCommit": "fbf40195f2dc217df13787e48c58c20f35e253fd",
+  "ci": {
+    "runId": 39752886336,
+    "url": "https://github.com/lixiangwelding/GPTBridge/actions/runs/39752886336",
+    "conclusion": "success",
+    "windowsOnly": true,
+    "releasePublished": false,
+    "nodeTestsPassed": 18,
+    "pythonTestsPassed": 12,
+    "rustTestTargetsCompiled": true,
+    "rustTestsExecuted": false,
+    "nsisBuild": "passed"
+  },
+  "artifact": {
+    "runId": 39752886336,
+    "sourceCommit": "fbf40195f2dc217df13787e48c58c20f35e253fd",
+    "artifactId": 12414219309,
+    "artifactSha256": "02af8a9ae2410034c462159400d8456dcf74f24ac0f78be7bfe2ca03440dee8b",
+    "installer": "/mnt/c/Users/99321/Downloads/GPTBridge_0.4.3_chatgpt-tasks_fbf4019_x64-setup.exe",
+    "installerSha256": "722208e2cb3f842d3137d8286a264a96a1c1766253ae5ec1c319823735e1516c",
+    "installerBytes": 6925899
+  },
+  "installation": {
+    "installerExit": 0,
+    "installedPath": "C:\\Users\\99321\\AppData\\Local\\Programs\\GPTBridge\\coding-tools-mcp-personal.exe",
+    "installedSha256": "b42f675068af90bfffa8e8a364a66acc1be1a319fa1c40c0c0ade8057e8f19d7",
+    "pid": 39732,
+    "profilesBeforeSha256": "73fca2f1d8f9675d419f23ffddf3fb52a525301ff92ed2b1c70216b9c81fa008",
+    "profilesSha256": "73fca2f1d8f9675d419f23ffddf3fb52a525301ff92ed2b1c70216b9c81fa008",
+    "schedulerStarted": false,
+    "macModified": false,
+    "frpcPids": [
+      35296
+    ]
+  },
+  "nativeUi": {
+    "route": "/chatgpt-tasks",
+    "twentyDraftsLoaded": true,
+    "existingBatchAdopted": true,
+    "workspace": "Windows·弹弹堂开发全集",
+    "schedulerStatus": "not_started",
+    "screenshot": "windows-native.png",
+    "screenshotSha256": "483cbe668231d68b5a7d21c5b5d1d46fbb856217b75848ef7f9415733716716f"
+  },
+  "windowsConnection": {
+    "localPort": 38766,
+    "nativeUiStatus": "当前实例运行中",
+    "endpoint": "https://gptbridge-b.ssh.ddtgm.lol/mcp",
+    "protocolOrToolProbeByCodex": false,
+    "profilesFinalSha256": "46295281ebd52e920cdc60625b97821d23257db5e33c94b792867e3e6e98fbf1",
+    "profilesSemanticallyUnchanged": true,
+    "formattingRewrittenByNativeServiceStart": true
+  },
+  "codexGuard": {
+    "pluginEnabled": false,
+    "freshRuntimeBridgeAppsCallable": false,
+    "preToolUseHookTrusted": true,
+    "activeChatsRestarted": false,
+    "queueOnlyException": true
+  },
+  "queue": {
+    "batchId": "ddt-three-lines-20261022-01a16250",
+    "tasksSubmitted": 20,
+    "schedulerEnabled": false,
+    "messagesSent": 0,
+    "gptbridgeToolCalls": 0
+  },
+  "foreignFiles": {
+    "checked": 67,
+    "changed": []
+  },
+  "macModified": false,
+  "notVerified": [
+    "Real ChatGPT desktop/web controls and model/effort selection",
+    "Actual ChatGPT sending and GPTBridge tool execution",
+    "End-to-end scheduler startup after independent user enable",
+    "DDT business completion"
+  ]
+}
