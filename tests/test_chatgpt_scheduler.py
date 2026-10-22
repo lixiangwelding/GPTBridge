@@ -101,6 +101,73 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(self.engine.tick(),'unknown');self.assertEqual([x['client'] for x in self.calls],['desktop','web','web'])
         self.engine.tick();self.assertEqual(len(self.calls),3)
 
+    def activation_wait(self, req):
+        self.calls.append(dict(req))
+        result=dict(status='busy',reasonCode='foreground_unavailable',requestId=req['requestId'],detail='fixture activation not confirmed')
+        atomic_json(self.queue/'attempts'/(req['requestId']+'.stage.desktop.json'),result)
+        return result
+
+    def test_foreground_retry_backs_off_without_fallback_or_new_request(self):
+        self.engine.adapter=self.activation_wait;self.engine.options['webFallback']=True
+        with patch('scheduler.time.time',return_value=1000):
+            self.assertEqual(self.engine.tick(),'waiting_client')
+            self.assertEqual(self.engine.tick(),'waiting_client')
+        self.assertEqual(len(self.calls),1)
+        row=self.state()['tasks']['T01'];self.assertEqual(row['activationRetry'],dict(count=1,nextAttemptAt=1005))
+        self.assertEqual(self.calls[0]['client'],'desktop')
+        restarted=Engine(self.queue,self.workspace,self.activation_wait,self.engine.options)
+        with patch('scheduler.time.time',return_value=1005):self.assertEqual(restarted.tick(),'waiting_client')
+        self.assertEqual(self.state()['tasks']['T01']['activationRetry']['count'],2)
+        self.assertEqual(self.calls[0]['requestId'],self.calls[1]['requestId'])
+        self.engine.adapter=self.adapter
+        with patch('scheduler.time.time',return_value=1015):self.assertEqual(self.engine.tick(),'sent')
+        self.assertEqual(self.calls[0]['requestId'],self.calls[-1]['requestId'])
+        self.assertEqual([c['action'] for c in self.calls],['stage','stage','stage','send'])
+
+    def test_foreground_retry_exhausts_and_requires_owner_resume(self):
+        self.engine.adapter=self.activation_wait
+        for i in range(12):
+            with patch('scheduler.time.time',return_value=1000+i*31):
+                self.assertEqual(self.engine.tick(),'blocked' if i==11 else 'waiting_client')
+        self.assertEqual(len(self.calls),12)
+        self.assertEqual(self.state()['tasks']['T01']['activationRetry']['count'],12)
+        self.assertEqual(len({c['requestId'] for c in self.calls}),1)
+        self.assertEqual(self.engine.tick(),'blocked');self.assertEqual(len(self.calls),12)
+        (self.queue/'retry-preparation').touch();self.engine.adapter=self.adapter
+        self.assertEqual(self.engine.tick(),'sent')
+        self.assertEqual(self.calls[0]['requestId'],self.calls[-1]['requestId'])
+        self.assertNotIn('activationRetry',self.state()['tasks']['T01'])
+
+    def test_activation_resume_rejects_unknown_busy_and_any_send_marker(self):
+        self.engine.adapter=self.activation_wait
+        self.engine.tick();baseline=self.state();baseline.update(status='blocked');baseline['tasks']['T01']['status']='blocked'
+        rid=baseline['tasks']['T01']['requestId'];audit=self.queue/'attempts'/(rid+'.stage.desktop.json')
+        good=json.loads(audit.read_text())
+        for condition in ['generic_busy','wrong_request','unknown','send_marker']:
+            with self.subTest(condition=condition):
+                atomic_json(self.queue/'states/batch1.json',baseline);result=dict(good)
+                if condition=='generic_busy':result.pop('reasonCode')
+                if condition=='wrong_request':result['requestId']='foreign'
+                if condition=='unknown':result['status']='unknown'
+                atomic_json(audit,result)
+                send=self.queue/'attempts'/(rid+'.send.desktop.json')
+                if condition=='send_marker':send.touch()
+                (self.queue/'retry-preparation').touch();self.engine.adapter=self.adapter
+                self.assertEqual(self.engine.tick(),'blocked');self.assertEqual(len(self.calls),1)
+                send.unlink(missing_ok=True)
+
+    @unittest.skipUnless(sys.platform=='win32', 'Windows PowerShell offline fixtures')
+    def test_windows_offline_mode_and_foreground_fixtures(self):
+        # The existing Windows CI discovers this test. All OS/window callbacks are
+        # injected in the fixture; it never discovers or operates live UI.
+        result=subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass',
+                               '-File',str(ROOT/'tests/chatgpt-mode-gate.test.ps1')],
+                              capture_output=True,timeout=90)
+        self.assertEqual(result.returncode,0,(result.stdout+result.stderr).decode('utf-8',errors='replace'))
+        self.assertIn(b'FOREGROUND_FIXTURE_CASES_PASSED=9',result.stdout)
+        self.assertIn(b'MODE_CASES_PASSED=19',result.stdout)
+        self.assertIn(b'SENDINPUT_NOT_CALLED',result.stdout)
+
     def block_preparation(self):
         def blocked(req):
             self.calls.append(dict(req))

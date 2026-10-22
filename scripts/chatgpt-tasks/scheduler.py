@@ -13,6 +13,7 @@ import time
 import uuid
 
 ID = re.compile(r'^[A-Za-z0-9_-]{1,80}$')
+FOREGROUND_RETRY_LIMIT = 12
 
 
 def diagnostic_event(queue, event, **fields):
@@ -30,7 +31,8 @@ def diagnostic_event(queue, event, **fields):
         allowed = {'batchId','taskId','requestId','action','client','status','durationMs',
                    'exitCode','errorType','stdoutBytes','stderrBytes','stderrSha256',
                    'pid','hostKind','mode','busyButtonCount','busyButtonNames',
-                   'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes'}
+                   'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes',
+                   'reasonCode','foregroundAttempts','foregroundConfirmed','activationErrorTypes','retryCount','retryAfterSeconds'}
         record = dict(at=time.time(), event=event, **{k:v for k,v in fields.items() if k in allowed})
         with path.open('a', encoding='utf-8') as output:
             output.write(json.dumps(record, ensure_ascii=False) + '\n')
@@ -174,7 +176,9 @@ class Engine:
                 if path.stat().st_size > 2 * 1024 * 1024:
                     break
                 result = json.loads(path.read_text(encoding='utf-8-sig'))
-                if result.get('status') != 'blocked' or result.get('requestId') != request_id:
+                proven_activation_wait = (result.get('status') == 'busy' and
+                                          result.get('reasonCode') == 'foreground_unavailable')
+                if (result.get('status') != 'blocked' and not proven_activation_wait) or result.get('requestId') != request_id:
                     break
                 results.append(dict(path=path.name, sha256=digest(path), detail=result.get('detail', '')))
             if len(results) != len(audits):
@@ -183,6 +187,7 @@ class Engine:
             diagnostic_event(self.queue, 'preparation_recovered', batchId=state['batchId'], taskId=task_id, requestId=request_id)
             row.update(status='waiting_client', client=self.options['client'], startedAt=time.time(),
                        detail='用户继续：已核对准备阶段未发送，沿用原 requestId 重新准备。')
+            row.pop('activationRetry', None)  # A fresh bounded budget requires owner Resume.
             recovered = True
         if recovered:
             state.update(status='queued', detail='用户请求恢复已证实未发送的准备失败；未知发送保持原状。')
@@ -264,6 +269,9 @@ class Engine:
                     continue
                 if row and row['status']=='waiting_client' and time.time()-row['startedAt']>self.options.get('timeoutSeconds',7200):
                     state.update(status='attention',detail='客户端长时间忙碌，未发送当前任务。');atomic_json(state_path,state);return 'attention'
+                activation_retry = row.get('activationRetry') if row else None
+                if row and row['status']=='waiting_client' and activation_retry and time.time()<activation_retry['nextAttemptAt']:
+                    return 'waiting_client'
                 nonce = row['nonce'] if row and row['status']=='waiting_client' else uuid.uuid4().hex
                 started_at = row['startedAt'] if row and row['status']=='waiting_client' else time.time()
                 recovery = row.get('preparationRecovery') if row else None
@@ -274,6 +282,8 @@ class Engine:
                            receiptPath=relative, startedAt=started_at, client=self.options['client'])
                 if recovery:
                     row['preparationRecovery'] = recovery
+                if activation_retry:
+                    row['activationRetry'] = activation_retry
                 state['tasks'][task['id']] = row
                 state['status'] = 'running'
                 atomic_json(state_path, state)  # durable before touching the client
@@ -290,6 +300,19 @@ class Engine:
                     prepared = self.adapter(request)
                     row['preparationAttempts'].append(dict(client=row['client'], status=prepared.get('status'), detail=prepared.get('detail', '')))
                 if prepared.get('status') == 'busy':
+                    if prepared.get('reasonCode') == 'foreground_unavailable':
+                        count = (activation_retry or {}).get('count', 0) + 1
+                        delay = min(5 * 2 ** min(count - 1, 3), 30)
+                        row['activationRetry'] = dict(count=count, nextAttemptAt=time.time()+delay)
+                        exhausted = count >= FOREGROUND_RETRY_LIMIT
+                        diagnostic_event(self.queue, 'foreground_retry_exhausted' if exhausted else 'foreground_retry_scheduled',
+                                         taskId=task['id'], requestId=nonce, reasonCode='foreground_unavailable',
+                                         retryCount=count, retryAfterSeconds=0 if exhausted else delay)
+                        if exhausted:
+                            row.update(status='blocked',detail='窗口前台激活连续12轮未确认，已停止自动重试；未填入或发送。请查看激活日志，修复后由所有者继续。')
+                            state.update(status='blocked',detail=row['detail'])
+                            atomic_json(state_path,state)
+                            return 'blocked'
                     row.update(status='waiting_client',detail=prepared.get('detail','client busy; no action performed'))
                     atomic_json(state_path,state)
                     return 'waiting_client'
@@ -336,13 +359,14 @@ class WindowsAdapter:
                                 '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File',
                                 self.adapter_path, '-RequestPath', win_path], capture_output=True, timeout=50)
             result = json.loads(p.stdout.decode('utf-8-sig')) if p.returncode == 0 else dict(status='unknown', detail='适配器退出异常')
-            diagnostic_event(self.queue, 'adapter_result', **meta, status=result.get('status'),
+            diagnostic_event(self.queue, 'adapter_result', **meta, status=result.get('status'), reasonCode=result.get('reasonCode'),
                              durationMs=round((time.monotonic()-started)*1000), exitCode=p.returncode,
                              stdoutBytes=len(p.stdout), stderrBytes=len(p.stderr),
                              stderrSha256=hashlib.sha256(p.stderr).hexdigest(),
                              **{k:v for k,v in (result.get('diagnostics') or {}).items()
                                 if k in ('hostKind','mode','busyButtonCount','busyButtonNames',
-                                         'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes')})
+                                         'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes',
+                                         'foregroundAttempts','foregroundConfirmed','activationErrorTypes')})
             atomic_json(attempt, result)
             return result
         except Exception as error:

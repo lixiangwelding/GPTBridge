@@ -96,6 +96,47 @@ Assert (-not(Confirm-ChatGPTEntryMode $window 'unified' 'inspect' $true).ready) 
 Assert (-not(Confirm-ChatGPTEntryMode $window 'unified' 'stage' $false).ready) 'Stage without new chat deferred composer guard'
 'MODE_CASES_PASSED=19'
 
+# Foreground fixtures inject every OS action; no actual window is read or activated.
+function Reset-ForegroundFixture {
+ $script:foreground=[IntPtr]7;$script:activations=0;$script:polls=0
+ $script:focusWindow=[pscustomobject]@{Current=[pscustomobject]@{NativeWindowHandle=42}}
+ $script:readFocus={ $script:foreground }
+ $script:activateFocus={param($Target) $script:activations++}
+ $script:waitFocus={ $script:polls++ }
+}
+Reset-ForegroundFixture;$script:foreground=[IntPtr]42
+$r=Confirm-ChatGPTForeground $focusWindow 'stage' $readFocus $activateFocus $waitFocus
+Assert ($r.ready -and $activations -eq 0 -and $polls -eq 0) 'Already active window was touched'
+Reset-ForegroundFixture
+$r=Confirm-ChatGPTForeground $focusWindow 'send' $readFocus $activateFocus $waitFocus
+Assert (-not $r.ready -and $activations -eq 0 -and $polls -eq 0) 'Send activated a window'
+Reset-ForegroundFixture
+$r=Confirm-ChatGPTForeground $focusWindow 'inspect' $readFocus $activateFocus $waitFocus
+Assert (-not $r.ready -and $activations -eq 0) 'Inspect activated a window'
+Reset-ForegroundFixture
+$waitFocus={ $script:polls++;if($script:polls -eq 3){$script:foreground=[IntPtr]42} }
+$r=Confirm-ChatGPTForeground $focusWindow 'stage' $readFocus $activateFocus $waitFocus
+Assert ($r.ready -and $r.attempts -eq 1 -and $polls -eq 3) 'Asynchronous activation was rejected at 150ms'
+Reset-ForegroundFixture
+$activateFocus={param($Target) $script:activations++;if($script:activations -eq 2){$script:foreground=[IntPtr]42}}
+$r=Confirm-ChatGPTForeground $focusWindow 'stage' $readFocus $activateFocus $waitFocus
+Assert ($r.ready -and $r.attempts -eq 2) 'Second activation could not recover'
+Reset-ForegroundFixture
+$r=Confirm-ChatGPTForeground $focusWindow 'stage' $readFocus $activateFocus $waitFocus
+Assert (-not $r.ready -and $r.attempts -eq 3 -and $polls -eq 12) 'Foreground retry was unbounded or inferred success'
+Reset-ForegroundFixture
+$activateFocus={param($Target) $script:activations++;throw 'PRIVATE_EXCEPTION_MESSAGE'}
+$r=Confirm-ChatGPTForeground $focusWindow 'stage' $readFocus $activateFocus $waitFocus
+Assert (-not $r.ready -and $r.attempts -eq 3 -and ($r.errors -join ',') -notmatch 'PRIVATE') 'Activation exception escaped or leaked'
+Reset-ForegroundFixture
+$waitFocus={ $script:polls++;$script:focusWindow.Current.NativeWindowHandle=99;$script:foreground=[IntPtr]42 }
+$r=Confirm-ChatGPTForeground $focusWindow 'stage' $readFocus $activateFocus $waitFocus
+Assert (-not $r.ready -and $activations -eq 1) 'Stale target handle was trusted'
+Reset-ForegroundFixture;$focusWindow.Current.NativeWindowHandle=0
+$r=Confirm-ChatGPTForeground $focusWindow 'stage' $readFocus $activateFocus $waitFocus
+Assert (-not $r.ready -and $activations -eq 0) 'Invalid window was activated'
+'FOREGROUND_FIXTURE_CASES_PASSED=9'
+
 function New-ThumbFixture([double]$center,[switch]$allWhite){
  $b=New-Object System.Drawing.Bitmap 582,76;$g=[Drawing.Graphics]::FromImage($b)
  try {$g.Clear([Drawing.Color]::FromArgb(45,45,45));if($allWhite){$g.Clear([Drawing.Color]::White)}else{$g.FillEllipse([Drawing.Brushes]::White,[single]($center-32),[single]6,[single]64,[single]64)}}finally{$g.Dispose()}

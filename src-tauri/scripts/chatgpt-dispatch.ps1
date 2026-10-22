@@ -1,7 +1,7 @@
 ﻿param([Parameter(Mandatory=$true)][string]$RequestPath)
 $ErrorActionPreference='Stop'
 [Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false)
-function Result($status,$detail,$ref='') { @{status=$status;detail=$detail;windowRef=$ref;requestId=$req.requestId;diagnostics=$script:diagnostics}|ConvertTo-Json -Depth 5 -Compress;exit 0 }
+function Result($status,$detail,$ref='',$reasonCode='') { @{status=$status;detail=$detail;windowRef=$ref;requestId=$req.requestId;reasonCode=$reasonCode;diagnostics=$script:diagnostics}|ConvertTo-Json -Depth 5 -Compress;exit 0 }
 # The same Windows application hosts both modes. Image identity never grants a Codex chat permission.
 function Get-ChatGPTDesktopHostKind([string]$ImagePath) {
   if([string]::IsNullOrWhiteSpace($ImagePath) -or [IO.Path]::GetFileName($ImagePath) -ine 'ChatGPT.exe'){return 'unsupported'}
@@ -214,6 +214,36 @@ function Get-PromptSha([string]$Text) {
   $sha=[Security.Cryptography.SHA256]::Create()
   try{return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Text)))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
 }
+function Confirm-ChatGPTForeground($Window,[string]$Action,
+  [scriptblock]$ReadForeground={ [ChatGPTMenuCleanup]::GetForegroundWindow() },
+  [scriptblock]$Activate={param($Target)
+    $pattern=$null
+    if($Target.TryGetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern,[ref]$pattern) -and $pattern.Current.WindowVisualState -eq [System.Windows.Automation.WindowVisualState]::Minimized){
+      $pattern.SetWindowVisualState([System.Windows.Automation.WindowVisualState]::Normal)
+    }
+    [void][ChatGPTMenuCleanup]::SetForegroundWindow([IntPtr]$Target.Current.NativeWindowHandle)
+    $Target.SetFocus()
+  },
+  [scriptblock]$Wait={ Start-Sleep -Milliseconds 250 }) {
+  # Only the independently enabled scheduler calls this during stage, before any
+  # menu, new chat, composer or text input. Inspect/send must never activate UI.
+  $hwnd=[IntPtr]$Window.Current.NativeWindowHandle
+  $attempts=0;$errors=@()
+  if($hwnd -eq [IntPtr]::Zero){return @{ready=$false;attempts=0;errors=$errors}}
+  if((& $ReadForeground) -eq $hwnd){return @{ready=$true;attempts=0;errors=$errors}}
+  if($Action -ne 'stage'){return @{ready=$false;attempts=0;errors=$errors}}
+  for($i=0;$i -lt 3;$i++){
+    if([IntPtr]$Window.Current.NativeWindowHandle -ne $hwnd){return @{ready=$false;attempts=$attempts;errors=$errors}}
+    $attempts++
+    try { & $Activate $Window } catch {$errors+= $_.Exception.GetType().Name}
+    for($poll=0;$poll -lt 4;$poll++){
+      & $Wait
+      if([IntPtr]$Window.Current.NativeWindowHandle -ne $hwnd){return @{ready=$false;attempts=$attempts;errors=$errors}}
+      if((& $ReadForeground) -eq $hwnd){return @{ready=$true;attempts=$attempts;errors=$errors}}
+    }
+  }
+  return @{ready=$false;attempts=$attempts;errors=@($errors|Select-Object -Unique -First 3)}
+}
 # END DESKTOP MODE HELPERS
 try {
   $req=Get-Content -LiteralPath $RequestPath -Raw -Encoding UTF8|ConvertFrom-Json
@@ -280,10 +310,12 @@ public class ChatGPTTextInput {
       Result 'busy' 'ChatGPT 仍在处理上一条消息；未创建新聊天、未填入或发送。' $ref
     }
   }
-  if($req.action -eq 'stage' -and $hostKind -eq 'unified' -and [ChatGPTMenuCleanup]::GetForegroundWindow() -ne [IntPtr]$window.Current.NativeWindowHandle){
-    [void][ChatGPTMenuCleanup]::SetForegroundWindow([IntPtr]$window.Current.NativeWindowHandle)
-    Start-Sleep -Milliseconds 150
-    if([ChatGPTMenuCleanup]::GetForegroundWindow() -ne [IntPtr]$window.Current.NativeWindowHandle){Result 'blocked' '请将目标 ChatGPT 窗口置于前台；未填入或发送' $ref}
+  if($req.action -eq 'stage' -and $hostKind -eq 'unified'){
+    $activation=Confirm-ChatGPTForeground $window 'stage'
+    $script:diagnostics.foregroundAttempts=$activation.attempts
+    $script:diagnostics.foregroundConfirmed=[bool]$activation.ready
+    $script:diagnostics.activationErrorTypes=@($activation.errors)
+    if(-not $activation.ready){Result 'busy' '目标窗口前台激活尚未确认；未切换模式、新建聊天、填入或发送，将按有限退避重试。' $ref 'foreground_unavailable'}
   }
   $mode=Confirm-ChatGPTEntryMode $window $hostKind $req.action ([bool]$req.newChat)
   if(-not $mode.ready){Result 'blocked' $mode.detail $ref}
