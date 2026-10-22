@@ -32,7 +32,7 @@ def diagnostic_event(queue, event, **fields):
                    'exitCode','errorType','stdoutBytes','stderrBytes','stderrSha256',
                    'pid','hostKind','mode','busyButtonCount','busyButtonNames',
                    'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes',
-                   'reasonCode','foregroundAttempts','foregroundConfirmed','activationErrorTypes','retryCount','retryAfterSeconds','workStopCount','phase','errorType','innerErrorType','scriptLine','focusErrorType','modeChatCount','modeWorkCount'}
+                   'reasonCode','foregroundAttempts','foregroundConfirmed','activationErrorTypes','retryCount','retryAfterSeconds','workStopCount','phase','errorType','innerErrorType','scriptLine','focusErrorType','modeChatCount','modeWorkCount','modeComposerCount','modeModelSelectorCount','modeWorkPermissionCount','editableControls'}
         record = dict(at=time.time(), event=event, **{k:v for k,v in fields.items() if k in allowed})
         with path.open('a', encoding='utf-8') as output:
             output.write(json.dumps(record, ensure_ascii=False) + '\n')
@@ -312,6 +312,8 @@ class Engine:
                 prompt = task['prompt'] + receipt_instructions(batch_id, task['id'], nonce, relative)
                 row = dict(status='preparing', nonce=nonce, requestId=nonce,
                            receiptPath=relative, startedAt=started_at, client=self.options['client'])
+                if resume_window:
+                    row['resumeDraftWindowRef'] = resume_window
                 if recovery:
                     row['preparationRecovery'] = recovery
                 if activation_retry:
@@ -398,7 +400,7 @@ class WindowsAdapter:
                              **{k:v for k,v in (result.get('diagnostics') or {}).items()
                                 if k in ('hostKind','mode','busyButtonCount','busyButtonNames',
                                          'targetCount','seenDesktopWindows','offscreenDesktopWindows','desktopRootTypes','discoveryErrorTypes',
-                                         'foregroundAttempts','foregroundConfirmed','activationErrorTypes','workStopCount','phase','errorType','innerErrorType','scriptLine','focusErrorType','modeChatCount','modeWorkCount')})
+                                         'foregroundAttempts','foregroundConfirmed','activationErrorTypes','workStopCount','phase','errorType','innerErrorType','scriptLine','focusErrorType','modeChatCount','modeWorkCount','modeComposerCount','modeModelSelectorCount','modeWorkPermissionCount','editableControls')})
             atomic_json(attempt, result)
             return result
         except Exception as error:

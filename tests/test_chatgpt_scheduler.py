@@ -169,6 +169,7 @@ class SchedulerTests(unittest.TestCase):
         self.assertIn(b'WORK_STOP_ORIGIN_CASES_PASSED=11',result.stdout)
         self.assertIn(b'MENTION_APPEND_RANGE_CASES_PASSED=3',result.stdout)
         self.assertIn(b'PURE_CHAT_MODE_CASES_PASSED=6',result.stdout)
+        self.assertIn(b'RICH_COMPOSER_CASES_PASSED=4',result.stdout)
         self.assertIn(b'SENDINPUT_NOT_CALLED',result.stdout)
 
     def block_preparation(self):

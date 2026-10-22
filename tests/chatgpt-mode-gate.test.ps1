@@ -220,3 +220,19 @@ Assert (-not (Confirm-ChatGPTMode $pureWindow 'unified' 'query_preparation').rea
 Reset-PureChatFixture 2 1 0
 Assert (-not (Confirm-ChatGPTMode $pureWindow 'unified' 'query_preparation').ready) 'Ambiguous composers accepted'
 Write-Output 'PURE_CHAT_MODE_CASES_PASSED=6; SENDINPUT_NOT_CALLED'
+
+# Runtime chip proof is injected; these are plain fixtures, never live UI elements.
+$script:originalMentionProof=${function:Get-StructuredWindowsMention}
+function Get-StructuredWindowsMention($Composer){return $Composer.fixtureChip}
+try {
+ $script:richFixture=[pscustomobject]@{fixtureChip=$true;Current=[pscustomobject]@{Name='';IsOffscreen=$false;IsEnabled=$true;ControlType=[Windows.Automation.ControlType]::Edit}}
+ $richFixture|Add-Member ScriptMethod TryGetCurrentPattern {param($pattern,$result);$result.Value=[pscustomobject]@{Current=[pscustomobject]@{IsReadOnly=$false}};return $true}
+ Assert (@(Get-ChatGPTComposers @($richFixture) $true).Count -eq 1) 'Structured chip composer with blank accessible name rejected'
+ $richFixture.fixtureChip=$false
+ Assert (@(Get-ChatGPTComposers @($richFixture) $true).Count -eq 0) 'Unproven rich composer accepted'
+ $richFixture.fixtureChip=$true;$richFixture.Current.IsOffscreen=$true
+ Assert (@(Get-ChatGPTComposers @($richFixture) $true).Count -eq 0) 'Offscreen rich composer accepted'
+ $richFixture.Current.IsOffscreen=$false
+ Assert (@(Get-ChatGPTComposers @($richFixture,$richFixture) $true).Count -eq 2) 'Ambiguity was silently discarded'
+}finally{${function:Get-StructuredWindowsMention}=$script:originalMentionProof}
+Write-Output 'RICH_COMPOSER_CASES_PASSED=4; SENDINPUT_NOT_CALLED'

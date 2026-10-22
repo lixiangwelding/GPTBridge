@@ -46,6 +46,27 @@ function Confirm-ChatGPTAppMode($Window,[string]$HostKind,[string]$Action) {
   } finally {if($opened){try{if($expand.Current.ExpandCollapseState -ne [System.Windows.Automation.ExpandCollapseState]::Collapsed){$expand.Collapse()}}catch{}}}
 }
 
+function Get-ChatGPTComposers($Nodes,[bool]$ChatOnly=$false) {
+  $editable=@($Nodes|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.IsEnabled -and $_.Current.ControlType -in @([System.Windows.Automation.ControlType]::Edit,[System.Windows.Automation.ControlType]::Document)})
+  $names=@('Message ChatGPT','Ask anything','向 ChatGPT 发送消息','发送消息','询问任何问题','询问 ChatGPT')
+  if(-not $ChatOnly){$names+=@('提示词','Prompt')}
+  $named=@($editable|Where-Object {$_.Current.Name -in $names})
+  if($named.Count -gt 0){return $named}
+  # Rich plugin chips can replace a contenteditable's placeholder-derived name.
+  # Bind only a writable input whose own child chip passes the existing runtime-ID
+  # and icon proof. Text anywhere else in the document is never an attachment.
+  $rich=@()
+  foreach($candidate in $editable){
+    try {
+      $value=$null
+      if($candidate.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$value) -and -not $value.Current.IsReadOnly -and (Get-StructuredWindowsMention $candidate)){$rich+=,$candidate}
+    }catch{}
+  }
+  return $rich
+}
+function Get-ChatGPTModelSelectors($Nodes) {
+  return @($Nodes|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $_.Current.Name -match '^(?:选择\s*ChatGPT\s*模型|Choose ChatGPT model)(?:$|[，,:：])'})
+}
 function Confirm-ChatGPTMode($Window,[string]$HostKind,[string]$Action) {
   $result=Confirm-ChatGPTAppMode $Window $HostKind $Action
   if(-not $result.ready -or $HostKind -ne 'unified'){return $result}
@@ -56,9 +77,10 @@ function Confirm-ChatGPTMode($Window,[string]$HostKind,[string]$Action) {
   if($chat.Count -eq 0 -and $work.Count -eq 0 -and (Get-ChatGPTModeSnapshot $Window).mode -eq 'ChatGPT'){
     # Existing pure ChatGPT conversations may omit the new-chat Chat/Work pair.
     # Require the exact chat composer and model selector; never infer from sidebar alone.
-    $chatInputs=@($nodes|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.IsEnabled -and $_.Current.ControlType -in @([System.Windows.Automation.ControlType]::Edit,[System.Windows.Automation.ControlType]::Document) -and $_.Current.Name -in @('询问 ChatGPT','Message ChatGPT','Ask anything')})
-    $chatModels=@($nodes|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $_.Current.Name -in @('选择 ChatGPT 模型','Choose ChatGPT model')})
+    $chatInputs=@(Get-ChatGPTComposers $nodes $true)
+    $chatModels=@(Get-ChatGPTModelSelectors $nodes)
     $workPermissions=@($nodes|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.Name -in @('更改权限','Change permissions')})
+    if($null -ne $script:diagnostics){$script:diagnostics.modeComposerCount=$chatInputs.Count;$script:diagnostics.modeModelSelectorCount=$chatModels.Count;$script:diagnostics.modeWorkPermissionCount=$workPermissions.Count}
     if($chatInputs.Count -eq 1 -and $chatModels.Count -eq 1 -and $workPermissions.Count -eq 0){return @{ready=$true;detail='已核对纯 ChatGPT 聊天输入框与模型选择器；该页面没有聊天/工作切换'}}
   }
   if($chat.Count -ne 1 -or $work.Count -ne 1){return @{ready=$false;detail='无法唯一核对聊天/工作选项；未填入或发送'}}
@@ -130,7 +152,7 @@ function Confirm-TaskOption($Window,[string]$HostKind,[string]$Submenu,[string]$
   $mode=Confirm-ChatGPTMode $Window $HostKind 'verify'
   if(-not $mode.ready){return $mode}
   $nodes=@($Window.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition))
-  $triggers=@($nodes|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $_.Current.Name -in @('选择 ChatGPT 模型','Choose ChatGPT model')})
+  $triggers=@(Get-ChatGPTModelSelectors $nodes)
   if($triggers.Count -ne 1){return @{ready=$false;detail='模型与强度菜单不唯一'}}
   $expand=$null
   if(-not $triggers[0].TryGetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern,[ref]$expand)){return @{ready=$false;detail='模型与强度菜单不可展开'}}
@@ -368,6 +390,10 @@ public class ChatGPTTextInput {
     $script:diagnostics.activationErrorTypes=@($activation.errors)
     if(-not $activation.ready){Result 'busy' '目标窗口前台激活尚未确认；未切换模式、新建聊天、填入或发送，将按有限退避重试。' $ref 'foreground_unavailable'}
   }
+  if($req.action -eq 'query_preparation'){
+    $context=@($window.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition))
+    $script:diagnostics.editableControls=@($context|Where-Object {-not $_.Current.IsOffscreen -and $_.Current.ControlType -in @([System.Windows.Automation.ControlType]::Edit,[System.Windows.Automation.ControlType]::Document)}|Select-Object -First 12|ForEach-Object {@{role=$_.Current.ControlType.ProgrammaticName;className=$_.Current.ClassName;enabled=$_.Current.IsEnabled;nameLength=$_.Current.Name.Length}})
+  }
   $script:diagnostics.phase='entry_mode'
   $mode=Confirm-ChatGPTEntryMode $window $hostKind $req.action ([bool]$req.newChat)
   if(-not $mode.ready){Result 'blocked' $mode.detail $ref}
@@ -424,7 +450,7 @@ public class ChatGPTTextInput {
   $effort=@($buttons|Where-Object {$_.Current.Name -eq $req.effort})
   # Only an attached removable chip counts, never a mention in old chat text or a picker result.
   $bridge=@($buttons|Where-Object {$_.Current.Name -in @('Remove GPTBridge Windows','移除 GPTBridge Windows','删除 GPTBridge Windows')})
-  $composers=@($all|Where-Object { -not $_.Current.IsOffscreen -and $_.Current.IsEnabled -and $_.Current.ControlType -in @([System.Windows.Automation.ControlType]::Edit,[System.Windows.Automation.ControlType]::Document) -and $_.Current.Name -in @('Message ChatGPT','Ask anything','向 ChatGPT 发送消息','发送消息','询问任何问题','询问 ChatGPT','提示词','Prompt') })
+  $composers=@(Get-ChatGPTComposers $all)
   if($composers.Count -ne 1){Result 'blocked' '没有唯一可访问的输入框，请先打开一个新的空白聊天。' $ref}
   $mode=Confirm-ChatGPTMode $window $hostKind 'verify'
   if(-not $mode.ready){Result 'blocked' $mode.detail $ref}
