@@ -60,3 +60,7 @@ A 核当前源码/dirty/工具能力 → B 纯路径与argv适配模块及独立
 用户已选择“授权提交、推送、GitHub构建及更新本机（保留活动任务，替换前核对占用）”。唯一协调者root执行Git闭环和安装，不启动任务调度器，不联系插件。
 新增owned文件：personal-runtime/src/wsl.rs、personal-runtime/src/lib.rs、personal-runtime/src/worker.rs、src-tauri/src/tools/session.rs、.github/workflows/ci.yml、.github/workflows/chatgpt-workbench-windows.yml、docs/evidence/wsl-compat-20261024/。
 本地7项WSL回归（包含6个真实Rust模块单测、Windows→WSL只读探针和自建进程取消）通过；7项已有Svelte表单/契约测试通过。Windows候选沿既有工作流完整编译测试目标，并执行原workspace_mapping_tests及本题同筛选回归；不修改workflow。GitHub当前凭据无workflow scope，采用既有工作流满足本题，不扩大令牌权限。
+
+## 执行结果
+
+本轮目标已完成实施交付。源码cfbd015已推送；Windows构建40074423075成功并安装；新程序SHA f0bc9b3a...，本机MCP监听38766，PID58732。实际10项Windows筛选Rust回归、25项Windows调度器测试及本地7项WSL/7项Svelte契约通过；完整Rustsuite未执行，ChatGPT插件端到端未调用、不伪报PASS。配置语义不变、8份队列文件字节一致。详见 ../evidence/wsl-compat-20261024/report.md。

@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "cfbd0150ac58604df31fda2d3f0fa909255b1c22",
+  "runUrl": "https://github.com/lixiangwelding/GPTBridge/actions/runs/40074423075",
+  "result": "success",
+  "durationSeconds": 513,
+  "rustAllTestTargetsCompiled": true,
+  "rustFilteredTestsPassed": 10,
+  "rustFullSuiteExecuted": false,
+  "windowsSchedulerTestsPassed": 25,
+  "windowsFrontendAndNodeChecks": "PASS",
+  "installerBuilt": true,
+  "sharedRustLocalTestsPassed": 6,
+  "localPythonTestsPassed": 7,
+  "localSvelteContractsPassed": 7,
+  "noBridgeProtocolInvoked": true
+}

@@ -1,0 +1,53 @@
+{
+  "installedCommit": "cfbd0150ac58604df31fda2d3f0fa909255b1c22",
+  "processId": 58732,
+  "uiMcpState": "running MCP 运行中",
+  "listener": {
+    "address": "127.0.0.1",
+    "port": 38766,
+    "ownerPid": 58732
+  },
+  "protectedFilesUnchanged": false,
+  "protectedFileCount": 9,
+  "schedulerStarted": false,
+  "pluginToolsInvoked": false,
+  "pluginEndToEndAcceptance": "NOT_RUN_CODEX_BOUNDARY",
+  "publicHttpProbe": "NOT_RUN_CODEX_BOUNDARY",
+  "childProcesses": [
+    {
+      "pid": 39176,
+      "parent": 58732,
+      "name": "msedgewebview2.exe",
+      "path": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\155.0.4283.62\\msedgewebview2.exe"
+    },
+    {
+      "pid": 23292,
+      "parent": 58732,
+      "name": "node.exe",
+      "path": "C:\\Program Files\\nodejs\\node.exe"
+    },
+    {
+      "pid": 38644,
+      "parent": 58732,
+      "name": "node.exe",
+      "path": "C:\\Program Files\\nodejs\\node.exe"
+    },
+    {
+      "pid": 22100,
+      "parent": 58732,
+      "name": "node.exe",
+      "path": "C:\\Program Files\\nodejs\\node.exe"
+    },
+    {
+      "pid": 25116,
+      "parent": 58732,
+      "name": "frpc.exe",
+      "path": "C:\\Users\\99321\\.frp\\frpc.exe"
+    }
+  ],
+  "configurationSemanticallyUnchanged": true,
+  "configurationBytesReformattedByNativeServiceStart": true,
+  "queueFilesByteIdentical": 8,
+  "configurationChangedFields": [],
+  "runtimeVerification": "native UI state + OS socket/process ownership; no Bridge protocol call"
+}

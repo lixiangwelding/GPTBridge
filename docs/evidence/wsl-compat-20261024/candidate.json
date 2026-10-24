@@ -1,0 +1,9 @@
+{
+  "runId": 40074423075,
+  "commitSha": "cfbd0150ac58604df31fda2d3f0fa909255b1c22",
+  "installer": "/mnt/c/Users/99321/Downloads/wsl-compat-cfbd015/artifact/GPTBridge_0.4.3_x64-setup.exe",
+  "installerSha256": "3f37f4913ca4bcd6c6f056ee855c5b08c2b5152afc23d70bb555dd978bad9b3b",
+  "installerBytes": 6943104,
+  "activeJobs": 0,
+  "schedulerProcesses": 0
+}
