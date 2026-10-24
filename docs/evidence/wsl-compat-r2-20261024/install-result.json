@@ -1,0 +1,11 @@
+{
+  "installerExit": 0,
+  "sourceCommit": "e70a34d9152563fdacb5dc84472a51de2463d073",
+  "installedPath": "C:\\Users\\99321\\AppData\\Local\\Programs\\GPTBridge\\coding-tools-mcp-personal.exe",
+  "installedSha256": "3080251015affb1f05fb51e08da79b57952fc7abeadbfb4eaa3d5dd212808503",
+  "startedPid": 4304,
+  "stoppedAppPids": [
+    58732
+  ],
+  "schedulerStarted": false
+}

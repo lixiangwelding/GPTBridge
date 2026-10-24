@@ -10,7 +10,7 @@
   },
   "localTests": 8,
   "embeddedRustTests": 7,
-  "windowsBuild": "PENDING",
+  "windowsBuild": "SUCCESS",
   "time": "2026-10-24T09:33:04.305941+00:00",
   "rootCause": {
     "git_status": "dedicated run_git used Windows Git against WSL UNC and returned clean=true on invocation failure",
@@ -18,5 +18,12 @@
   },
   "globalSafeDirectoryChanged": false,
   "bridgeToolsInvoked": false,
-  "foreignDiffPreserved": true
+  "foreignDiffPreserved": true,
+  "windowsRun": "https://github.com/lixiangwelding/GPTBridge/actions/runs/40082641991",
+  "sourceCommit": "e70a34d9152563fdacb5dc84472a51de2463d073",
+  "windowsTargetedTests": 14,
+  "schedulerPythonTests": 25,
+  "rustAllTestTargetsCompiled": true,
+  "rustFullSuiteRun": false,
+  "installerSha256": "0eef1c6f4de1775388e3551d494f009484e0f8c4ae7b8a55764c8de97b52af15"
 }

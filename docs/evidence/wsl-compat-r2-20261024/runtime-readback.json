@@ -1,0 +1,38 @@
+{
+  "configurationSemanticallyUnchanged": true,
+  "protectedFileCount": 15,
+  "queueFilesByteIdentical": 14,
+  "changedFileNames": [
+    "profiles.json"
+  ],
+  "pluginToolsInvoked": false,
+  "pluginEndToEndAcceptance": "NOT_RUN_CODEX_BOUNDARY",
+  "schedulerStarted": false,
+  "installedCommit": "e70a34d9152563fdacb5dc84472a51de2463d073",
+  "processId": 4304,
+  "uiMcpState": "running MCP 运行中",
+  "listener": {
+    "address": "127.0.0.1",
+    "port": 38766,
+    "ownerPid": 4304
+  },
+  "children": [
+    {
+      "pid": 18708,
+      "name": "node.exe"
+    },
+    {
+      "pid": 40828,
+      "name": "node.exe"
+    },
+    {
+      "pid": 54528,
+      "name": "node.exe"
+    },
+    {
+      "pid": 60556,
+      "name": "frpc.exe"
+    }
+  ],
+  "runtimeVerification": "native configuration UI and OS process/socket; no Bridge protocol call"
+}
