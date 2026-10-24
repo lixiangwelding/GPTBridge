@@ -70,3 +70,7 @@ A 核当前源码/dirty/工具能力 → B 纯路径与argv适配模块及独立
 继续同一WSL兼容目标，修复git.rs专用Windows Git入口遗漏，以及read_files拒绝仓外规则后没有可执行恢复指引的问题。保持batch严格范围和scalar现有授权；不修改safe.directory。当前8项本地回归通过；后继Windows构建、安装、运行回读见 ../evidence/wsl-compat-r2-20261024/report.md。用户前轮提交、推送、GitHub构建和本机更新授权继续适用，保留活动任务。
 
 R2交付完成：源码e70a34d、Windows构建40082641991成功，14项Windows定向回归及25项调度器测试通过；本机安装SHA30802510...，PID4304监听38766。14份队列字节不变、配置语义不变；ChatGPT插件端到端未调用。详见上述R2报告。
+
+## R3：旧提示词直接兼容
+
+用户要求不改原会话提示词。read_files在现有非strict读取范围内直接支持显式用户技能Markdown规则；保留严格范围与普通外部文件拒绝。源码51f6629已推送，Windows构建40085058877成功，16项定向回归通过；本机安装SHA55ce03da...，PID30832监听38766，14份队列字节不变、配置语义不变。原ChatGPT插件调用未由Codex触发。详见 ../evidence/wsl-compat-r3-20261024/report.md。

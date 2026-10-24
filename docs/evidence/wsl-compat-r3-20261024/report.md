@@ -4,6 +4,13 @@
 
 read_files现可直接批量读取显式绝对路径的用户技能Markdown。WSL工作区仅选同发行版Linux用户的.codex/skills与.agents/skills，native工作区选当前用户目录；严格读范围仍拒绝仓外。规范化后锁定批准的技能根并复用严格单文件读取器，保留每文件SHA、分页/预算与逐项错误。普通外部文件、非Markdown、相对越界及技能链接逃逸仍拒绝。不依赖会话更换工具，不改原提示词，不修改safe.directory。
 
-测试新增同批AGENTS+外部shared规则直接成功、预算、严格scope拒绝、非Markdown/普通外部/相对路径拒绝；Windows筛选回归纳入现有workspace_mapping_tests入口。GitNexus无注册索引，impact无法产生图证据，按实际read_files唯一入口及定向测试复核，不重建索引。语法检查和diff检查通过，Windows编译/回归/安装待完成。
+测试新增同批AGENTS+外部shared规则直接成功、预算、严格scope拒绝、非Markdown/普通外部/相对路径拒绝；Windows筛选回归纳入现有workspace_mapping_tests入口。GitNexus无注册索引，impact无法产生图证据，按实际read_files唯一入口及定向测试复核，不重建索引。语法检查和diff检查通过；Windows全部Rust测试目标编译通过，16项WSL定向回归、25项调度器Python测试、前端检查及Node测试通过，NSIS安装包成功。完整Rust测试集未执行，Unix软链接专项分支未在Windows运行。
 
 沿用已授权提交、推送、GitHub Windows构建和本机更新；替换前复查占用并备份。不调用GPTBridge协议、不操控ChatGPT、不自动重放任务。
+
+
+源码提交 `51f66294e71fd9ab180b37bd4c6fcce7880f5c02` 已推送并回读远端SHA；[Windows构建40085058877](https://github.com/lixiangwelding/GPTBridge/actions/runs/40085058877) 成功。本机安装退出0，新程序SHA256 `55ce03da0f0b5cd02e3a8f04d9c15864792dc1898c2c16168255694a9b155c01`，PID30832；原生界面MCP运行中，OS回读127.0.0.1:38766归属新进程。
+
+替换前活动作业0、无调度器进程；旧程序和15份受保护文件备份至 `C:\Users\99321\AppData\Local\GPTBridge-backups\wsl-compat-r3-20261024-51f6629`。更新后14份队列字节一致，profiles.json仅格式化、JSON语义一致。不重启WSL，不改safe.directory，不启动调度器，不触发原业务任务。
+
+本轮交付不要求修改原会话提示词。已完成Windows工具fixture回归及本机安装/服务回读；原ChatGPT会话下一次实际插件调用尚未触发，端到端状态仍NOT_RUN_CODEX_BOUNDARY，不把服务监听当插件调用通过。

@@ -1,0 +1,14 @@
+{
+  "configurationSemanticallyUnchanged": true,
+  "protectedFileCount": 15,
+  "queueFilesByteIdentical": 14,
+  "changedFileNames": [
+    "profiles.json"
+  ],
+  "pluginToolsInvoked": false,
+  "pluginEndToEndAcceptance": "NOT_RUN_CODEX_BOUNDARY",
+  "schedulerStarted": false,
+  "processId": 30832,
+  "uiMcpState": "running MCP 运行中",
+  "listenerOwnerPid": 30832
+}

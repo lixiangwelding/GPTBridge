@@ -1,0 +1,29 @@
+{
+  "baseSha": "6abb62cdf45db860930ed3f5dd88028d04a804f1",
+  "sourceCommit": "51f66294e71fd9ab180b37bd4c6fcce7880f5c02",
+  "ownedSourceSha256": {
+    "src-tauri/src/tools/toolbox.rs": "3b0d7cc32595e1e829546462cac1f431b37b2c54dc395efac26327525ab16421",
+    "src-tauri/src/tools/toolbox_tests.rs": "5d3d406a14be67f20b90e0fbf34b941792b2227f8b7386f746efc09ed4859a70"
+  },
+  "windowsRun": "https://github.com/lixiangwelding/GPTBridge/actions/runs/40085058877",
+  "promptChangeRequired": false,
+  "toolNameAndArgumentsChanged": false,
+  "globalSafeDirectoryChanged": false,
+  "pluginToolsInvoked": false,
+  "foreignDirtyPreserved": true,
+  "windowsBuild": "SUCCESS",
+  "localVerification": "Rust syntax parse and diff check PASS",
+  "windowsTargetedTests": 16,
+  "schedulerPythonTests": 25,
+  "rustAllTestTargetsCompiled": true,
+  "rustFullSuiteRun": false,
+  "installerSha256": "53eecf849d9f37e977e654471771ad012f8df7b64d44d2aa19ef8781bd817b7d",
+  "installedExecutableSha256": "55ce03da0f0b5cd02e3a8f04d9c15864792dc1898c2c16168255694a9b155c01",
+  "installerExit": 0,
+  "installedPid": 30832,
+  "listener": {
+    "address": "127.0.0.1",
+    "port": 38766,
+    "ownerPid": 30832
+  }
+}
