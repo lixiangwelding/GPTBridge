@@ -31,7 +31,7 @@ pub(super) fn definition(name: &str) -> Value {
             vec![],
         ),
         "read_files" => (
-            "Read up to 20 workspace-relative UTF-8 files in one bounded call. Returns individual results/errors and existing file SHA metadata; no all-files atomic snapshot is implied. Follow next_index for files not read within the aggregate content budget.",
+            "Read up to 20 UTF-8 files inside the workspace in one bounded call (relative or inside-root absolute paths). External shared rules must be read with read_file when the selected read scope permits explicit external reads; do not treat a batch scope rejection as proof that the rule is unavailable. Returns individual results/errors and existing file SHA metadata; no all-files atomic snapshot is implied. Follow next_index for files not read within the aggregate content budget.",
             json!({
                 "paths":{"type":"array","minItems":1,"maxItems":20,"items":{"type":"string","minLength":1,"maxLength":4096}},
                 "start_index":{"type":"integer","minimum":0,"maximum":19,"default":0},
@@ -120,7 +120,10 @@ fn read_files(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> 
         let mut request = json!({"path":text,"start_line":start_line,"max_bytes":per_file.min(budget - used)});
         if let Some(end) = end_line { request["end_line"] = json!(end); }
         // Do not inherit the legacy single-file tool's explicit external reads.
-        let result = ctx.workspace.resolve_existing(text).and_then(|resolved| {
+        let result = ctx.workspace.resolve_read_path(text).and_then(|resolved| {
+            if !resolved.path.starts_with(ctx.workspace.root()) {
+                return Err(WorkspaceError::path_outside_workspace());
+            }
             let metadata = std::fs::metadata(&resolved.path).map_err(|_| WorkspaceError::not_found("file unavailable"))?;
             if !metadata.is_file() { return Err(WorkspaceError::invalid_argument("batch reads require regular files")); }
             // Use an isolated strict workspace so a concurrently replaced symlink
@@ -130,6 +133,15 @@ fn read_files(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> 
             super::file::read_file(&strict, &request)
         });
         let mut output = result.unwrap_or_else(tool_err);
+        if output["ok"] == false && !ctx.workspace.reads_restricted_to_root()
+            && matches!(output["error"]["code"].as_str(), Some("PATH_OUTSIDE_WORKSPACE" | "ABSOLUTE_PATH_DENIED")) {
+            output["recovery"] = json!({
+                "tool":"read_file", "arguments":{"path":text},
+                "reason":"read_files is workspace-only; an explicitly requested external shared rule may use the single-file read policy",
+                "permission_granted":false, "automatic_retry":false,
+                "instruction":"If current user authorization covers this explicit file, call read_file with this exact path. Do not use exec_command or change safe.directory to bypass a read scope."
+            });
+        }
         used += output.get("content").and_then(Value::as_str).map(str::len).unwrap_or(0);
         output["requested_path"] = path.clone();
         output["index"] = json!(index);

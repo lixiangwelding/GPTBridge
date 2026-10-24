@@ -1,0 +1,22 @@
+{
+  "baseSha": "946e030559746b86584db1eefcaa05a8b44d97c3",
+  "conversationChangeId": "wsl-compat-r2-20261024",
+  "sourceSha256": {
+    "src-tauri/src/tools/git.rs": "339118682c6c8f85c6a8c3f3986bd4f816d36447ecd695c188933493a18d432d",
+    "src-tauri/src/tools/toolbox.rs": "c38c7a69a9f72c328d6e539b955cf86ac99210693871769fac2afc750b797ff4",
+    "src-tauri/src/tools/toolbox_tests.rs": "10ab5d948ea8a0b287223683fdad7f828d1a68cd7672905e029b7feb0782581c",
+    "tests/personal/test_wsl_compat.py": "dcb30542287070dd36e64973c64d89e6c78125dd3a592da42e90b19717e0febb",
+    "personal-runtime/src/wsl.rs": "2e4aa3e0057a1962be37dcf7f06c3a8e39e9da596174ad77b48ad9c718c221cc"
+  },
+  "localTests": 8,
+  "embeddedRustTests": 7,
+  "windowsBuild": "PENDING",
+  "time": "2026-10-24T09:33:04.305941+00:00",
+  "rootCause": {
+    "git_status": "dedicated run_git used Windows Git against WSL UNC and returned clean=true on invocation failure",
+    "read_files": "batch workspace-only policy rejects external shared rule; scalar read_file remains allowed under legacy read scope"
+  },
+  "globalSafeDirectoryChanged": false,
+  "bridgeToolsInvoked": false,
+  "foreignDiffPreserved": true
+}

@@ -40,6 +40,11 @@ fn main() {
     print!("{}\0",arg);
    }
   },
+  "git-plan"=>{
+   let target=wsl::WslPath::from_unc(&a[2]).expect("valid WSL root");
+   let args:Vec<&str>=a[3..].iter().map(|x|x.as_str()).collect();
+   for arg in target.git_args(&args,&std::env::var("WSL_TEST_TOKEN").unwrap_or("12345678-1234-1234-1234-123456789abc".into()),30000){print!("{}\0",arg);}
+  },
   "stop"=>{wsl::CleanupPlan::from_command(std::path::Path::new(&a[2]),&a[3..]).expect("owned plan").stop().expect("owned cleanup");},
   "bootstrap"=>print!("{}",wsl::BOOTSTRAP),
   "cleanup"=>print!("{}",wsl::CLEANUP_SCRIPT),
@@ -152,6 +157,19 @@ fn main() {
         self.assertEqual(result.returncode,0,result.stderr)
         state = Path('/proc/'+str(child_pid)+'/stat')
         if state.exists(): self.assertEqual(state.read_text().split(') ',1)[1][0],'Z')
+
+    @unittest.skipUnless(os.environ.get('WSL_COMPAT_REAL_DISTRO'), 'opt-in real dedicated Linux Git probe')
+    def test_real_dedicated_git_plan_and_shared_rule_read(self):
+        runner=os.environ.get('WSL_COMPAT_RUNNER','/mnt/c/Windows/System32/wsl.exe')
+        distro=os.environ['WSL_COMPAT_REAL_DISTRO']; root=os.environ['WSL_COMPAT_REAL_ROOT']
+        unc='\\\\wsl.localhost\\'+distro+root.replace('/','\\')
+        plan=subprocess.check_output([str(self.probe),'git-plan',unc,'rev-parse','--show-toplevel'],timeout=10).decode().split('\0')[:-1]
+        git=subprocess.run([runner,*plan],capture_output=True,text=True,timeout=20)
+        self.assertEqual(git.returncode,0,git.stderr)
+        self.assertEqual(git.stdout.strip(),root)
+        self.assertNotIn('dubious ownership',git.stderr)
+        rule=Path.home()/'.codex/skills/shared/project-workflow.md'
+        self.assertTrue(rule.is_file())
 
 
 if __name__ == '__main__':

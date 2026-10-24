@@ -1,0 +1,13 @@
+test_cleanup_stops_only_owned_process_and_descendants (test_wsl_compat.WslCompatTests.test_cleanup_stops_only_owned_process_and_descendants) ... ok
+test_exact_plan_preserves_untrusted_argument_data (test_wsl_compat.WslCompatTests.test_exact_plan_preserves_untrusted_argument_data) ... ok
+test_linux_deadline_returns_timeout_status (test_wsl_compat.WslCompatTests.test_linux_deadline_returns_timeout_status) ... ok
+test_policy_and_both_backends_share_resolver (test_wsl_compat.WslCompatTests.test_policy_and_both_backends_share_resolver) ... ok
+test_real_dedicated_git_plan_and_shared_rule_read (test_wsl_compat.WslCompatTests.test_real_dedicated_git_plan_and_shared_rule_read) ... ok
+test_real_windows_to_wsl_readonly_identity_and_toolchain (test_wsl_compat.WslCompatTests.test_real_windows_to_wsl_readonly_identity_and_toolchain) ... ok
+test_real_wsl_relay_cancellation_and_owned_cleanup (test_wsl_compat.WslCompatTests.test_real_wsl_relay_cancellation_and_owned_cleanup) ... ok
+test_rust_path_and_argv_contracts (test_wsl_compat.WslCompatTests.test_rust_path_and_argv_contracts) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 3.720s
+
+OK

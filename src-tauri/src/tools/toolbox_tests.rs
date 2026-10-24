@@ -219,3 +219,35 @@ fn toolbox_git_diff_selects_nested_repository_without_changing_default_cwd() {
     assert!(!cut["diff"].as_str().unwrap().contains('�'));
     assert_eq!(call_tool(&ctx, "git_diff", &json!({"repo_path":"../outside"}))["ok"], false);
 }
+
+#[test]
+fn workspace_mapping_tests_batch_external_rules_offer_scalar_recovery_without_reading() {
+    let (temp,ctx)=fixture();
+    let rule=temp.path().join("shared-rule.md");
+    fs::write(&rule,"fixture shared rule body").unwrap();
+    let path=rule.to_str().unwrap();
+    let batch=call_tool(&ctx,"read_files",&json!({"paths":[path]}));
+    assert_eq!(batch["failed_count"],1);
+    assert!(!batch.to_string().contains("fixture shared rule body"));
+    assert_eq!(batch["results"][0]["recovery"]["tool"],"read_file");
+    assert_eq!(batch["results"][0]["recovery"]["permission_granted"],false);
+    assert_eq!(batch["results"][0]["recovery"]["arguments"]["path"],path);
+    let single=call_tool(&ctx,"read_file",&json!({"path":path}));
+    assert_eq!(single["content"],"fixture shared rule body");
+    ctx.workspace.restrict_reads_to_root();
+    let restricted=call_tool(&ctx,"read_files",&json!({"paths":[path]}));
+    assert_eq!(restricted["failed_count"],1);
+    assert!(restricted["results"][0].get("recovery").is_none());
+    assert_eq!(call_tool(&ctx,"read_file",&json!({"path":path}))["ok"],false);
+}
+
+#[test]
+fn workspace_mapping_tests_batch_accepts_inside_root_absolute_paths() {
+    let (_temp,ctx)=fixture();
+    fs::write(ctx.workspace.root().join("rule.md"),"inside rule").unwrap();
+    let path=ctx.workspace.root().join("rule.md");
+    let batch=call_tool(&ctx,"read_files",&json!({"paths":[path]}));
+    assert_eq!(batch["failed_count"],0,"{batch}");
+    assert_eq!(batch["results"][0]["content"],"inside rule");
+    assert!(batch["results"][0]["file_sha256"].is_string());
+}

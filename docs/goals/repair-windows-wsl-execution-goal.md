@@ -64,3 +64,7 @@ A 核当前源码/dirty/工具能力 → B 纯路径与argv适配模块及独立
 ## 执行结果
 
 本轮目标已完成实施交付。源码cfbd015已推送；Windows构建40074423075成功并安装；新程序SHA f0bc9b3a...，本机MCP监听38766，PID58732。实际10项Windows筛选Rust回归、25项Windows调度器测试及本地7项WSL/7项Svelte契约通过；完整Rustsuite未执行，ChatGPT插件端到端未调用、不伪报PASS。配置语义不变、8份队列文件字节一致。详见 ../evidence/wsl-compat-20261024/report.md。
+
+## R2：真实聊天暴露的遗漏（2026-10-24）
+
+继续同一WSL兼容目标，修复git.rs专用Windows Git入口遗漏，以及read_files拒绝仓外规则后没有可执行恢复指引的问题。保持batch严格范围和scalar现有授权；不修改safe.directory。当前8项本地回归通过；后继Windows构建、安装、运行回读见 ../evidence/wsl-compat-r2-20261024/report.md。用户前轮提交、推送、GitHub构建和本机更新授权继续适用，保留活动任务。

@@ -24,9 +24,10 @@ pub fn git_status(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError>
         Duration::from_secs(10),
     )?;
     if !root_check.success {
+        if !not_a_repository(&root_check.stderr) { return Err(git_error(&root_check.stderr)); }
         return Ok(tool_ok(json!({
             "is_repo": false,
-            "clean": true,
+            "clean": null,
             "entries": [],
             "warnings": [root_check.stderr.trim()]
         })));
@@ -99,7 +100,8 @@ pub fn git_status(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError>
 /// Support inside-root absolute spelling for git_status only. This does not
 /// broaden the workspace or change any general read/write permission.
 fn resolve_status_path(ws: &Workspace, raw: &str) -> Result<crate::tools::workspace::ResolvedPath, WorkspaceError> {
-    let path = std::path::Path::new(raw);
+    let host_path = super::wsl::host_read_path(ws.root(), raw);
+    let path = host_path.as_path();
     if !path.is_absolute() { return ws.resolve_existing(raw); }
     if raw.contains('\0') || path.components().any(|c| c == std::path::Component::ParentDir) {
         return Err(WorkspaceError::path_outside_workspace());
@@ -143,7 +145,7 @@ pub fn git_diff(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> {
         ws.reject_unsafe_text(p)?;
     }
 
-    if !is_git_repo(&repository.path) {
+    if !is_git_repo(&repository.path)? {
         return Ok(tool_ok(json!({
             "diff": "",
             "files": [],
@@ -196,7 +198,7 @@ pub fn git_log(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> {
         .unwrap_or(0)
         .min(10_000) as usize;
 
-    if !is_git_repo(ws.root()) {
+    if !is_git_repo(ws.root())? {
         return Ok(tool_ok(json!({
             "is_repo": false,
             "commits": [],
@@ -263,7 +265,7 @@ pub fn git_log(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> {
 }
 
 pub fn git_show(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> {
-    if !is_git_repo(ws.root()) {
+    if !is_git_repo(ws.root())? {
         return Ok(tool_ok(json!({
             "is_repo": false,
             "content": "",
@@ -352,7 +354,7 @@ pub fn git_blame(ws: &Workspace, args: &Value) -> Result<Value, WorkspaceError> 
             retryable: false,
         });
     }
-    if !is_git_repo(ws.root()) {
+    if !is_git_repo(ws.root())? {
         return Ok(tool_ok(json!({
             "is_repo": false,
             "path": resolved.display,
@@ -494,8 +496,10 @@ struct GitOutput {
 }
 
 fn run_git(cwd: &std::path::Path, args: &[&str], limit: Duration) -> Result<GitOutput, WorkspaceError> {
-    let mut cmd = Command::new("git");
-    cmd.arg("-C").arg(cwd).args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut cmd = git_command(cwd, args, limit)?;
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let argv: Vec<String> = cmd.get_args().map(|v| v.to_string_lossy().into_owned()).collect();
+    let cleanup = super::wsl::CleanupPlan::from_command(std::path::Path::new(cmd.get_program()), &argv);
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -506,7 +510,9 @@ fn run_git(cwd: &std::path::Path, args: &[&str], limit: Duration) -> Result<GitO
     let output = cmd
         .output()
         .map_err(|e| git_error(&format!("git not available: {e}")))?;
-    let _ = limit;
+    if let Some(plan) = cleanup {
+        plan.stop().map_err(|_| git_error("WSL Git process cleanup could not be confirmed; inspect the original read before retrying"))?;
+    }
     Ok(GitOutput {
         success: output.status.success(),
         exit_code: output.status.code().unwrap_or(-1),
@@ -539,10 +545,32 @@ fn run_git_diff(
     Ok(completed.stdout)
 }
 
-fn is_git_repo(root: &std::path::Path) -> bool {
-    run_git(root, &["rev-parse", "--git-dir"], Duration::from_secs(5))
-        .map(|o| o.success)
-        .unwrap_or(false)
+/// A failed Git invocation is not evidence of a missing or clean repository.
+fn not_a_repository(stderr: &str) -> bool {
+    stderr.to_ascii_lowercase().contains("not a git repository")
+}
+
+fn is_git_repo(root: &std::path::Path) -> Result<bool, WorkspaceError> {
+    let output = run_git(root, &["rev-parse", "--git-dir"], Duration::from_secs(5))?;
+    if output.success { Ok(true) }
+    else if not_a_repository(&output.stderr) { Ok(false) }
+    else { Err(git_error(&output.stderr)) }
+}
+
+fn git_command(cwd: &std::path::Path, args: &[&str], limit: Duration) -> Result<Command, WorkspaceError> {
+    #[cfg(windows)]
+    if let Some(target) = super::wsl::for_path(cwd) {
+        let runner = std::env::var_os("SystemRoot").map(std::path::PathBuf::from)
+            .map(|p| p.join("System32").join("wsl.exe")).filter(|p| p.is_file())
+            .ok_or_else(|| git_error("Windows System32/wsl.exe is unavailable; cannot run Linux Git for this WSL workspace"))?;
+        let mut command = Command::new(runner);
+        command.args(target.git_args(args, &uuid::Uuid::new_v4().to_string(), limit.as_millis() as u64));
+        return Ok(command);
+    }
+    let _ = limit;
+    let mut command = Command::new("git");
+    command.arg("-C").arg(cwd).args(args);
+    Ok(command)
 }
 
 fn git_rev_parse(cwd: &std::path::Path, rev: &str) -> Option<String> {
@@ -676,5 +704,32 @@ mod metadata_regression_tests {
         assert_eq!(files.len(), 2);
         assert_eq!(files[0]["path"], "src/main.rs");
         assert_eq!(files[1]["path"], "new.rs");
+    }
+}
+
+#[cfg(test)]
+mod workspace_mapping_tests_r2 {
+    use super::*;
+
+    #[test]
+    fn git_errors_are_not_misreported_as_missing_clean_repositories() {
+        assert!(not_a_repository("fatal: not a git repository (or any parent)"));
+        assert!(!not_a_repository("fatal: detected dubious ownership in repository"));
+        assert!(!not_a_repository("fatal: Unable to read current working directory"));
+        let temp=tempfile::tempdir().unwrap();
+        let ws=Workspace::new(temp.path().to_path_buf()).unwrap();
+        let out=git_status(&ws,&json!({})).unwrap();
+        assert_eq!(out["is_repo"],false);
+        assert_eq!(out["clean"],Value::Null);
+    }
+
+    #[test]
+    fn dedicated_git_plan_has_linux_identity_and_no_trust_bypass() {
+        let target=super::super::wsl::WslPath::from_unc(r"\\wsl.localhost\Ubuntu-24.04\home\li\repo").unwrap();
+        let args=target.git_args(&["status","--porcelain=v1","-b"],"12345678-1234-1234-1234-123456789abc",10000);
+        assert_eq!(args[3],"/home/li/repo");
+        assert_eq!(args[16],"git");
+        assert_eq!(&args[17..],["status","--porcelain=v1","-b"]);
+        assert!(!args.iter().any(|a|a.contains("safe.directory") || a=="--global"));
     }
 }

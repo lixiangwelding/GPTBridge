@@ -51,6 +51,13 @@ impl WslPath {
         result
     }
 
+    /// Dedicated Git tools must use Linux Git as well; `-C UNC` on Windows
+    /// would inspect another ownership model and can falsely report no repo.
+    pub fn git_args(&self, args: &[&str], token: &str, timeout_ms: u64) -> Vec<String> {
+        let arguments: Vec<String> = args.iter().map(|s| (*s).into()).collect();
+        self.command_args("git", &arguments, token, timeout_ms)
+    }
+
     /// Infer the Linux user's skill directories only from a conventional home
     /// workspace. Root and /mnt workspaces do not guess a Linux user.
     pub fn skill_roots(&self) -> Vec<PathBuf> {
@@ -173,6 +180,15 @@ mod workspace_mapping_tests {
         assert!(roots[1].to_string_lossy().ends_with(r"\home\li\.codex\skills"));
         assert!(WslPath::from_unc(r"\\wsl$\Ubuntu\mnt\d\repo").unwrap().skill_roots().is_empty());
         assert!(WslPath::from_unc(r"\\wsl$\Ubuntu\root\repo").unwrap().skill_roots().is_empty());
+    }
+    #[test]
+    fn git_plan_uses_linux_git_and_cwd_without_safe_directory_changes() {
+        let target=WslPath::from_unc(r"\\wsl.localhost\Ubuntu-24.04\home\li\repo").unwrap();
+        let args=target.git_args(&["status","--porcelain=v1","-b"],"12345678-1234-1234-1234-123456789abc",10000);
+        assert_eq!(args[3],"/home/li/repo");
+        assert_eq!(args[16],"git");
+        assert_eq!(&args[17..],["status","--porcelain=v1","-b"]);
+        assert!(!args.iter().any(|a|a.contains("safe.directory") || a=="--global"));
     }
     #[test]
     fn cleanup_requires_exact_owned_launch_plan() {
