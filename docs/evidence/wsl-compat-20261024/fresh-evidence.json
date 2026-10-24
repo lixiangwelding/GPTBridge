@@ -1,0 +1,38 @@
+{
+  "baseSha": "b35ef2530aa1450614448ee9592d8af28089e6a3",
+  "conversationChangeId": "wsl-compat-20261024-01a16cac",
+  "time": "2026-10-24T07:28:23.624089+00:00",
+  "sourceSHA256": {
+    "src-tauri/src/tools/wsl.rs": "5c72d97a9c95220f8a4c5d9712f6a5c4895c353576babdd7edb1d1765580ed0f",
+    "src-tauri/src/tools/exec.rs": "39f5b370d9125c143dd8994583b81ff473c4d201aa15e3bd09a9ecabdd7c1bec",
+    "src-tauri/src/tools/command_line.rs": "88d6b9d5a64b2963c45dfa4bce989dea8ceee2315798f49cad4cf5fff5865a35",
+    "src-tauri/src/tools/exec_paths.rs": "16bd1efcce2eca8065563787cca718238d3167bdb8325744896fe05b19ec205b",
+    "src-tauri/src/tools/policy.rs": "98265803341576da0ab69d440ad1ef35a71701114c153046e6f112e2ddb2e333",
+    "src-tauri/src/tools/workspace.rs": "9bf408ac9542f6ee770aff2bfb028a318e7f56e137fe948649261525cfa60c88",
+    "src-tauri/src/tools/skill_catalog.rs": "9a4b88131ca3d85b391b46897821e3224f43c3584715e95f5fe3ae75709697fc",
+    "src-tauri/src/tools/session.rs": "f4fc593c96f9b7da6da8224e51881dbc29577834c115e5eefaeb04f2495f3b2c",
+    "personal-runtime/src/lib.rs": "a44040c3117512b51f2a24d156158367074af87eee2ef7a3e88f48588e31bde2",
+    "personal-runtime/src/worker.rs": "9b732ab420d7d1d7d7afe18b38da5ecc35268703bc3b0143f8277f4d9bdd7583",
+    "personal-runtime/src/wsl.rs": "a219fd5fca55a515d5e8a47a6d9c87c43d3069d15b82b330ab22be1cb1cb0205",
+    "tests/personal/test_wsl_compat.py": "2bae4f5da724e38f244e20bb98a2e3e0f8a0d0bc867131b8259f0814f933c064"
+  },
+  "tests": {
+    "localWSL": {
+      "command": "RUSTC=<isolated-rustc> LD_LIBRARY_PATH=<isolated-libs> WSL_COMPAT_REAL_DISTRO=Ubuntu-24.04 WSL_COMPAT_REAL_ROOT=/home/lixiang/my-project-java/codeVerifyRe0 python3 -m unittest discover -s tests/personal -p test_wsl_compat.py -v",
+      "exitCode": 0,
+      "count": 7,
+      "embeddedRustCount": 6
+    },
+    "frontendContracts": {
+      "command": "node --test tests/shared-workspace-form.test.mjs tests/skill-write-roots-form.test.mjs",
+      "exitCode": 0,
+      "count": 7
+    }
+  },
+  "foreignDiffPreserved": true,
+  "mixedFile": "src-tauri/src/tools/mod.rs: only added mod wsl; staged, original foreign lines remain unstaged",
+  "windowsBuild": "PENDING",
+  "installedRuntime": "NOT_UPDATED",
+  "pluginAcceptance": "NOT_RUN",
+  "deliveryNote": "GitHub OAuth lacks workflow scope; no workflow changes included, existing candidate workflow filter covers new workspace_mapping_tests."
+}

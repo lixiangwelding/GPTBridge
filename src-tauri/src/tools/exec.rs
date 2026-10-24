@@ -10,7 +10,7 @@ use tokio::process::Command;
 use std::sync::Arc;
 
 use crate::tools::context::ToolContext;
-use super::command_line::split_command;
+use super::command_line::split_for_workspace;
 use super::exec_paths::resolve_workdir;
 use super::policy::is_allowlisted_program;
 use crate::tools::session::{ExecSession, SessionStore};
@@ -123,14 +123,14 @@ pub(super) fn preflight_executable(ctx: &ToolContext, args: &Value) -> Result<()
     let raw = args.get("workdir").or_else(|| args.get("cwd")).and_then(Value::as_str).unwrap_or(".");
     let cwd = resolve_workdir(&ctx.workspace, raw)?;
     if !cwd.path.is_dir() { return Err(WorkspaceError::not_a_directory("workdir is not a directory")); }
-    parse_and_resolve(cmd, &cwd.path, ctx.workspace.root(), &ctx.policy).map(|_| ())
+    parse_and_resolve(cmd, &cwd.path, ctx.workspace.root(), &ctx.policy, args.get("timeout_ms").and_then(Value::as_u64).unwrap_or(30_000)).map(|_| ())
 }
 
 fn durable_command(ctx: &ToolContext, args: &Value, cmd: &str, cwd: &Path) -> Result<Value, WorkspaceError> {
     use coding_tools_personal_runtime::jobs::JobSpec;
     use super::personal::error;
     // Reuse the exact legacy path/executable resolver after dispatcher policy validation.
-    let (program, argv) = parse_and_resolve(cmd, cwd, ctx.workspace.root(), &ctx.policy)?;
+    let (program, argv) = parse_and_resolve(cmd, cwd, ctx.workspace.root(), &ctx.policy, args.get("timeout_ms").and_then(Value::as_u64).unwrap_or(30_000))?;
     let platform_command = command_for_program(&program, &argv);
     let command = platform_command.as_std();
     let executable = std::path::PathBuf::from(command.get_program());
@@ -230,7 +230,9 @@ fn run_native_diagnostic(
     cmd: &str,
     cwd: &Path,
 ) -> Result<Option<Value>, WorkspaceError> {
-    let parts = split_command(cmd).map_err(WorkspaceError::invalid_argument)?;
+    #[cfg(windows)]
+    if super::wsl::for_path(ctx.workspace.root()).is_some() { return Ok(None); }
+    let parts = split_for_workspace(cmd, ctx.workspace.root()).map_err(WorkspaceError::invalid_argument)?;
     if parts.is_empty() {
         return Ok(None);
     }
@@ -328,7 +330,7 @@ async fn run_command(
     tty: bool,
     stdin_text: &str,
 ) -> Result<Value, WorkspaceError> {
-    let (program, args) = parse_and_resolve(cmd, cwd, ctx.workspace.root(), &ctx.policy)?;
+    let (program, args) = parse_and_resolve(cmd, cwd, ctx.workspace.root(), &ctx.policy, limit.as_millis() as u64)?;
     let start = Instant::now();
 
     let mut command = command_for_program(&program, &args);
@@ -356,7 +358,9 @@ async fn run_command(
         }),
     })?;
 
-    let session = ctx.sessions.insert(ExecSession::new_with_mode(child, tty));
+    let mut owned_session = ExecSession::new_with_mode(child, tty);
+    owned_session.wsl_cleanup = super::wsl::CleanupPlan::from_command(Path::new(&program), &args);
+    let session = ctx.sessions.insert(owned_session);
     session.spawn_readers().await;
     let deadline = start + limit;
 
@@ -622,12 +626,51 @@ fn parse_and_resolve(
     cwd: &Path,
     workspace_root: &Path,
     policy: &crate::tools::policy::PolicySettings,
+    timeout_ms: u64,
 ) -> Result<(String, Vec<String>), WorkspaceError> {
-    let parts = split_command(cmd).map_err(WorkspaceError::invalid_argument)?;
+    let parts = split_for_workspace(cmd, workspace_root).map_err(WorkspaceError::invalid_argument)?;
     if parts.is_empty() {
         return Err(WorkspaceError::invalid_argument("Empty command"));
     }
 
+    #[cfg(windows)]
+    if let Some(target) = super::wsl::for_path(cwd) {
+        let root = super::wsl::for_path(workspace_root)
+            .ok_or_else(|| WorkspaceError::path_outside_workspace())?;
+        if !root.contains(&target) { return Err(WorkspaceError::path_outside_workspace()); }
+        let raw = &parts[0];
+        if raw.eq_ignore_ascii_case("wsl") || raw.eq_ignore_ascii_case("wsl.exe") {
+            return Err(WorkspaceError::invalid_argument("This workspace already executes in WSL; pass the Linux command directly, not nested wsl.exe"));
+        }
+        let program = if !raw.contains(['/', '\\']) && is_allowlisted_program(policy, raw) {
+            raw.clone()
+        } else {
+            if !policy.workspace_local_entries {
+                return Err(WorkspaceError::invalid_argument("WSL workspace executables are disabled"));
+            }
+            let candidate = if raw.starts_with('/') {
+                target.unc_for_linux(raw).ok_or_else(WorkspaceError::path_outside_workspace)?
+            } else {
+                if raw.contains('\\') || raw.split('/').any(|p| p == "..") {
+                    return Err(WorkspaceError::path_outside_workspace());
+                }
+                cwd.join(raw)
+            };
+            let canonical = candidate.canonicalize().map_err(|_| WorkspaceError::not_found("WSL program not found"))?;
+            let resolved = super::wsl::for_path(&canonical).ok_or_else(WorkspaceError::path_outside_workspace)?;
+            if !root.contains(&resolved) || !canonical.is_file() {
+                return Err(WorkspaceError::path_outside_workspace());
+            }
+            resolved.linux_path
+        };
+        // Resolve the OS runner from SystemRoot, never a workspace-local wsl.exe.
+        let runner = std::env::var_os("SystemRoot").map(std::path::PathBuf::from)
+            .map(|p| p.join("System32").join("wsl.exe"))
+            .filter(|p| p.is_file())
+            .ok_or_else(|| WorkspaceError::not_found("WSL runner unavailable: Windows System32/wsl.exe is required"))?;
+        return Ok((runner.to_string_lossy().into_owned(), target.command_args(&program, &parts[1..], &uuid::Uuid::new_v4().to_string(), timeout_ms)));
+    }
+    let _ = timeout_ms;
     let program = resolve_program(&parts[0], cwd, workspace_root, policy)?;
     Ok((program, parts[1..].to_vec()))
 }

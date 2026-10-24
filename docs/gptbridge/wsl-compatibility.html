@@ -1,0 +1,32 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>WSL兼容修复</title><body><h1>Windows GPTBridge 的 WSL 工作区</h1>
+<p>本次修复使 Windows 客户端在选中 WSL UNC 仓库时，将文件来源、命令宿主和技能用户保持一致。源码候选状态与已安装版本分开记录；本文不表示已经发布或经 ChatGPT 插件验收。</p>
+<h2>路径与执行</h2>
+<ul>
+<li>支持 <code>\\wsl.localhost\Ubuntu-24.04\home\用户\仓库</code>、<code>\\wsl$\发行版\...</code>，以及 Windows canonical extended UNC。保留原 UNC provider，避免别名转换造成 canonical scope 不匹配。</li>
+<li>发行版从已选工作区根解析，不使用默认发行版，也不修改 Windows 全局 WSL 设置。</li>
+<li>文件工具读取 <code>/home/...</code> 时转换为同发行版 UNC 后再走既有 canonical、敏感文件、symlink 与 strict-read 检查。写工具继续使用仓内相对路径，不因兼容 Linux 绝对读取而放宽写入范围。</li>
+<li>命令 cwd 可用仓内相对路径或同仓 Linux 绝对路径，其他发行版、越界和 symlink 逃逸仍拒绝。</li>
+<li>WSL 工作区命令使用 POSIX 引号解析；策略与进程启动共用同一解析器。普通 Windows 工作区保留 CRT 引号规则，macOS/Linux 不变。</li>
+<li>OS runner 从 <code>SystemRoot/System32/wsl.exe</code> 解析，避免工作区中的同名程序。命令以 argv 经 <code>--distribution</code>、<code>--cd</code> 进入对应 WSL；参数作为固定 Bash 脚本的 <code>$@</code> 传递，不拼成 shell 命令。</li>
+<li>使用用户登录环境，并在存在时加载当前 Linux 用户已有 NVM default，修复非交互登录找不到 Node/npm。不会在 Windows 新装 Node、Java 或 Rust，不修改用户 shell 配置。</li>
+<li>常规命令可直接传 <code>git status --short</code>、<code>npm test</code>、<code>./mvnw test</code>；无需再嵌套 <code>wsl.exe</code>。命令权限和读写门禁继续按原策略检查。</li>
+</ul>
+<h2>技能与共享规则</h2>
+<p><code>/home/&lt;user&gt;/...</code> 工作区发现同用户的 <code>.agents/skills</code> 与 <code>.codex/skills</code>，不混用 Windows 用户技能。<code>/mnt/...</code> 或 <code>/root/...</code> 不猜用户；额外只读技能根继续使用现有 owner 配置。Linux 绝对共享规则路径经文件工具按同发行版转换，文件存在不代表已实际读取。</p>
+<h2>超时与取消</h2>
+<p>每次实际执行分配独立随机 identity，Linux 中以 setsid/timeout 启动，并设置与请求一致的截止时间。durable worker 和 legacy session 都保留同一 cleanup plan，取消、超时或正常收尾时，按本次 identity 核验并结束自建 Linux 子进程，之后再结束 Windows relay/释放资源。</p>
+<p>清理只检查本次随机 identity，不按程序名或年龄结束其他进程，不调用 <code>wsl --shutdown</code>。Linux 独立 deadline 在 Windows relay 消失时仍有效。清理失败返回失败/UNKNOWN，不可把原请求当作未发生再重放。</p>
+<p>依赖：对应 WSL 发行版已安装 Bash、coreutils timeout/setsid，以及 <code>/usr/bin/python3</code>（仅用于归属核验与清理）。缺依赖时应修复该发行版工具链，不退回 Windows 执行冒充成功。主动清除继承 identity、脱离监督的守护进程不属于受管前台命令支持范围。</p>
+<h2>验证与实际状态</h2>
+<p>回归入口：</p>
+<pre><code class="language-bash">python3 -m unittest discover -s tests/personal -p test_wsl_compat.py -v
+node --test tests/shared-workspace-form.test.mjs tests/skill-write-roots-form.test.mjs
+</code></pre>
+<p>编译器可通过 <code>RUSTC</code> 指向现有独占工具链；测试编译并运行真实 <code>personal-runtime/src/wsl.rs</code>，不复制一份 Python 模型。Windows候选工作流既有的workspace_mapping_tests筛选会执行共享Rust路径/argv回归及Windows参数解析回归；Python整组回归在本地执行。真实WSL探针需显式启用：</p>
+<pre><code class="language-bash">WSL_COMPAT_REAL_DISTRO=Ubuntu-24.04 \
+WSL_COMPAT_REAL_ROOT=/home/lixiang/my-project-java/codeVerifyRe0 \
+python3 -m unittest discover -s tests/personal -p test_wsl_compat.py -v
+</code></pre>
+<p>本次已实际验证 Windows→Ubuntu-24.04 的仓库 cwd、共享规则可读、NVM Node 发现，以及结束自建 Windows relay 后按 identity 回收 Linux 测试子进程。该探针只调用 OS WSL runner，不启动或联系 GPTBridge，不触发 ChatGPT、生产或30项优化。</p>
+<p>完整 Windows Tauri 编译、安装替换、当前运行二进制身份和 ChatGPT 经插件执行必须分别留回执；本地共享模块/fixture通过不能替代这四层。</p>
+</body></html>

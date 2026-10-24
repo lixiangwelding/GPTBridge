@@ -11,6 +11,17 @@ pub(super) fn split_command(command: &str) -> Result<Vec<String>, &'static str> 
     }
 }
 
+/// WSL commands follow POSIX quoting even though the bridge process is Windows.
+/// Policy and launch must use the same parser to avoid validating different argv.
+pub(super) fn split_for_workspace(command: &str, root: &std::path::Path) -> Result<Vec<String>, &'static str> {
+    #[cfg(windows)]
+    if super::wsl::for_path(root).is_some() {
+        return shell_words::split(command).map_err(|_| "Invalid POSIX command syntax for WSL");
+    }
+    let _ = root;
+    split_command(command)
+}
+
 // Windows CRT quoting: backslashes are literal unless immediately before a
 // double quote. No shell expansion; single quotes are ordinary characters.
 #[cfg(any(windows, test))]
@@ -66,6 +77,17 @@ fn split_windows_command(command: &str) -> Result<Vec<String>, &'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(windows)]
+    #[test]
+    fn workspace_mapping_tests_wsl_posix_quotes_and_native_windows_quotes_are_distinct() {
+        let root=std::path::Path::new(r"\\wsl.localhost\Ubuntu-24.04\home\li\repo");
+        assert_eq!(split_for_workspace("python3 -c 'print(\"a b\")'",root).unwrap(),
+            ["python3","-c","print(\"a b\")"]);
+        assert!(split_for_workspace("python3 'unfinished",root).is_err());
+        assert_eq!(split_for_workspace(r#"python -c "print('a b')""#,std::path::Path::new(r"C:\repo")).unwrap(),
+            ["python","-c","print('a b')"]);
+    }
 
     #[test]
     fn windows_paths_quotes_and_empty_arguments_round_trip() {

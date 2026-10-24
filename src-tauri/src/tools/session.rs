@@ -56,6 +56,9 @@ impl SessionStore {
 
 pub struct ExecSession {
     pub session_id: String,
+    pub(crate) wsl_cleanup: Option<super::wsl::CleanupPlan>,
+    wsl_cleanup_status: Mutex<Option<bool>>,
+    wsl_cleanup_failed: AtomicBool,
     pub(crate) child: AsyncMutex<Child>,
     pub stdin: AsyncMutex<Option<ChildStdin>>,
     stdin_open: Mutex<bool>,
@@ -82,6 +85,9 @@ impl ExecSession {
         let stdin_open = stdin.is_some();
         Self {
             session_id,
+            wsl_cleanup: None,
+            wsl_cleanup_status: Mutex::new(None),
+            wsl_cleanup_failed: AtomicBool::new(false),
             child: AsyncMutex::new(child),
             stdin: AsyncMutex::new(stdin),
             stdin_open: Mutex::new(stdin_open),
@@ -157,7 +163,19 @@ impl ExecSession {
         }
     }
 
+    fn cleanup_wsl(&self) {
+        if let Some(plan)=&self.wsl_cleanup {
+            let mut status=self.wsl_cleanup_status.lock().expect("WSL cleanup lock");
+            if status.is_none() {
+                let ok=plan.stop().is_ok();
+                self.wsl_cleanup_failed.store(!ok,Ordering::Release);
+                *status=Some(ok);
+            }
+        }
+    }
+
     pub async fn kill_and_wait(&self) {
+        self.cleanup_wsl();
         let status = {
             let mut child = self.child.lock().await;
             let _ = child.start_kill();
@@ -176,7 +194,11 @@ impl ExecSession {
     }
 
     fn record_exit_status(&self, status: std::process::ExitStatus) {
-        *self.exit_code.lock().expect("exit_code lock") = status.code();
+        self.cleanup_wsl();
+        if self.wsl_cleanup_failed.load(Ordering::Acquire) {
+            self.mark_termination_reason("cleanup_failed");
+        }
+        *self.exit_code.lock().expect("exit_code lock") = if self.wsl_cleanup_failed.load(Ordering::Acquire) {None} else {status.code()};
         self.exited.store(true, Ordering::Release);
         *self.stdin_open.lock().expect("stdin_open lock") = false;
         let mut reason = self.termination_reason.lock().expect("termination lock");
@@ -437,6 +459,7 @@ pub fn kill_session(store: &SessionStore, args: &Value) -> Result<Value, Workspa
 
     if running {
         session.mark_termination_reason("killed");
+        session.cleanup_wsl();
         tauri::async_runtime::block_on(async {
             let pid = {
                 let child = session.child.lock().await;

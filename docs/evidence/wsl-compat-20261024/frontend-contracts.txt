@@ -1,0 +1,15 @@
+✔ shared-repository form compiles through the real Svelte compiler (57.315046ms)
+✔ form requires explicit membership and disables edits for a running entry (0.248205ms)
+✔ page persists the selected member IDs without automatic restart (4.228821ms)
+✔ Skill write-root form compiles with the real Svelte compiler (79.121282ms)
+✔ authorization stays local, explicit, and disabled while MCP is running (0.235995ms)
+✔ workspace page persists only the selected roots and never restarts the service (0.336472ms)
+✔ TypeScript runtime contract carries the optional authorization list (0.706851ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 511.827221

@@ -108,10 +108,11 @@ fn acquire(store: &Store, spec: &JobSpec) -> Result<Admission> {
     Ok(Admission::Ready(guards))
 }
 
-struct OwnedCommand { child: Child, group_cleaned: bool }
+struct OwnedCommand { child: Child, group_cleaned: bool, wsl_cleanup: Option<crate::wsl::CleanupPlan>, cleanup_failed: bool }
 impl OwnedCommand {
     fn stop(&mut self) {
         if self.group_cleaned { return; }
+        if let Some(plan)=&self.wsl_cleanup { self.cleanup_failed=plan.stop().is_err(); }
         #[cfg(unix)] unsafe { libc::kill(-(self.child.id() as i32), libc::SIGKILL); }
         #[cfg(not(unix))] { let _ = self.child.kill(); }
         let _ = self.child.wait();
@@ -158,7 +159,8 @@ fn execute(store: &Store, job: &str, spec: &JobSpec, guards: Vec<Guard>) -> Resu
             return Ok(());
         }
     };
-    let mut owned = OwnedCommand { child, group_cleaned: false };
+    let mut owned = OwnedCommand { child, group_cleaned: false,
+        wsl_cleanup: crate::wsl::CleanupPlan::from_command(&spec.program, &spec.args), cleanup_failed:false };
     write_json(&logdir.join("child.json"), &json!({"job_id":job,"child_pid":owned.child.id(),"started":now_ms()}))?;
     let stdout = owned.child.stdout.take().ok_or_else(|| Error::contract("PIPE_MISSING", "stdout unavailable"))?;
     let stderr = owned.child.stderr.take().ok_or_else(|| Error::contract("PIPE_MISSING", "stderr unavailable"))?;
@@ -171,6 +173,7 @@ fn execute(store: &Store, job: &str, spec: &JobSpec, guards: Vec<Guard>) -> Resu
     let start = Instant::now();
     let outcome = monitor(store, job, &mut owned, Duration::from_millis(spec.timeout_ms));
     owned.stop(); // Also closes pipes inherited by foreground descendants.
+    if owned.cleanup_failed { return Err(Error::contract("WSL_CLEANUP_FAILED", "WSL descendants could not be confirmed stopped; inspect original job, do not replay")); }
     let _ = input_writer.join();
     let stdout_result = out_reader.join().map_err(|_| Error::contract("READER_PANIC", "stdout collector failed"))?;
     let stderr_result = err_reader.join().map_err(|_| Error::contract("READER_PANIC", "stderr collector failed"))?;

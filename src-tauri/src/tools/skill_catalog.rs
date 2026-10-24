@@ -48,7 +48,15 @@ impl Skill {
 impl Catalog {
     pub fn new(workspace:PathBuf,globals:Vec<PathBuf>)->Self{Self{workspace,globals,enabled:true,preferences_path:None,metadata_cache:Arc::new(Mutex::new(BTreeMap::new()))}}
     pub fn production(workspace:PathBuf)->Self{
-        let globals=dirs::home_dir().map(|home|vec![home.join(".agents/skills"),home.join(".codex/skills")]).unwrap_or_default();
+        let mut globals=dirs::home_dir().map(|home|vec![home.join(".agents/skills"),home.join(".codex/skills")]).unwrap_or_default();
+        #[cfg(windows)]
+        if let Some(target)=super::wsl::for_path(&workspace) {
+            // The workspace identity selects the Linux user; don't mix in the
+            // Windows user's skills or guess a user for /mnt or /root projects.
+            globals=target.skill_roots();
+        }
+        #[cfg(not(windows))]
+        let _ = &mut globals;
         let preferences_path=crate::harness::Harness::default_root().ok().and_then(|root|workspace.canonicalize().ok().map(|canonical|
             root.join("personal-runtime").join(digest(canonical.to_string_lossy().as_bytes())).join("runtime.sqlite3")));
         let mut result=Self::new(workspace,globals);

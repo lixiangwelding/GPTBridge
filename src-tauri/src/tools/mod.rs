@@ -9,6 +9,7 @@ mod skill_tests;
 mod auto_skill_tests;
 mod command_line;
 mod exec_paths;
+mod wsl;
 pub mod context;
 mod toolbox;
 pub mod dispatch;

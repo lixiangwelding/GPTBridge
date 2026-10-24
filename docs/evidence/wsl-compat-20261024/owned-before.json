@@ -1,0 +1,17 @@
+{
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/src-tauri/src/tools/wsl.rs": "NEW",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/src-tauri/src/tools/exec.rs": "9a42f55110d170a797ce73ee5ba06a377e876834cf7866c48503bc06f2da2902",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/src-tauri/src/tools/command_line.rs": "19d3d7c1e16cf0398ffdf22d5e8c9c43e47685c3f76fd34bb3fb720ff247def3",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/src-tauri/src/tools/exec_paths.rs": "068bc0a866df88a83dbe8301b5b18697fee6713a39ca9e4803e9e0ee046b193e",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/src-tauri/src/tools/policy.rs": "192590a750f7c75a4f9533ef2ef2bbdd98839f958004367e6fb1784575bbd635",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/src-tauri/src/tools/workspace.rs": "4e6d13758db646807877280253e18d5604a83c8cfe7e08028211b187791afc44",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/src-tauri/src/tools/skill_catalog.rs": "c17f9f7936401c503cc24c9fc46ac8c1195107a3797f34cb7a413b214ac6a36f",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/src-tauri/src/tools/mod.rs": "fabe8d316330f1c0a7a9fae344b21b52c57d3b86936571307df6d8a59977c0e1",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/tests/personal/test_wsl_compat.py": "NEW",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/docs/gptbridge/wsl-compatibility.md": "NEW",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/personal-runtime/src/lib.rs": "63acdc304607adc9642b1eb3451b2dcec07d49b7b1b4fb15c069269313020f3e",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/personal-runtime/src/worker.rs": "949d31317b85cd14bdf9cd6761c69aef73399084e844ad7f6a1afd74fca09f53",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/personal-runtime/src/wsl.rs": "NEW",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/src-tauri/src/tools/session.rs": "fbe25ea8858987457d700a7f0a7cf12aaf38b52311ba6dc003039cbcc9afecfe",
+  "/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal/.github/workflows/ci.yml": "90820ef18e7dc9ec1586c614c624920a2eb62b57bffac24a9a771153132c41b4"
+}

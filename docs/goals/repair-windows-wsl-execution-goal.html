@@ -1,0 +1,50 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>WSL兼容修复</title><body><h1>修复 GPTBridge Windows 的 WSL 工作区兼容</h1>
+<h2>目标与授权</h2>
+<p>用户已明确要求实施并修好WSL兼容。目标为Windows工作区选中WSL UNC路径时，命令使用对应发行版Linux工具链；Linux绝对路径可用于读取和仓内cwd；技能来源与工作区一致。Windows普通路径和macOS/Linux现有行为保持。只修改源码、测试、文档，不调用GPTBridge业务工具、HTTP、CLI代理或ChatGPT自动化，不操作Mac、不重启WSL、不碰生产/凭据，用户后续已明确授权本次修复提交、推送、GitHub Windows构建及更新本机；替换前核活动任务，保留配置、原队列及回滚二进制。只发布本次owned diff，不夹带foreign改动。</p>
+<h2>身份</h2>
+<p>repo=/home/lixiang/my-project-java/codeVerifyRe0/coding-tools-mcp-personal
+branch=main（独立GPTBridge Git仓库，并非外层codeVerify master）
+baseSha=b35ef2530aa1450614448ee9592d8af28089e6a3
+conversationChangeId=wsl-compat-20261024-01a16cac
+goalOwner=root
+executionMode=local
+companyDlinter=NOT_APPLICABLE
+deploymentCount=0
+knowledgeReadTier=LOCAL
+backupOperation=NONE</p>
+<p>生成前native active goal为空；本文件为此需求唯一Goal。ownedPaths及初始SHA保存在 /tmp/wsl-compat-owned-before.json；foreign dirty清单 /tmp/wsl-compat-foreign-status.bin，SHA256=ea37d6b6c09930a54affb58af03c9f1dde7921ac3b61827f07e2046fd4080fb0。tools/mod.rs已有他人改动，只追加本题模块声明，保留原差异；其他已有改动不撤销、不暂存。源码所有权发生新冲突时停止受影响编辑，独立准备继续。</p>
+<h2>事实与未知</h2>
+<p>Windows配置选中Ubuntu-24.04 UNC仓库；allowed_commands包含wsl/wsl.exe，但只配置UNC不改变命令执行宿主。command_for_program直接启动Windows程序；生产技能默认dirs::home_dir Windows目录。共享Linux规则真实存在。远端原生聊天是否使用了插件仍未知，不据回复猜测。
+GitNexus impact已实际请求，返回没有已注册索引；mcp-probe-kit code_insight降级无调用图，后续用定向源码核调用者，不自动全量建图。关键调用：parse_and_resolve由preflight、durable_command、run_command共用，另policy必须同参数解析；resolve_read_path影响全部只读工具；Catalog::production影响正式技能发现。路径/进程边界改动按高风险对待，保持旧拒绝与scope语义。</p>
+<h2>范围与路径</h2>
+<ul>
+<li>src-tauri/src/tools/wsl.rs</li>
+<li>src-tauri/src/tools/exec.rs</li>
+<li>src-tauri/src/tools/command_line.rs</li>
+<li>src-tauri/src/tools/exec_paths.rs</li>
+<li>src-tauri/src/tools/policy.rs</li>
+<li>src-tauri/src/tools/workspace.rs</li>
+<li>src-tauri/src/tools/skill_catalog.rs</li>
+<li>src-tauri/src/tools/mod.rs</li>
+<li>tests/personal/test_wsl_compat.py</li>
+<li>docs/gptbridge/wsl-compatibility.md</li>
+</ul>
+<h2>DAG</h2>
+<p>A 核当前源码/dirty/工具能力 → B 纯路径与argv适配模块及独立回归 → C 接exec/policy/cwd/read/skill生产根 → D 本地定向回归和直接Windows到WSL只读能力验证（不联系Bridge） → E 冻结diff与来源SHA、更新报告。
+只由root修改集成树。现有Rust编译器缺失，依赖准备仅任务独占目录，不在Windows安装Rust。无需前端UI改版，不新增视觉页面。</p>
+<h2>验证</h2>
+<ul>
+<li>python3 -m unittest discover -s tests/personal -p test_wsl_compat.py -v</li>
+<li>node --test tests/shared-workspace-form.test.mjs tests/skill-write-roots-form.test.mjs</li>
+<li>rustc --edition 2021 --test personal-runtime/src/wsl.rs -o &lt;任务临时测试可执行&gt; 并运行；通过Python测试运行真实模块，非镜像实现。</li>
+<li>Windows分支与Windows→WSL直接探针在有对应宿主时运行；无工具链则明确NOT_RUN，不拿Linux测试当Windows构建通过。完整Tauri构建/安装和ChatGPT经插件调用另记验收层，禁止用安装或工具目录代替业务调用。</li>
+<li>所有fresh test evidence绑定源码SHA、命令/退出码/时间。异常/特殊引号/双宿主路径/不同发行版/越界/正常Windows路径必须覆盖；不弱化策略和未知写入不重放。</li>
+</ul>
+<h2>完成/停止/回滚</h2>
+<p>代码与定向测试完成后交付实际状态；仍有本地可修失败继续修复。缺构建或真实插件验收不标整体PASS，不调用禁止插件补验。精确owned diff可反向撤回，逐文件核SHA，不reset/clean/stash他人改动。原生Goal承载本文件并持续本会话；禁止重放30项优化、部署或发送任务。
+报告字段：baseSha/currentHead、ownedPaths、foreignDiffPreserved、commands/exitCode/sourceSHA/time、localCorrectness、windowsBuild、installedRuntime、chatgptPluginAcceptance、remainingRisks、deploymentCount。</p>
+<h2>追加授权与当前进度</h2>
+<p>用户已选择“授权提交、推送、GitHub构建及更新本机（保留活动任务，替换前核对占用）”。唯一协调者root执行Git闭环和安装，不启动任务调度器，不联系插件。
+新增owned文件：personal-runtime/src/wsl.rs、personal-runtime/src/lib.rs、personal-runtime/src/worker.rs、src-tauri/src/tools/session.rs、.github/workflows/ci.yml、.github/workflows/chatgpt-workbench-windows.yml、docs/evidence/wsl-compat-20261024/。
+本地7项WSL回归（包含6个真实Rust模块单测、Windows→WSL只读探针和自建进程取消）通过；7项已有Svelte表单/契约测试通过。Windows候选沿既有工作流完整编译测试目标，并执行原workspace_mapping_tests及本题同筛选回归；不修改workflow。GitHub当前凭据无workflow scope，采用既有工作流满足本题，不扩大令牌权限。</p>
+</body></html>

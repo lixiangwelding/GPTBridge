@@ -7,7 +7,8 @@ pub(super) fn resolve_workdir(
     workspace: &Workspace,
     raw: &str,
 ) -> Result<ResolvedPath, WorkspaceError> {
-    let path = Path::new(raw);
+    let host_path = super::wsl::host_read_path(workspace.root(), raw);
+    let path = host_path.as_path();
     if path.components().any(|part| part == Component::ParentDir) {
         return Err(WorkspaceError::path_outside_workspace());
     }
@@ -60,7 +61,8 @@ fn outside(raw: &str, workspace: Option<&Workspace>) -> bool {
     let Some(workspace) = workspace else {
         return true;
     };
-    let path = Path::new(raw);
+    let host_path = super::wsl::host_read_path(workspace.root(), raw);
+    let path = host_path.as_path();
     if !path.is_absolute() {
         return true;
     }

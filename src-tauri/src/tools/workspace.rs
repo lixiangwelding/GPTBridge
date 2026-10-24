@@ -211,7 +211,8 @@ impl Workspace {
     pub fn resolve_read_path(&self, raw_path: &str) -> WorkspaceResult<ResolvedPath> {
         let raw = if raw_path.is_empty() { "." } else { raw_path };
         self.validate_read_text(raw)?;
-        let input = Path::new(raw);
+        let host_path = super::wsl::host_read_path(&self.root, raw);
+        let input = host_path.as_path();
         let candidate = if input.is_absolute() {
             input.to_path_buf()
         } else {

@@ -7,7 +7,7 @@ use crate::tools::workspace::Workspace;
 use crate::workspace::{ActionsConfig, SkillWriteRootConfig};
 
 use super::registry::is_allowed_tool;
-use super::command_line::split_command;
+use super::command_line::split_for_workspace;
 use super::exec_paths::{contains_external_path, resolve_workdir};
 
 static NETWORK_COMMAND_PATTERN: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
@@ -246,7 +246,8 @@ pub fn validate_command_for_workspace(
             }
         }
     }
-    let parts = split_command(command).map_err(|message| PolicyError(message.into()))?;
+    let root = workspace.map(|w| w.root()).unwrap_or_else(|| Path::new("."));
+    let parts = split_for_workspace(command, root).map_err(|message| PolicyError(message.into()))?;
     if parts.is_empty() { return Err(PolicyError("Empty command".into())); }
     if has_forbidden_shell_syntax(command) {
         return Err(PolicyError(

@@ -11,3 +11,5 @@ pub mod worker;
 pub mod config;
 
 pub use store::{Store, Error, Result, digest, now_ms};
+
+pub mod wsl;
