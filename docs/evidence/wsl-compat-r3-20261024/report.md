@@ -1,0 +1,9 @@
+# WSL旧会话提示词直接兼容
+
+用户要求保留已有会话提示词，兼容由GPTBridge实现。基线6abb62cdf45db860930ed3f5dd88028d04a804f1。此轮ownedPaths仅toolbox.rs、toolbox_tests.rs及本报告/同一Goal的交付更新；其他dirty保留。
+
+read_files现可直接批量读取显式绝对路径的用户技能Markdown。WSL工作区仅选同发行版Linux用户的.codex/skills与.agents/skills，native工作区选当前用户目录；严格读范围仍拒绝仓外。规范化后锁定批准的技能根并复用严格单文件读取器，保留每文件SHA、分页/预算与逐项错误。普通外部文件、非Markdown、相对越界及技能链接逃逸仍拒绝。不依赖会话更换工具，不改原提示词，不修改safe.directory。
+
+测试新增同批AGENTS+外部shared规则直接成功、预算、严格scope拒绝、非Markdown/普通外部/相对路径拒绝；Windows筛选回归纳入现有workspace_mapping_tests入口。GitNexus无注册索引，impact无法产生图证据，按实际read_files唯一入口及定向测试复核，不重建索引。语法检查和diff检查通过，Windows编译/回归/安装待完成。
+
+沿用已授权提交、推送、GitHub Windows构建和本机更新；替换前复查占用并备份。不调用GPTBridge协议、不操控ChatGPT、不自动重放任务。

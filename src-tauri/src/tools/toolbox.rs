@@ -31,7 +31,7 @@ pub(super) fn definition(name: &str) -> Value {
             vec![],
         ),
         "read_files" => (
-            "Read up to 20 UTF-8 files inside the workspace in one bounded call (relative or inside-root absolute paths). External shared rules must be read with read_file when the selected read scope permits explicit external reads; do not treat a batch scope rejection as proof that the rule is unavailable. Returns individual results/errors and existing file SHA metadata; no all-files atomic snapshot is implied. Follow next_index for files not read within the aggregate content budget.",
+            "Read up to 20 UTF-8 files inside the workspace in one bounded call (relative or inside-root absolute paths). Explicit absolute Markdown rules under the selected user's .codex/skills or .agents/skills are also supported when the existing read scope permits them; strict workspace mode still rejects external reads. Returns individual results/errors and existing file SHA metadata; no all-files atomic snapshot is implied. Follow next_index for files not read within the aggregate content budget.",
             json!({
                 "paths":{"type":"array","minItems":1,"maxItems":20,"items":{"type":"string","minLength":1,"maxLength":4096}},
                 "start_index":{"type":"integer","minimum":0,"maximum":19,"default":0},
@@ -99,6 +99,17 @@ fn stat_path(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
 }
 
 fn read_files(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> {
+    // Use the selected WSL user's roots, never the Windows user's home for a
+    // WSL workspace. These are the same roots used by skill discovery.
+    let roots = if let Some(target) = super::wsl::for_path(ctx.workspace.root()) {
+        target.skill_roots()
+    } else {
+        dirs::home_dir().map(|home| vec![home.join(".codex/skills"), home.join(".agents/skills")]).unwrap_or_default()
+    };
+    read_files_with_skill_roots(ctx, args, &roots)
+}
+
+fn read_files_with_skill_roots(ctx: &ToolContext, args: &Value, roots: &[std::path::PathBuf]) -> Result<Value, WorkspaceError> {
     let paths = args["paths"].as_array().filter(|paths| !paths.is_empty() && paths.len() <= 20)
         .ok_or_else(|| WorkspaceError::invalid_argument("paths must contain 1 to 20 entries"))?;
     // Validate the entire request before reading the first item.
@@ -119,17 +130,31 @@ fn read_files(ctx: &ToolContext, args: &Value) -> Result<Value, WorkspaceError> 
         let text = path.as_str().expect("validated text");
         let mut request = json!({"path":text,"start_line":start_line,"max_bytes":per_file.min(budget - used)});
         if let Some(end) = end_line { request["end_line"] = json!(end); }
-        // Do not inherit the legacy single-file tool's explicit external reads.
         let result = ctx.workspace.resolve_read_path(text).and_then(|resolved| {
-            if !resolved.path.starts_with(ctx.workspace.root()) {
-                return Err(WorkspaceError::path_outside_workspace());
-            }
+            let inside = resolved.path.starts_with(ctx.workspace.root());
+            let read_root = if inside {
+                ctx.workspace.root().to_path_buf()
+            } else {
+                // Compatibility for existing prompts batching shared rules:
+                // explicit absolute Markdown only, under an existing skill root.
+                // General external files and relative escapes stay rejected.
+                let host = super::wsl::host_read_path(ctx.workspace.root(), text);
+                if ctx.workspace.reads_restricted_to_root() || !host.is_absolute()
+                    || !resolved.path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("md")) {
+                    return Err(WorkspaceError::path_outside_workspace());
+                }
+                roots.iter().filter_map(|root| root.canonicalize().ok())
+                    .find(|root| resolved.path.starts_with(root))
+                    .ok_or_else(WorkspaceError::path_outside_workspace)?
+            };
             let metadata = std::fs::metadata(&resolved.path).map_err(|_| WorkspaceError::not_found("file unavailable"))?;
             if !metadata.is_file() { return Err(WorkspaceError::invalid_argument("batch reads require regular files")); }
-            // Use an isolated strict workspace so a concurrently replaced symlink
-            // cannot opt into the legacy explicit external-read behavior.
-            let strict = super::workspace::Workspace::new(ctx.workspace.root().to_path_buf())?;
+            // Pin the approved canonical root and use its strict scalar reader;
+            // a replaced symlink must not opt into arbitrary external reads.
+            let strict = super::workspace::Workspace::new(read_root.clone())?;
             strict.restrict_reads_to_root();
+            let relative = resolved.path.strip_prefix(&read_root).map_err(|_| WorkspaceError::path_outside_workspace())?;
+            request["path"] = json!(relative.to_str().ok_or_else(|| WorkspaceError::invalid_argument("Path must be UTF-8"))?);
             super::file::read_file(&strict, &request)
         });
         let mut output = result.unwrap_or_else(tool_err);

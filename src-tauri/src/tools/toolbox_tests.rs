@@ -251,3 +251,45 @@ fn workspace_mapping_tests_batch_accepts_inside_root_absolute_paths() {
     assert_eq!(batch["results"][0]["content"],"inside rule");
     assert!(batch["results"][0]["file_sha256"].is_string());
 }
+
+
+#[test]
+fn workspace_mapping_tests_unchanged_batch_prompt_reads_approved_shared_markdown() {
+    let (temp,ctx)=fixture();
+    let skills=temp.path().join("home/.codex/skills");
+    fs::create_dir_all(skills.join("shared")).unwrap();
+    let rule=skills.join("shared/project-workflow.md");
+    fs::write(&rule,"shared rules 😀\nsecond line").unwrap();
+    fs::write(ctx.workspace.root().join("AGENTS.md"),"repo rules").unwrap();
+    let args=json!({"paths":["AGENTS.md",rule],"max_bytes_per_file":65536});
+    let out=read_files_with_skill_roots(&ctx,&args,&[skills.clone()]).unwrap();
+    assert_eq!(out["failed_count"],0,"{out}");
+    assert_eq!(out["results"][1]["content"],"shared rules 😀\nsecond line");
+    assert!(out["results"][1]["file_sha256"].is_string());
+    let limited=read_files_with_skill_roots(&ctx,&json!({"paths":[rule],"max_total_bytes":5}),&[skills.clone()]).unwrap();
+    assert!(limited["content_bytes"].as_u64().unwrap()<=5);
+    assert_eq!(limited["partial"],true);
+    ctx.workspace.restrict_reads_to_root();
+    let denied=read_files_with_skill_roots(&ctx,&args,&[skills]).unwrap();
+    assert_eq!(denied["failed_count"],1);
+    assert!(!denied.to_string().contains("shared rules 😀"));
+}
+
+#[test]
+fn workspace_mapping_tests_shared_rule_compatibility_keeps_external_boundaries() {
+    let (temp,ctx)=fixture();
+    let skills=temp.path().join("skills");
+    fs::create_dir(&skills).unwrap();
+    let data=skills.join("credentials.json");fs::write(&data,"private fixture").unwrap();
+    let outside=temp.path().join("outside.md");fs::write(&outside,"private fixture").unwrap();
+    let out=read_files_with_skill_roots(&ctx,&json!({"paths":[data,outside,"../outside.md"]}),&[skills.clone()]).unwrap();
+    assert_eq!(out["failed_count"],3);
+    assert!(!out.to_string().contains("private fixture"));
+    #[cfg(unix)] {
+        let link=skills.join("escape.md");
+        std::os::unix::fs::symlink(&outside,&link).unwrap();
+        let out=read_files_with_skill_roots(&ctx,&json!({"paths":[link]}),&[skills]).unwrap();
+        assert_eq!(out["failed_count"],1);
+        assert!(!out.to_string().contains("private fixture"));
+    }
+}
